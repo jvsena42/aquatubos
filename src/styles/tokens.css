@@ -2,58 +2,76 @@
  * Design tokens. Components must use these variables and never hard-code colours, fonts or
  * spacing. Light theme is the default; dark applies with the system setting or with
  * data-theme="dark" on <html>. data-theme="light" forces light.
+ *
+ * The two dark blocks below must hold identical values. Roles, hex values and the contrast
+ * table are documented in docs/BRAND.md; update it when a colour changes.
  */
 :root {
   color-scheme: light;
 
-  /* Brand */
+  /* Brand. --color-brand* are the logo colours: decorative only, not text-safe. */
   --color-primary: #0b4f8a;
   --color-primary-hover: #093f6e;
   --color-primary-contrast: #ffffff;
   --color-accent: #0e7490;
+  --color-brand: #0b4f8a;
+  --color-brand-accent: #14a3b8;
+  --color-brand-water: #a5dfeb;
 
-  /* Neutrals */
+  /* Neutrals. --color-border-strong reaches 3:1 for input and control outlines. */
   --color-bg: #f4f7fa;
   --color-surface: #ffffff;
   --color-surface-2: #eaf0f5;
   --color-border: #cbd5e1;
+  --color-border-strong: #7b8a9a;
   --color-text: #0f1b2a;
   --color-text-muted: #4a5b6e;
   --color-focus: #0e7490;
+  --color-overlay: rgb(15 27 42 / 0.45);
 
-  /* Status (text-safe on surface) */
-  --color-ok: #1b6e3c;
-  --color-ok-bg: #e2f4e8;
-  --color-warn: #8a5300;
+  /* Status (text-safe on bg, surface and on the matching -bg). Always pair with an icon or label. */
+  --color-ok: #007566;
+  --color-ok-bg: #dff3ee;
+  --color-warn: #9c5c00;
   --color-warn-bg: #fdf0d5;
-  --color-danger: #b3261e;
+  --color-danger: #96111a;
   --color-danger-bg: #fbe4e2;
   --color-info: #0b4f8a;
   --color-info-bg: #e1eefa;
 
-  /* Hydraulics */
-  --color-pressure-low: #b3261e;
-  --color-pressure-ok: #1b6e3c;
+  /* Hydraulics (graphics: at least 3:1 on bg and surface) */
+  --color-pressure-low: #96111a;
+  --color-pressure-ok: #007566;
   --color-pressure-high: #7b3fb0;
   --color-velocity-low: #7a8794;
-  --color-velocity-ok: #0e7490;
+  --color-velocity-ok: #075a73;
   --color-velocity-high: #c2410c;
   --color-pipe: #33475b;
-  --color-water: #38a3d1;
+  --color-water: #1a86ba;
+  --color-water-fill: #d3ecf7;
   --color-hgl: #0b6fc2;
   --color-terrain: #7a5c3a;
   --color-terrain-fill: #e6d9c6;
   --color-reservoir: #0b4f8a;
 
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Typography. Family names match @fontsource-variable/inter and -jetbrains-mono. */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+  --font-feature-tabular: 'tnum' 1;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 1rem;
   --font-size-lg: 1.25rem;
   --font-size-xl: 1.625rem;
+  --font-size-2xl: 2.125rem;
   --line-height: 1.5;
+  --line-height-tight: 1.2;
 
   /* Spacing, radius, shadow */
   --space-1: 0.25rem;
@@ -63,85 +81,131 @@
   --space-5: 1.5rem;
   --space-6: 2rem;
   --space-7: 3rem;
+  --space-8: 4rem;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
+  --radius-full: 999px;
   --shadow-1: 0 1px 2px rgb(15 27 42 / 0.08);
   --shadow-2: 0 4px 12px rgb(15 27 42 / 0.12);
+  --shadow-3: 0 12px 32px rgb(15 27 42 / 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
+
+    /* Brand */
     --color-primary: #5aa9e6;
     --color-primary-hover: #7dbdee;
     --color-primary-contrast: #06213a;
     --color-accent: #4fd1d9;
+    --color-brand: #6cb4ee;
+    --color-brand-accent: #4fd1d9;
+    --color-brand-water: #1c5f7a;
+
+    /* Neutrals */
     --color-bg: #0b1420;
     --color-surface: #121e2d;
     --color-surface-2: #1a2a3d;
     --color-border: #2f4257;
+    --color-border-strong: #62788f;
     --color-text: #e6edf5;
     --color-text-muted: #9fb0c3;
     --color-focus: #4fd1d9;
-    --color-ok: #6bd08f;
-    --color-ok-bg: #12331f;
-    --color-warn: #f2c063;
-    --color-warn-bg: #3a2c0c;
-    --color-danger: #ff8a80;
-    --color-danger-bg: #401815;
+    --color-overlay: rgb(0 0 0 / 0.6);
+
+    /* Status */
+    --color-ok: #7ce8c0;
+    --color-ok-bg: #0f3329;
+    --color-warn: #f5cf45;
+    --color-warn-bg: #3a2e0c;
+    --color-danger: #f47565;
+    --color-danger-bg: #3d1715;
     --color-info: #7dbdee;
     --color-info-bg: #102a44;
-    --color-pressure-low: #ff8a80;
-    --color-pressure-ok: #6bd08f;
+
+    /* Hydraulics */
+    --color-pressure-low: #f47565;
+    --color-pressure-ok: #7ce8c0;
     --color-pressure-high: #c9a0f0;
-    --color-velocity-low: #8d9bab;
-    --color-velocity-ok: #4fd1d9;
+    --color-velocity-low: #7f8ea0;
+    --color-velocity-ok: #5fdde4;
     --color-velocity-high: #ff9d5c;
     --color-pipe: #b4c2d1;
     --color-water: #5cc0ea;
+    --color-water-fill: #143a52;
     --color-hgl: #6db8f5;
     --color-terrain: #c4a57c;
     --color-terrain-fill: #3a2f22;
     --color-reservoir: #5aa9e6;
+
+    /* Shadow */
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
+    --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
   }
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
+
+  /* Brand */
   --color-primary: #5aa9e6;
   --color-primary-hover: #7dbdee;
   --color-primary-contrast: #06213a;
   --color-accent: #4fd1d9;
+  --color-brand: #6cb4ee;
+  --color-brand-accent: #4fd1d9;
+  --color-brand-water: #1c5f7a;
+
+  /* Neutrals */
   --color-bg: #0b1420;
   --color-surface: #121e2d;
   --color-surface-2: #1a2a3d;
   --color-border: #2f4257;
+  --color-border-strong: #62788f;
   --color-text: #e6edf5;
   --color-text-muted: #9fb0c3;
   --color-focus: #4fd1d9;
-  --color-ok: #6bd08f;
-  --color-ok-bg: #12331f;
-  --color-warn: #f2c063;
-  --color-warn-bg: #3a2c0c;
-  --color-danger: #ff8a80;
-  --color-danger-bg: #401815;
+  --color-overlay: rgb(0 0 0 / 0.6);
+
+  /* Status */
+  --color-ok: #7ce8c0;
+  --color-ok-bg: #0f3329;
+  --color-warn: #f5cf45;
+  --color-warn-bg: #3a2e0c;
+  --color-danger: #f47565;
+  --color-danger-bg: #3d1715;
   --color-info: #7dbdee;
   --color-info-bg: #102a44;
-  --color-pressure-low: #ff8a80;
-  --color-pressure-ok: #6bd08f;
+
+  /* Hydraulics */
+  --color-pressure-low: #f47565;
+  --color-pressure-ok: #7ce8c0;
   --color-pressure-high: #c9a0f0;
-  --color-velocity-low: #8d9bab;
-  --color-velocity-ok: #4fd1d9;
+  --color-velocity-low: #7f8ea0;
+  --color-velocity-ok: #5fdde4;
   --color-velocity-high: #ff9d5c;
   --color-pipe: #b4c2d1;
   --color-water: #5cc0ea;
+  --color-water-fill: #143a52;
   --color-hgl: #6db8f5;
   --color-terrain: #c4a57c;
   --color-terrain-fill: #3a2f22;
   --color-reservoir: #5aa9e6;
+
+  /* Shadow */
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
+}
+
+/*
+ * Numbers in calculation panels and tables: fixed-width digits so columns align. Works with
+ * both font families.
+ */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: var(--font-feature-tabular);
 }
