@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    .w { fill: #14a3b8; }
+    .p { fill: none; stroke: #0b4f8a; stroke-width: 7; stroke-linejoin: round; }
+    @media (prefers-color-scheme: dark) {
+      .w { fill: #4fd1d9; }
+      .p { stroke: #6cb4ee; }
+    }
+  </style>
+  <path class="w" d="M12 40A20 20 0 0 0 52 40Z" />
+  <path class="p" d="M32 5 48.18 27.24A20 20 0 1 1 15.82 27.24Z" />
+</svg>
