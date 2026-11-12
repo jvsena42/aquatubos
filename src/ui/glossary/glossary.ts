@@ -144,8 +144,8 @@ export const GLOSSARY = {
   operatingPoint: {
     term: { pt: 'Ponto de operação', en: 'Operating point' },
     definition: {
-      pt: 'Interseção da curva da bomba com a curva do sistema: a vazão e a altura manométrica em que a bomba realmente trabalha.',
-      en: 'Intersection of the pump curve and the system curve: the flow and head at which the pump actually runs.',
+      pt: 'Vazão e altura manométrica em que a bomba realmente trabalha. Com um reservatório de chegada, é a interseção da curva da bomba com a curva do sistema. Nesta rede, em que as demandas dos nós fixam a vazão, é o ponto da curva da bomba nessa vazão, e a rede atende quando ele fica acima da curva do sistema.',
+      en: 'Flow and head at which the pump actually runs. When pumping to a tank, it is the intersection of the pump curve and the system curve. In this network, where node demands fix the flow, it is the point of the pump curve at that flow, and the network works when it lies above the system curve.',
     },
   },
   k1: {
