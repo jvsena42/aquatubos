@@ -1,0 +1,13 @@
+{
+  "note": "Valores de referência ilustrativos, no estilo SINAPI (fornecimento + assentamento), definidos apenas para fins didáticos. Não são preços reais do SINAPI. / Illustrative SINAPI-like reference values (supply + installation) for teaching only. These are not actual SINAPI prices.",
+  "currency": "BRL",
+  "pipes": [
+    { "dn": 50, "internalDiameterMm": 50, "material": "PVC", "pricePerMeter": 25 },
+    { "dn": 75, "internalDiameterMm": 75, "material": "PVC", "pricePerMeter": 42 },
+    { "dn": 100, "internalDiameterMm": 100, "material": "PVC", "pricePerMeter": 65 },
+    { "dn": 150, "internalDiameterMm": 150, "material": "PEAD", "pricePerMeter": 120 },
+    { "dn": 200, "internalDiameterMm": 200, "material": "PEAD", "pricePerMeter": 195 },
+    { "dn": 250, "internalDiameterMm": 250, "material": "PEAD", "pricePerMeter": 290 },
+    { "dn": 300, "internalDiameterMm": 300, "material": "PEAD", "pricePerMeter": 400 }
+  ]
+}
