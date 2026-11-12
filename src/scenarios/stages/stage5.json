@@ -1,0 +1,188 @@
+{
+  "id": "stage5",
+  "order": 5,
+  "title": {
+    "pt": "Bombeamento",
+    "en": "Pumping"
+  },
+  "summary": {
+    "pt": "O reservatório fica abaixo da rede e uma bomba fornece a energia. Dimensione os trechos para que a bomba dada atenda a todos os nós.",
+    "en": "The reservoir lies below the network and a pump supplies the energy. Size the pipes so that the given pump serves every node."
+  },
+  "briefing": [
+    {
+      "pt": "O reservatório tem nível d'água na cota 100 m e os nós de consumo estão entre 111 m e 128 m. Sem bomba não há escoamento. A bomba soma à cota piezométrica a altura manométrica H, que diminui com a vazão conforme a curva H = a − b·Q^c ajustada por três pontos do catálogo.",
+      "en": "The reservoir water level is at 100 m and the consumption nodes lie between 111 m and 128 m. Without a pump there is no flow. The pump adds its head H to the hydraulic grade line, and H falls with flow following the curve H = a − b·Q^c fitted to three catalogue points."
+    },
+    {
+      "pt": "A curva do sistema mostra a altura que a bomba precisa fornecer para manter 10 mca no nó mais desfavorável, em função da vazão: desnível geométrico mais perdas de carga. Tubos maiores abaixam a curva do sistema. A rede atende quando, na vazão de projeto, a curva da bomba está acima da curva do sistema.",
+      "en": "The system curve shows the head the pump must supply to keep 10 mca at the worst node, as a function of flow: static lift plus head losses. Larger pipes lower the system curve. The network works when, at the design flow, the pump curve is above the system curve."
+    },
+    {
+      "pt": "A pressão estática é verificada com a bomba em vazão nula (altura de shutoff). O nó de recalque J1, na saída da bomba, não é ponto de consumo e não entra nas verificações de pressão.",
+      "en": "Static pressure is checked with the pump at zero flow (shutoff head). The discharge node J1, at the pump outlet, is not a consumption point and is left out of the pressure checks."
+    }
+  ],
+  "objectives": [
+    {
+      "pt": "Pressão dinâmica mínima de 10 mca",
+      "en": "Minimum dynamic pressure of 10 mca"
+    },
+    {
+      "pt": "Pressão estática máxima de 40 mca",
+      "en": "Maximum static pressure of 40 mca"
+    },
+    {
+      "pt": "Velocidade máxima de 3,5 m/s",
+      "en": "Maximum velocity of 3.5 m/s"
+    }
+  ],
+  "formula": "hazen-williams",
+  "hazenWilliamsC": 140,
+  "roughnessMm": 0.0015,
+  "nodes": [
+    {
+      "id": "J1",
+      "x": 120,
+      "y": 300,
+      "elevation": 101,
+      "demandLps": 0
+    },
+    {
+      "id": "N2",
+      "x": 420,
+      "y": 300,
+      "elevation": 112,
+      "demandLps": 2
+    },
+    {
+      "id": "N3",
+      "x": 670,
+      "y": 300,
+      "elevation": 120,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N4",
+      "x": 870,
+      "y": 300,
+      "elevation": 128,
+      "demandLps": 2
+    },
+    {
+      "id": "N5",
+      "x": 420,
+      "y": 520,
+      "elevation": 111,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N6",
+      "x": 670,
+      "y": 520,
+      "elevation": 118,
+      "demandLps": 3
+    }
+  ],
+  "reservoirs": [
+    {
+      "id": "R1",
+      "x": 0,
+      "y": 300,
+      "elevation": 100,
+      "waterLevel": 100
+    }
+  ],
+  "pipes": [
+    {
+      "id": "T1",
+      "from": "J1",
+      "to": "N2",
+      "length": 300,
+      "initialDN": 75
+    },
+    {
+      "id": "T2",
+      "from": "N2",
+      "to": "N3",
+      "length": 250,
+      "initialDN": 50
+    },
+    {
+      "id": "T3",
+      "from": "N3",
+      "to": "N4",
+      "length": 200,
+      "initialDN": 50
+    },
+    {
+      "id": "T4",
+      "from": "N2",
+      "to": "N5",
+      "length": 220,
+      "initialDN": 50
+    },
+    {
+      "id": "T5",
+      "from": "N3",
+      "to": "N6",
+      "length": 220,
+      "initialDN": 50
+    },
+    {
+      "id": "T6",
+      "from": "N5",
+      "to": "N6",
+      "length": 250,
+      "initialDN": 50
+    }
+  ],
+  "pumps": [
+    {
+      "id": "B1",
+      "from": "R1",
+      "to": "J1",
+      "points": [
+        {
+          "flowLps": 0,
+          "head": 50
+        },
+        {
+          "flowLps": 10,
+          "head": 44
+        },
+        {
+          "flowLps": 20,
+          "head": 26
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "minDynamicPressure": "error",
+    "maxStaticPressure": "error",
+    "minVelocity": "warning",
+    "maxVelocity": "error",
+    "minDiameter": "error"
+  },
+  "budget": null,
+  "features": {
+    "hglProfile": true,
+    "hardyCross": false,
+    "cost": false,
+    "pumpChart": true
+  },
+  "profilePath": ["R1", "J1", "N2", "N3", "N4"],
+  "reference": {
+    "diameters": {
+      "T1": 150,
+      "T2": 100,
+      "T3": 75,
+      "T4": 75,
+      "T5": 50,
+      "T6": 50
+    },
+    "cost": 81640,
+    "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
+  }
+}

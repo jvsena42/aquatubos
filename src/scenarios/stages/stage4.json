@@ -1,0 +1,287 @@
+{
+  "id": "stage4",
+  "order": 4,
+  "title": {
+    "pt": "Rede malhada com três anéis e orçamento",
+    "en": "Looped network with three rings and a budget"
+  },
+  "summary": {
+    "pt": "Oito nós, onze trechos, três anéis e um orçamento. Atender às pressões é fácil com tubos grandes; o trabalho é fazer isso gastando pouco.",
+    "en": "Eight nodes, eleven pipes, three rings and a budget. Meeting the pressures is easy with large pipes; the work is doing it cheaply."
+  },
+  "briefing": [
+    {
+      "pt": "Cada diâmetro comercial tem um preço por metro (valores ilustrativos, no estilo das composições do SINAPI). O custo da rede é a soma de preço × extensão de todos os trechos e não pode passar do orçamento.",
+      "en": "Each commercial diameter has a price per metre (illustrative values in the style of SINAPI cost compositions). The network cost is the sum of price × length over all pipes and must not exceed the budget."
+    },
+    {
+      "pt": "As estrelas comparam o seu custo com o de uma solução de referência obtida por busca computacional: até 5 % acima vale 3 estrelas, até 25 % vale 2.",
+      "en": "Stars compare your cost with a reference solution found by computer search: up to 5 % above earns 3 stars, up to 25 % earns 2."
+    },
+    {
+      "pt": "Em rede malhada, diminuir um trecho desvia vazão para os vizinhos. Trechos que fecham os anéis longe do reservatório costumam transportar pouca vazão e aceitam diâmetros pequenos; os trechos próximos ao reservatório concentram a vazão.",
+      "en": "In a looped network, shrinking one pipe diverts flow to its neighbours. Pipes that close the rings far from the reservoir usually carry little flow and accept small diameters; pipes near the reservoir concentrate the flow."
+    }
+  ],
+  "objectives": [
+    {
+      "pt": "Pressão dinâmica mínima de 10 mca",
+      "en": "Minimum dynamic pressure of 10 mca"
+    },
+    {
+      "pt": "Velocidade máxima de 3,5 m/s",
+      "en": "Maximum velocity of 3.5 m/s"
+    },
+    {
+      "pt": "Custo dentro do orçamento",
+      "en": "Cost within the budget"
+    }
+  ],
+  "formula": "hazen-williams",
+  "hazenWilliamsC": 140,
+  "roughnessMm": 0.0015,
+  "nodes": [
+    {
+      "id": "N1",
+      "x": 250,
+      "y": 100,
+      "elevation": 108,
+      "demandLps": 1.5
+    },
+    {
+      "id": "N2",
+      "x": 550,
+      "y": 100,
+      "elevation": 106,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N3",
+      "x": 850,
+      "y": 100,
+      "elevation": 103,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N4",
+      "x": 1150,
+      "y": 100,
+      "elevation": 101,
+      "demandLps": 2
+    },
+    {
+      "id": "N5",
+      "x": 250,
+      "y": 400,
+      "elevation": 105,
+      "demandLps": 2
+    },
+    {
+      "id": "N6",
+      "x": 550,
+      "y": 400,
+      "elevation": 104,
+      "demandLps": 3
+    },
+    {
+      "id": "N7",
+      "x": 850,
+      "y": 400,
+      "elevation": 100,
+      "demandLps": 3.5
+    },
+    {
+      "id": "N8",
+      "x": 1150,
+      "y": 400,
+      "elevation": 98,
+      "demandLps": 2
+    }
+  ],
+  "reservoirs": [
+    {
+      "id": "R1",
+      "x": 0,
+      "y": 100,
+      "elevation": 112,
+      "waterLevel": 135
+    }
+  ],
+  "pipes": [
+    {
+      "id": "T1",
+      "from": "R1",
+      "to": "N1",
+      "length": 250,
+      "initialDN": 100
+    },
+    {
+      "id": "T2",
+      "from": "N1",
+      "to": "N2",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T3",
+      "from": "N2",
+      "to": "N3",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T4",
+      "from": "N3",
+      "to": "N4",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T5",
+      "from": "N5",
+      "to": "N6",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T6",
+      "from": "N6",
+      "to": "N7",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T7",
+      "from": "N7",
+      "to": "N8",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T8",
+      "from": "N1",
+      "to": "N5",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T9",
+      "from": "N2",
+      "to": "N6",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T10",
+      "from": "N3",
+      "to": "N7",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T11",
+      "from": "N4",
+      "to": "N8",
+      "length": 300,
+      "initialDN": 50
+    }
+  ],
+  "pumps": [],
+  "checks": {
+    "minDynamicPressure": "error",
+    "maxStaticPressure": "error",
+    "minVelocity": "warning",
+    "maxVelocity": "error",
+    "minDiameter": "error"
+  },
+  "budget": 159000,
+  "features": {
+    "hglProfile": true,
+    "hardyCross": true,
+    "cost": true,
+    "pumpChart": false
+  },
+  "loops": [
+    {
+      "id": "I",
+      "pipes": [
+        {
+          "pipeId": "T2",
+          "direction": 1
+        },
+        {
+          "pipeId": "T9",
+          "direction": 1
+        },
+        {
+          "pipeId": "T5",
+          "direction": -1
+        },
+        {
+          "pipeId": "T8",
+          "direction": -1
+        }
+      ]
+    },
+    {
+      "id": "II",
+      "pipes": [
+        {
+          "pipeId": "T3",
+          "direction": 1
+        },
+        {
+          "pipeId": "T10",
+          "direction": 1
+        },
+        {
+          "pipeId": "T6",
+          "direction": -1
+        },
+        {
+          "pipeId": "T9",
+          "direction": -1
+        }
+      ]
+    },
+    {
+      "id": "III",
+      "pipes": [
+        {
+          "pipeId": "T4",
+          "direction": 1
+        },
+        {
+          "pipeId": "T11",
+          "direction": 1
+        },
+        {
+          "pipeId": "T7",
+          "direction": -1
+        },
+        {
+          "pipeId": "T10",
+          "direction": -1
+        }
+      ]
+    }
+  ],
+  "profilePath": ["R1", "N1", "N2", "N3", "N4", "N8"],
+  "reference": {
+    "diameters": {
+      "T1": 150,
+      "T2": 100,
+      "T3": 75,
+      "T4": 75,
+      "T5": 50,
+      "T6": 75,
+      "T7": 50,
+      "T8": 50,
+      "T9": 75,
+      "T10": 50,
+      "T11": 50
+    },
+    "cost": 137400,
+    "method": "Branch and bound over all commercial diameters with cost pruning (cheapest passing design)."
+  }
+}

@@ -1,0 +1,142 @@
+.profile {
+  /* Contains the visually hidden data table. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profile > .result-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.profile__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-4);
+}
+
+.profile__picker {
+  flex: 0 0 auto;
+  min-width: 9rem;
+}
+
+.profile__summary {
+  flex: 1 1 16rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.profile__alert {
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.profile__terrain-fill {
+  fill: var(--color-terrain-fill);
+  stroke: none;
+}
+
+.profile__terrain {
+  fill: none;
+  stroke: var(--color-terrain);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.profile__pipe {
+  fill: none;
+  stroke: var(--color-pipe);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.profile__tank {
+  fill: var(--color-water-fill);
+  stroke: var(--color-reservoir);
+  stroke-width: 1.5;
+}
+
+.profile__drop {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+
+.profile__hgl {
+  fill: none;
+  stroke: var(--color-hgl);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.profile__static {
+  fill: none;
+  stroke: var(--color-water);
+  stroke-width: 2;
+  stroke-dasharray: 8 5;
+}
+
+.profile__min {
+  fill: none;
+  stroke: var(--color-pressure-low);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.profile__node {
+  cursor: pointer;
+  outline: none;
+}
+
+.profile__hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.profile__marker {
+  fill: var(--color-surface);
+  stroke: var(--color-hgl);
+  stroke-width: 2;
+}
+
+.profile__node--below .profile__marker {
+  fill: var(--color-pressure-low);
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+}
+
+.profile__node--below .profile__value {
+  fill: var(--color-pressure-low);
+  font-weight: var(--font-weight-semibold);
+}
+
+.profile__node--active .profile__hit,
+.profile__node:focus-visible .profile__hit {
+  fill: var(--color-info-bg);
+  stroke: var(--color-focus);
+  stroke-width: 2;
+}
+
+.profile__node--selected .profile__hit {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+}
+
+.profile__readout {
+  min-height: 2.75em;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-size: var(--font-size-sm);
+}
+
+.profile__notes {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

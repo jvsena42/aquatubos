@@ -1,0 +1,149 @@
+{
+  "id": "stage1",
+  "order": 1,
+  "title": {
+    "pt": "Rede ramificada por gravidade",
+    "en": "Gravity-fed branched network"
+  },
+  "summary": {
+    "pt": "Um reservatório elevado abastece cinco pontos de consumo em terreno plano. Escolha os diâmetros para que todos tenham pelo menos 10 mca.",
+    "en": "An elevated tank supplies five consumption points on flat ground. Choose diameters so that every node has at least 10 mca."
+  },
+  "briefing": [
+    {
+      "pt": "O reservatório elevado tem nível d'água na cota 125 m e o terreno está todo na cota 100 m. A pressão estática disponível é, portanto, de 25 mca em todos os nós.",
+      "en": "The elevated tank has its water level at 125 m and the ground is at 100 m everywhere. The available static pressure is therefore 25 mca at every node."
+    },
+    {
+      "pt": "Com água em movimento, cada trecho consome parte dessa energia como perda de carga. A perda é calculada pela fórmula de Hazen-Williams, J = 10,643 · Q^1,852 / (C^1,852 · D^4,87), com C = 140 para PVC. Como o diâmetro entra elevado a 4,87, trocar um DN 50 por um DN 75 reduz a perda em cerca de 7 vezes.",
+      "en": "With water flowing, each pipe uses part of that energy as head loss. The loss is computed with the Hazen-Williams formula, J = 10.643 · Q^1.852 / (C^1.852 · D^4.87), with C = 140 for PVC. Because the diameter is raised to 4.87, replacing a DN 50 with a DN 75 cuts the loss by about 7 times."
+    },
+    {
+      "pt": "Em rede ramificada a vazão de cada trecho é a soma das demandas a jusante. Clique em um trecho para ver o cálculo com os números substituídos e para trocar o diâmetro. Depois use Calcular / Verificar.",
+      "en": "In a branched network the flow in each pipe is the sum of the downstream demands. Click a pipe to see the calculation with the numbers substituted and to change the diameter. Then use Calculate / Check."
+    }
+  ],
+  "objectives": [
+    {
+      "pt": "Pressão dinâmica mínima de 10 mca em todos os nós",
+      "en": "Minimum dynamic pressure of 10 mca at every node"
+    },
+    {
+      "pt": "Custo próximo ao da solução de referência para ganhar 3 estrelas",
+      "en": "Cost close to the reference solution to earn 3 stars"
+    }
+  ],
+  "formula": "hazen-williams",
+  "hazenWilliamsC": 140,
+  "roughnessMm": 0.0015,
+  "nodes": [
+    {
+      "id": "N1",
+      "x": 300,
+      "y": 200,
+      "elevation": 100,
+      "demandLps": 1.5
+    },
+    {
+      "id": "N2",
+      "x": 550,
+      "y": 200,
+      "elevation": 100,
+      "demandLps": 2
+    },
+    {
+      "id": "N3",
+      "x": 750,
+      "y": 200,
+      "elevation": 100,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N4",
+      "x": 300,
+      "y": 0,
+      "elevation": 100,
+      "demandLps": 2
+    },
+    {
+      "id": "N5",
+      "x": 550,
+      "y": 350,
+      "elevation": 100,
+      "demandLps": 1.5
+    }
+  ],
+  "reservoirs": [
+    {
+      "id": "R1",
+      "x": 0,
+      "y": 200,
+      "elevation": 100,
+      "waterLevel": 125
+    }
+  ],
+  "pipes": [
+    {
+      "id": "T1",
+      "from": "R1",
+      "to": "N1",
+      "length": 300,
+      "initialDN": 50
+    },
+    {
+      "id": "T2",
+      "from": "N1",
+      "to": "N2",
+      "length": 250,
+      "initialDN": 50
+    },
+    {
+      "id": "T3",
+      "from": "N2",
+      "to": "N3",
+      "length": 200,
+      "initialDN": 50
+    },
+    {
+      "id": "T4",
+      "from": "N1",
+      "to": "N4",
+      "length": 200,
+      "initialDN": 50
+    },
+    {
+      "id": "T5",
+      "from": "N2",
+      "to": "N5",
+      "length": 150,
+      "initialDN": 50
+    }
+  ],
+  "pumps": [],
+  "checks": {
+    "minDynamicPressure": "error",
+    "maxStaticPressure": "off",
+    "minVelocity": "off",
+    "maxVelocity": "off",
+    "minDiameter": "error"
+  },
+  "budget": null,
+  "features": {
+    "hglProfile": false,
+    "hardyCross": false,
+    "cost": false,
+    "pumpChart": false
+  },
+  "profilePath": ["R1", "N1", "N2", "N3"],
+  "reference": {
+    "diameters": {
+      "T1": 100,
+      "T2": 75,
+      "T3": 75,
+      "T4": 50,
+      "T5": 50
+    },
+    "cost": 47150,
+    "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
+  }
+}

@@ -1,0 +1,148 @@
+.pump {
+  /* Contains the visually hidden data table. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pump > .result-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.pump__verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.pump__verdict--ok {
+  border-left-color: var(--color-ok);
+}
+
+.pump__verdict--fail {
+  border-left-color: var(--color-danger);
+}
+
+.pump__curve {
+  fill: none;
+  stroke: var(--color-hgl);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.pump__system {
+  fill: none;
+  stroke: var(--color-velocity-high);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 5;
+  stroke-linejoin: round;
+}
+
+.pump__guide {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.pump__catalogue {
+  fill: var(--color-surface);
+  stroke: var(--color-hgl);
+  stroke-width: 2;
+}
+
+.pump__operating {
+  fill: var(--color-hgl);
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+}
+
+.pump__required {
+  fill: var(--color-surface);
+  stroke: var(--color-velocity-high);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.pump__margin {
+  stroke-width: 4;
+}
+
+.pump__margin--ok {
+  stroke: var(--color-ok);
+}
+
+.pump__margin--fail {
+  stroke: var(--color-danger);
+}
+
+.pump__margin-label--ok {
+  fill: var(--color-ok);
+}
+
+.pump__margin-label--fail {
+  fill: var(--color-danger);
+}
+
+.pump__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pump__facts > div {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.pump__facts dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pump__facts dd {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.pump__fact--ok {
+  color: var(--color-ok);
+}
+
+.pump__fact--fail {
+  color: var(--color-danger);
+}
+
+.pump__equation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.pump__formula {
+  font-size: var(--font-size-md);
+}
+
+.pump__notes,
+.pump__terms {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.pump__notes strong {
+  color: var(--color-danger);
+}

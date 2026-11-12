@@ -1,0 +1,169 @@
+{
+  "id": "stage3",
+  "order": 3,
+  "title": {
+    "pt": "Rede malhada (um anel)",
+    "en": "Looped network (one ring)"
+  },
+  "summary": {
+    "pt": "Com um anel, a água chega a cada nó por dois caminhos e a divisão de vazões deixa de ser óbvia. Acompanhe o método de Hardy Cross iteração por iteração.",
+    "en": "With a ring, water reaches each node by two paths and the flow split is no longer obvious. Follow the Hardy Cross method iteration by iteration."
+  },
+  "briefing": [
+    {
+      "pt": "Em rede ramificada a vazão de cada trecho sai direto da continuidade. Em um anel isso não basta: existem infinitas divisões que atendem à continuidade nos nós, mas só uma em que a soma das perdas de carga ao longo do anel, com sinal, é zero.",
+      "en": "In a branched network the flow in each pipe follows directly from continuity. In a ring that is not enough: infinitely many splits satisfy continuity at the nodes, but only one makes the signed sum of head losses around the ring equal to zero."
+    },
+    {
+      "pt": "O método de Hardy Cross parte de vazões arbitradas que respeitam a continuidade e corrige todas as vazões do anel por ΔQ = −Σh / Σ(n·|h|/|Q|), com n = 1,852 para Hazen-Williams. O sinal importa: perdas no sentido do anel são positivas e no sentido contrário, negativas.",
+      "en": "The Hardy Cross method starts from assumed flows that respect continuity and corrects every flow in the ring by ΔQ = −Σh / Σ(n·|h|/|Q|), with n = 1.852 for Hazen-Williams. The sign matters: losses in the ring direction are positive and losses against it are negative."
+    },
+    {
+      "pt": "A aba Hardy Cross mostra a tabela de cada iteração para os diâmetros atuais. As setas na rede indicam o sentido do escoamento, que pode mudar quando você troca um diâmetro.",
+      "en": "The Hardy Cross tab shows the table of each iteration for the current diameters. Arrows on the network show the flow direction, which can change when you change a diameter."
+    }
+  ],
+  "objectives": [
+    {
+      "pt": "Pressão dinâmica mínima de 10 mca",
+      "en": "Minimum dynamic pressure of 10 mca"
+    },
+    {
+      "pt": "Velocidade máxima de 3,5 m/s",
+      "en": "Maximum velocity of 3.5 m/s"
+    },
+    {
+      "pt": "Conferir na tabela de Hardy Cross que Σh do anel tende a zero",
+      "en": "Check in the Hardy Cross table that Σh around the ring tends to zero"
+    }
+  ],
+  "formula": "hazen-williams",
+  "hazenWilliamsC": 140,
+  "roughnessMm": 0.0015,
+  "nodes": [
+    {
+      "id": "A",
+      "x": 250,
+      "y": 200,
+      "elevation": 104,
+      "demandLps": 1
+    },
+    {
+      "id": "B",
+      "x": 600,
+      "y": 50,
+      "elevation": 102,
+      "demandLps": 3
+    },
+    {
+      "id": "C",
+      "x": 950,
+      "y": 200,
+      "elevation": 100,
+      "demandLps": 4
+    },
+    {
+      "id": "D",
+      "x": 600,
+      "y": 350,
+      "elevation": 103,
+      "demandLps": 2.5
+    }
+  ],
+  "reservoirs": [
+    {
+      "id": "R1",
+      "x": 0,
+      "y": 200,
+      "elevation": 106,
+      "waterLevel": 128
+    }
+  ],
+  "pipes": [
+    {
+      "id": "T1",
+      "from": "R1",
+      "to": "A",
+      "length": 250,
+      "initialDN": 75
+    },
+    {
+      "id": "T2",
+      "from": "A",
+      "to": "B",
+      "length": 350,
+      "initialDN": 50
+    },
+    {
+      "id": "T3",
+      "from": "B",
+      "to": "C",
+      "length": 420,
+      "initialDN": 50
+    },
+    {
+      "id": "T4",
+      "from": "A",
+      "to": "D",
+      "length": 400,
+      "initialDN": 50
+    },
+    {
+      "id": "T5",
+      "from": "D",
+      "to": "C",
+      "length": 360,
+      "initialDN": 50
+    }
+  ],
+  "pumps": [],
+  "checks": {
+    "minDynamicPressure": "error",
+    "maxStaticPressure": "error",
+    "minVelocity": "warning",
+    "maxVelocity": "error",
+    "minDiameter": "error"
+  },
+  "budget": null,
+  "features": {
+    "hglProfile": true,
+    "hardyCross": true,
+    "cost": false,
+    "pumpChart": false
+  },
+  "loops": [
+    {
+      "id": "I",
+      "pipes": [
+        {
+          "pipeId": "T2",
+          "direction": 1
+        },
+        {
+          "pipeId": "T3",
+          "direction": 1
+        },
+        {
+          "pipeId": "T5",
+          "direction": -1
+        },
+        {
+          "pipeId": "T4",
+          "direction": -1
+        }
+      ]
+    }
+  ],
+  "profilePath": ["R1", "A", "B", "C"],
+  "reference": {
+    "diameters": {
+      "T1": 100,
+      "T2": 75,
+      "T3": 50,
+      "T4": 75,
+      "T5": 75
+    },
+    "cost": 73370,
+    "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
+  }
+}

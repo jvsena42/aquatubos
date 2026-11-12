@@ -1,0 +1,130 @@
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stage__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.stage__title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: var(--font-size-lg);
+}
+
+.stage__number {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stage__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.stage__stale {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.stage__stale:empty {
+  display: none;
+}
+
+.stage__stale .badge {
+  white-space: normal;
+}
+
+.stage__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.stage__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Views can fill the panel with flex: 1 or height: 100%. */
+.stage__tabpanel {
+  display: flex;
+  flex-direction: column;
+  min-height: clamp(20rem, calc(100dvh - 14rem), 60rem);
+  padding: var(--space-3);
+  overflow: auto;
+}
+
+.stage__tabpanel:focus-visible {
+  outline-offset: -2px;
+}
+
+.stage__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.briefing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.briefing ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+@media (max-width: 960px) {
+  .stage__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage__tabpanel {
+    min-height: clamp(18rem, 60dvh, 36rem);
+  }
+}
+
+@media (max-width: 600px) {
+  .stage__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .stage__actions .btn--primary {
+    flex: 1 1 100%;
+    order: 10;
+  }
+
+  .stage__formula {
+    flex: 1;
+    min-width: 11rem;
+  }
+
+  .stage__formula .select {
+    width: 100%;
+  }
+
+  .stage__stale {
+    justify-content: flex-start;
+  }
+}

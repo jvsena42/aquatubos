@@ -1,0 +1,252 @@
+.hc {
+  /* Contains the visually hidden texts, which are absolutely positioned. */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hc > .result-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.hc__intro,
+.hc__status,
+.hc__steps,
+.hc__compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.hc__intro {
+  font-size: var(--font-size-sm);
+}
+
+.hc__formula {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-size: var(--font-size-md);
+}
+
+.hc__tolerance {
+  font-size: var(--font-size-sm);
+}
+
+.hc__convergence h4 {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hc__convergence ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 1.75rem;
+  padding: 0 var(--space-2) 0 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.hc__chip:hover {
+  background: var(--color-surface-2);
+}
+
+.hc__chip-n {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hc__chip[aria-current='step'] {
+  border-color: var(--color-primary);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
+.hc__chip[aria-current='step'] .hc__chip-n {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.hc__stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hc__stepper .btn--icon {
+  font-size: var(--font-size-md);
+}
+
+.hc__select {
+  min-height: 2rem;
+  padding-block: var(--space-1);
+}
+
+.hc__all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.hc__iteration {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.hc__iteration-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--font-size-md);
+}
+
+.hc__iteration-max {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.hc__loops {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.hc__wrap {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.hc__table caption {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.hc__loop {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hc__table th,
+.hc__table td {
+  padding: var(--space-2);
+}
+
+.hc__table thead th {
+  font-family: var(--font-sans);
+  vertical-align: bottom;
+}
+
+.hc__table tbody th {
+  font-weight: var(--font-weight-semibold);
+}
+
+.hc__table tbody tr[aria-selected] {
+  cursor: pointer;
+}
+
+.hc__table tbody tr:last-child > *,
+.hc__table tfoot tr:last-child > * {
+  border-bottom: 0;
+}
+
+.hc__table thead .hc__unit {
+  display: block;
+}
+
+.hc__unit {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+}
+
+.hc__table .hc__sign {
+  text-align: center;
+}
+
+.hc__shared {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.hc__table tfoot th {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-align: right;
+}
+
+.hc__table tfoot tr:first-child > * {
+  border-top: 2px solid var(--color-border-strong);
+}
+
+.hc__table .hc__delta > * {
+  background: var(--color-info-bg);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hc__outside {
+  color: var(--color-text-muted);
+}
+
+.hc__signs {
+  font-size: var(--font-size-sm);
+}
+
+.hc__signs summary {
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.hc__signs p {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.hc__agree {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.hc__note {
+  font-size: var(--font-size-xs);
+}
