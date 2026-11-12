@@ -8,6 +8,7 @@ import {
   saveProgress,
   savePreferences,
   type Lang,
+  type NetworkViewMode,
   type ThemeSetting,
 } from '../persistence/db';
 import { getScenario, SCENARIOS } from '../scenarios';
@@ -22,6 +23,9 @@ export interface AppState {
   theme: ThemeSetting;
   setLang: (lang: Lang) => void;
   setTheme: (theme: ThemeSetting) => void;
+  /** Drawing shown in the network tab. */
+  networkView: NetworkViewMode;
+  setNetworkView: (mode: NetworkViewMode) => void;
 
   /** False until saved progress and preferences were read from IndexedDB. */
   hydrated: boolean;
@@ -42,6 +46,12 @@ export interface AppState {
   stale: boolean;
   solving: boolean;
   error: string | null;
+  /**
+   * Time (ms) of the last "Calcular / Verificar" the player ran in the open stage, or null.
+   * Opening a stage does not set it. Views use a change of this value to start the success or
+   * failure feedback.
+   */
+  verifiedAt: number | null;
 
   openStage: (stageId: string) => Promise<void>;
   closeStage: () => void;
@@ -104,6 +114,11 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ theme });
       void savePreferences({ theme }).catch(() => undefined);
     },
+    networkView: 'town',
+    setNetworkView: (networkView) => {
+      set({ networkView });
+      void savePreferences({ networkView }).catch(() => undefined);
+    },
 
     hydrated: false,
     hydrate: async () => {
@@ -126,6 +141,7 @@ export const useAppStore = create<AppState>((set, get) => {
     stale: false,
     solving: false,
     error: null,
+    verifiedAt: null,
 
     openStage: async (stageId) => {
       const scenario = getScenario(stageId);
@@ -139,6 +155,7 @@ export const useAppStore = create<AppState>((set, get) => {
         evaluation: null,
         stale: false,
         error: null,
+        verifiedAt: null,
       });
       // Solve once so the network is drawn with pressures and velocities. This first
       // evaluation is not recorded as an attempt.
@@ -154,7 +171,14 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     closeStage: () =>
-      set({ scenario: null, diameters: {}, selection: null, evaluation: null, error: null }),
+      set({
+        scenario: null,
+        diameters: {},
+        selection: null,
+        evaluation: null,
+        error: null,
+        verifiedAt: null,
+      }),
 
     setDiameter: (pipeId, dn) => {
       const { scenario, diameters } = get();
@@ -184,7 +208,7 @@ export const useAppStore = create<AppState>((set, get) => {
       try {
         const evaluation = await evaluateInWorker(scenario.id, diameters, formula);
         if (get().scenario?.id !== scenario.id) return;
-        set({ evaluation, stale: false });
+        set({ evaluation, stale: false, verifiedAt: Date.now() });
         persist(evaluation);
       } catch (error) {
         set({ error: error instanceof Error ? error.message : String(error) });

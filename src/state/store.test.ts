@@ -21,6 +21,7 @@ describe('app store', () => {
     expect(state.stale).toBe(false);
     expect(state.solving).toBe(false);
     // Opening a stage is not an attempt.
+    expect(state.verifiedAt).toBeNull();
     expect(state.progress.stage1).toBeUndefined();
   });
 
@@ -58,6 +59,7 @@ describe('app store', () => {
     expect(useAppStore.getState().stale).toBe(false);
     expect(progress.completed).toBe(true);
     expect(progress.stars).toBe(1);
+    expect(useAppStore.getState().verifiedAt).not.toBeNull();
     const firstCost = progress.bestCost!;
 
     for (const [id, dn] of Object.entries(stage1.reference.diameters)) store.setDiameter(id, dn);
@@ -106,8 +108,14 @@ describe('app store', () => {
   it('saves language and theme', async () => {
     useAppStore.getState().setLang('en');
     useAppStore.getState().setTheme('dark');
+    expect(useAppStore.getState().networkView).toBe('town');
+    useAppStore.getState().setNetworkView('schematic');
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(await loadPreferences()).toMatchObject({ lang: 'en', theme: 'dark' });
+    expect(await loadPreferences()).toMatchObject({
+      lang: 'en',
+      theme: 'dark',
+      networkView: 'schematic',
+    });
   });
 
   it('clears the stage on close and ignores stage actions without a stage', async () => {
