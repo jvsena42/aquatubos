@@ -8,23 +8,204 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
-.stages__list {
-  display: grid;
-  gap: var(--space-3);
+/* The map: an illustration with the stage buttons laid over it. */
+.stage-map {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-map-ground);
+  container-type: inline-size;
+}
+
+.stage-map--tall {
+  max-width: 30rem;
+  margin: 0 auto;
+}
+
+.stage-map__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stage-map__list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.stage-card {
+.stage-map__item {
+  position: absolute;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-  width: 100%;
+  justify-content: center;
+}
+
+/* Scenery. Shapes take their colours from classes so the drawing stays small. */
+.stage-map__art * {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.m-grass {
+  fill: var(--color-map-grass);
+  opacity: 0.55;
+}
+
+.m-body,
+.m-roof,
+.m-roof-alt,
+.m-tree,
+.m-hill,
+.m-pump {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2;
+}
+
+.m-body {
+  fill: var(--color-map-building);
+}
+
+.m-roof {
+  fill: var(--color-map-roof);
+}
+
+.m-roof-alt {
+  fill: var(--color-map-roof-alt);
+}
+
+.m-window {
+  fill: var(--color-map-window);
+}
+
+.m-tree {
+  fill: var(--color-map-tree);
+}
+
+.m-hill {
+  fill: var(--color-map-grass);
+}
+
+.m-water {
+  fill: var(--color-map-water);
+}
+
+.m-pump {
+  fill: var(--color-map-water);
+}
+
+.m-line,
+.m-contour {
+  fill: none;
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2;
+}
+
+.m-contour {
+  stroke: var(--color-map-contour);
+}
+
+.m-street,
+.m-street-edge {
+  fill: none;
+  stroke: var(--color-map-street);
+  stroke-width: 8;
+}
+
+.m-street-edge {
+  stroke: var(--color-map-street-edge);
+  stroke-width: 11;
+}
+
+.m-street--road {
+  stroke-width: 18;
+}
+
+.m-street-edge--road {
+  stroke-width: 22;
+}
+
+/* The water main along the road: full of water up to the last unlocked stage. */
+.m-main {
+  fill: none;
+  stroke-width: 5;
+}
+
+.m-main--wet {
+  stroke: var(--color-water);
+}
+
+.m-main--dry {
+  stroke: var(--color-map-locked);
+  stroke-dasharray: 2 9;
+}
+
+.m-node {
+  fill: var(--color-map-building);
+  stroke: var(--color-map-locked);
+  stroke-width: 4;
+}
+
+.m-node--wet {
+  stroke: var(--color-water);
+}
+
+/* Locked neighbourhoods are drawn as grey outlines. They stay opaque so the road does not
+   show through the houses. */
+.m-site--locked * {
+  fill: var(--color-map-ground);
+  stroke: var(--color-map-locked);
+}
+
+.m-site--locked :is(.m-roof, .m-roof-alt, .m-tree, .m-window, .m-water) {
+  fill: var(--color-map-locked);
+}
+
+.m-site--locked :is(.m-line, .m-contour, .m-street, .m-street-edge, .m-main) {
+  fill: none;
+}
+
+.m-site--locked .m-street {
+  stroke: var(--color-map-ground);
+}
+
+.m-site--locked .m-window,
+.m-site--locked .m-water {
+  stroke: none;
+}
+
+.m-halo {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  stroke-dasharray: 1 7;
+  pointer-events: none;
+}
+
+.m-hit {
+  fill: transparent;
+}
+
+.m-hit--open {
+  cursor: pointer;
+}
+
+/* Stage label: the button that opens the stage. */
+.stage-pin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-width: 100%;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
   color: var(--color-text);
+  font-size: clamp(0.75rem, 1.45cqw, 0.875rem);
   text-align: left;
   cursor: pointer;
   transition:
@@ -32,70 +213,85 @@
     box-shadow 120ms ease;
 }
 
-.stage-card:hover:not(:disabled) {
+.stage-pin:hover:not(:disabled),
+.stage-pin--active:not(:disabled) {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-2);
 }
 
-.stage-card:disabled {
+.stage-pin:disabled {
   background: var(--color-surface-2);
   box-shadow: none;
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
-.stage-card__number {
+.stage-pin__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.stage-pin__number {
   display: grid;
   flex-shrink: 0;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-2);
-  font-size: var(--font-size-lg);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--font-size-xs);
   font-weight: 650;
 }
 
-.stage-card:disabled .stage-card__number {
-  background: var(--color-surface);
-  color: var(--color-text-muted);
+.stage-pin:disabled .stage-pin__number {
+  background: var(--color-map-locked);
+  color: var(--color-text);
 }
 
-.stage-card__content,
-.stage-card__details {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.stage-card__title {
-  font-size: var(--font-size-lg);
+.stage-pin__title {
+  align-self: center;
+  font-size: 1.08em;
   font-weight: 650;
   line-height: 1.25;
 }
 
-.stage-card:disabled .stage-card__title {
-  color: var(--color-text-muted);
-}
-
-.stage-card__summary {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-.stage-card__status {
+.stage-pin__details {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-1) var(--space-2);
+}
+
+.stage-pin__cost {
+  flex-basis: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+/* Summary of the stage under the pointer or with focus. */
+.stages__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-height: 5.5rem;
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   font-size: var(--font-size-sm);
 }
 
-@media (max-width: 480px) {
-  .stage-card {
-    gap: var(--space-3);
-    padding: var(--space-3);
+@media (max-width: 800px) {
+  .stage-pin {
+    font-size: var(--font-size-xs);
+  }
+
+  .stages__details {
+    max-width: 30rem;
+    margin-right: auto;
+    margin-left: auto;
   }
 }
