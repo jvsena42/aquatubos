@@ -54,6 +54,22 @@
   --color-terrain-fill: #e6d9c6;
   --color-reservoir: #0b4f8a;
 
+  /* Illustration (town view and stage map). Decorative fills, not text colours. */
+  --color-map-ground: #eef2e6;
+  --color-map-grass: #cfe3c0;
+  --color-map-street: #dfe4ea;
+  --color-map-street-edge: #b9c3ce;
+  --color-map-building: #f7f4ee;
+  --color-map-building-edge: #8795a3;
+  --color-map-roof: #c98f6b;
+  --color-map-roof-alt: #7f9bb5;
+  --color-map-tree: #6fa77a;
+  --color-map-water: #a5dfeb;
+  --color-map-contour: #b7c2a4;
+  --color-map-window: #9fb0c3;
+  --color-map-window-lit: #f5cf45;
+  --color-map-locked: #b6bfc9;
+
   /* Typography. Family names match @fontsource-variable/inter and -jetbrains-mono. */
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono:
@@ -141,6 +157,20 @@
     --color-reservoir: #5aa9e6;
 
     /* Shadow */
+    --color-map-ground: #142033;
+    --color-map-grass: #1d3a34;
+    --color-map-street: #26374b;
+    --color-map-street-edge: #3b5068;
+    --color-map-building: #2b3d52;
+    --color-map-building-edge: #6f8298;
+    --color-map-roof: #9a6a4f;
+    --color-map-roof-alt: #4f6f8e;
+    --color-map-tree: #3f7d5c;
+    --color-map-water: #1c5f7a;
+    --color-map-contour: #34485e;
+    --color-map-window: #50647a;
+    --color-map-window-lit: #f5cf45;
+    --color-map-locked: #44566a;
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
     --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
@@ -196,6 +226,20 @@
   --color-reservoir: #5aa9e6;
 
   /* Shadow */
+  --color-map-ground: #142033;
+  --color-map-grass: #1d3a34;
+  --color-map-street: #26374b;
+  --color-map-street-edge: #3b5068;
+  --color-map-building: #2b3d52;
+  --color-map-building-edge: #6f8298;
+  --color-map-roof: #9a6a4f;
+  --color-map-roof-alt: #4f6f8e;
+  --color-map-tree: #3f7d5c;
+  --color-map-water: #1c5f7a;
+  --color-map-contour: #34485e;
+  --color-map-window: #50647a;
+  --color-map-window-lit: #f5cf45;
+  --color-map-locked: #44566a;
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
   --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
