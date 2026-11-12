@@ -1,0 +1,65 @@
+import type { LocalizedText } from '../../engine/types';
+import type { Status } from './status';
+
+/** Pressure head unit, as in the checks. */
+export const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'm H2O' };
+
+export const strings3d = {
+  canvasLabel: (stage: string, withResult: boolean): LocalizedText => ({
+    pt: withResult
+      ? `Vista 3D da rede de ${stage}: terreno, tubos, nós coloridos pela pressão, reservatório e superfície da linha piezométrica acima do terreno.`
+      : `Vista 3D da rede de ${stage}: terreno, tubos, nós e reservatório.`,
+    en: withResult
+      ? `3D view of the ${stage} network: terrain, pipes, nodes coloured by pressure, reservoir and the hydraulic grade line surface above the terrain.`
+      : `3D view of the ${stage} network: terrain, pipes, nodes and reservoir.`,
+  }),
+  controls: { pt: 'Controles da vista 3D', en: '3D view controls' },
+  exaggeration: { pt: 'Exagero vertical', en: 'Vertical exaggeration' },
+  exaggerationOption: (factor: number): LocalizedText => ({
+    pt: `Exagero vertical de ${factor}×`,
+    en: `Vertical exaggeration ${factor}×`,
+  }),
+  scaleNote: (factor: number): LocalizedText =>
+    factor === 1
+      ? { pt: 'Alturas em escala real (1×)', en: 'Heights at true scale (1×)' }
+      : { pt: `Alturas ampliadas ${factor}×`, en: `Heights exaggerated ${factor}×` },
+  resetView: { pt: 'Recentrar vista', en: 'Reset view' },
+  hgl: { pt: 'Linha piezométrica', en: 'Hydraulic grade line' },
+  labels: { pt: 'Rótulos', en: 'Labels' },
+  hint: {
+    pt: 'Arraste para girar. Role ou afaste dois dedos para aproximar. O botão direito ou dois dedos arrastando deslocam a vista. Clique em um tubo ou nó para selecionar.',
+    en: 'Drag to rotate. Scroll or pinch to zoom. The right button or a two-finger drag pans the view. Click a pipe or node to select it.',
+  },
+  stale: {
+    pt: 'Resultados desatualizados: as pressões e a linha piezométrica são do último cálculo. Calcule novamente.',
+    en: 'Results are outdated: pressures and the hydraulic grade line are from the last calculation. Calculate again.',
+  },
+  noResult: {
+    pt: 'Ainda não há resultado. Calcule para ver as pressões e a linha piezométrica.',
+    en: 'There is no result yet. Calculate to see pressures and the hydraulic grade line.',
+  },
+  noWebgl: {
+    pt: 'Este navegador não conseguiu iniciar o WebGL, por isso a vista 3D não pode ser mostrada. As outras abas mostram os mesmos resultados.',
+    en: 'This browser could not start WebGL, so the 3D view cannot be shown. The other tabs show the same results.',
+  },
+  summary: (node: string, pressure: string, minimum: string, ok: boolean): LocalizedText => ({
+    pt: ok
+      ? `Nó crítico: ${node}, com pressão dinâmica de ${pressure} mca (mínimo de ${minimum} mca).`
+      : `Nó crítico: ${node}, com pressão dinâmica de ${pressure} mca, abaixo do mínimo de ${minimum} mca.`,
+    en: ok
+      ? `Critical node: ${node}, with a dynamic pressure of ${pressure} m H2O (minimum ${minimum} m H2O).`
+      : `Critical node: ${node}, with a dynamic pressure of ${pressure} m H2O, below the minimum of ${minimum} m H2O.`,
+  }),
+  legend: { pt: 'Legenda', en: 'Legend' },
+  nodePressure: { pt: 'Nós, pressão:', en: 'Nodes, pressure:' },
+  pipeVelocity: { pt: 'Tubos, velocidade:', en: 'Pipes, velocity:' },
+  hglSurface: { pt: 'Linha piezométrica', en: 'Hydraulic grade line' },
+  pump: { pt: 'Bomba', en: 'Pump' },
+  waterLevel: (level: string): LocalizedText => ({ pt: `NA ${level} m`, en: `WL ${level} m` }),
+} as const;
+
+export const statusLabels: Record<Exclude<Status, 'none'>, LocalizedText> = {
+  low: { pt: 'baixa', en: 'low' },
+  ok: { pt: 'adequada', en: 'ok' },
+  high: { pt: 'alta', en: 'high' },
+};

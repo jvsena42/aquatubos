@@ -148,7 +148,7 @@ describe('StageScreen', () => {
 
     await user.keyboard('{ArrowLeft}{ArrowLeft}');
     expect(screen.getByRole('tab', { name: '3D' })).toHaveFocus();
-    expect(await screen.findByText('Network3D')).toBeInTheDocument();
+    expect(await screen.findByText(/WebGL/)).toBeInTheDocument();
 
     await user.keyboard('{Home}');
     expect(network).toHaveFocus();

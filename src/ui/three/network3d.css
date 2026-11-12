@@ -1,0 +1,224 @@
+.net3d {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+}
+
+.net3d__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.net3d__field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.net3d__toggles > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.net3d__toolbar > .btn {
+  margin-left: auto;
+}
+
+.net3d__viewport {
+  position: relative;
+  flex: 1;
+  min-height: 20rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.net3d__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.net3d__canvas canvas {
+  display: block;
+  touch-action: none;
+}
+
+.net3d__labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.net3d__labels--stale {
+  opacity: 0.6;
+}
+
+.net3d__label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.net3d__label--pipe {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.net3d__label--reservoir {
+  border-color: var(--color-reservoir);
+}
+
+.net3d__label--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.net3d__scale,
+.net3d__note {
+  position: absolute;
+  left: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  pointer-events: none;
+}
+
+.net3d__scale {
+  bottom: var(--space-2);
+}
+
+.net3d__note {
+  top: var(--space-2);
+  right: var(--space-2);
+  border-color: var(--color-warn);
+  background: var(--color-warn-bg);
+  color: var(--color-warn);
+  font-weight: var(--font-weight-semibold);
+}
+
+.net3d__fallback {
+  max-width: 40rem;
+  margin: 0;
+  padding: var(--space-4);
+}
+
+.net3d__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  font-size: var(--font-size-xs);
+  list-style: none;
+}
+
+.net3d__legend > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.net3d__key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.net3d__dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--radius-full);
+}
+
+.net3d__bar {
+  width: 1.25rem;
+  height: 0.3rem;
+  border-radius: var(--radius-full);
+}
+
+.net3d__swatch {
+  width: 1.25rem;
+  height: 0.75rem;
+  border: 1px solid var(--color-hgl);
+  border-radius: var(--radius-sm);
+}
+
+.net3d__swatch--hgl {
+  background: color-mix(in srgb, var(--color-hgl) 30%, transparent);
+}
+
+.net3d__dot--pressure-low {
+  background: var(--color-pressure-low);
+}
+
+.net3d__dot--pressure-ok {
+  background: var(--color-pressure-ok);
+}
+
+.net3d__dot--pressure-high {
+  background: var(--color-pressure-high);
+}
+
+.net3d__dot--pump {
+  background: var(--color-accent);
+}
+
+.net3d__bar--velocity-low {
+  background: var(--color-velocity-low);
+}
+
+.net3d__bar--velocity-ok {
+  background: var(--color-velocity-ok);
+}
+
+.net3d__bar--velocity-high {
+  background: var(--color-velocity-high);
+}
+
+.net3d__summary {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.net3d__hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+}
+
+/* On a phone the DN labels crowd the node labels; the pipe thickness already shows the DN. */
+@media (max-width: 600px) {
+  .net3d__label--pipe:not(.net3d__label--selected) {
+    display: none;
+  }
+
+  .net3d__toolbar > .btn {
+    margin-left: 0;
+  }
+}
