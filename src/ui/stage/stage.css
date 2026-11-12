@@ -117,6 +117,7 @@
 
   .stage__formula {
     flex: 1;
+    min-width: 11rem;
   }
 
   .stage__formula .select {
