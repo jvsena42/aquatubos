@@ -38,9 +38,7 @@ describe('Network3D without WebGL', () => {
     render(<Network3D />);
     expect(screen.getByRole('status')).toHaveTextContent('This browser could not start WebGL');
     expect(
-      screen.getByText(
-        'Critical node: N4, with a dynamic pressure of 10.6 m H2O (minimum 10 m H2O).',
-      ),
+      screen.getByText('Critical node: N4, with a dynamic pressure of 10.6 mca (minimum 10 mca).'),
     ).toBeInTheDocument();
   });
 

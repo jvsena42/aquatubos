@@ -204,8 +204,8 @@ describe('CSV', () => {
       'Downstream hydraulic grade (m)',
       'Upstream ground elevation (m)',
       'Downstream ground elevation (m)',
-      'Upstream available pressure (m H2O)',
-      'Downstream available pressure (m H2O)',
+      'Upstream available pressure (mca)',
+      'Downstream available pressure (mca)',
     ]);
     lines.slice(1).forEach((line, index) => {
       const cells = line.split(',');

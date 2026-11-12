@@ -87,7 +87,7 @@ describe('Network3D controls', () => {
     expect(controls.getByRole('button', { name: 'Reset view' })).toBeInTheDocument();
     expect(screen.getByText('Heights exaggerated 5×')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveAccessibleName(/^3D view of the Uneven terrain network/);
-    expect(screen.getByText('N4 · 10.6 m H2O')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 10.6 mca')).toBeInTheDocument();
   });
 
   it('changes the vertical exaggeration and states the factor', async () => {

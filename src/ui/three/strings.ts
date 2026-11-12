@@ -2,7 +2,7 @@ import type { LocalizedText } from '../../engine/types';
 import type { Status } from './status';
 
 /** Pressure head unit, as in the checks. */
-export const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'm H2O' };
+export const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'mca' };
 
 export const strings3d = {
   canvasLabel: (stage: string, withResult: boolean): LocalizedText => ({
@@ -47,8 +47,8 @@ export const strings3d = {
       ? `Nó crítico: ${node}, com pressão dinâmica de ${pressure} mca (mínimo de ${minimum} mca).`
       : `Nó crítico: ${node}, com pressão dinâmica de ${pressure} mca, abaixo do mínimo de ${minimum} mca.`,
     en: ok
-      ? `Critical node: ${node}, with a dynamic pressure of ${pressure} m H2O (minimum ${minimum} m H2O).`
-      : `Critical node: ${node}, with a dynamic pressure of ${pressure} m H2O, below the minimum of ${minimum} m H2O.`,
+      ? `Critical node: ${node}, with a dynamic pressure of ${pressure} mca (minimum ${minimum} mca).`
+      : `Critical node: ${node}, with a dynamic pressure of ${pressure} mca, below the minimum of ${minimum} mca.`,
   }),
   legend: { pt: 'Legenda', en: 'Legend' },
   nodePressure: { pt: 'Nós, pressão:', en: 'Nodes, pressure:' },
