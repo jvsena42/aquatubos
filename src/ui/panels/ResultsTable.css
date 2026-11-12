@@ -1,0 +1,172 @@
+.results {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.results > .result-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.results__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.results__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 2rem;
+}
+
+/* The wrap scrolls in both directions so the header row can stay in view. */
+.results__wrap {
+  /* Contains the visually hidden texts, which are absolutely positioned. */
+  position: relative;
+  max-height: min(34rem, 75dvh);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.results__table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.results__table th,
+.results__table td {
+  padding: var(--space-2);
+}
+
+.results__table thead th {
+  border-bottom: 0;
+  font-family: var(--font-sans);
+  white-space: normal;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+  line-height: 1.3;
+  vertical-align: bottom;
+}
+
+.results__table thead th[colspan] {
+  text-align: center;
+}
+
+.results__table tbody tr {
+  cursor: pointer;
+}
+
+.results__table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.results__unit {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-regular);
+}
+
+/* First column stays in view while the table scrolls sideways. */
+.results__table .results__corner,
+.results__table .results__id {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.results__table .results__id {
+  background: var(--color-surface);
+  box-shadow: inset -1px 0 0 var(--color-border);
+  font-weight: var(--font-weight-semibold);
+}
+
+.results__table .results__corner {
+  box-shadow:
+    inset -1px 0 0 var(--color-border),
+    inset 0 -1px 0 var(--color-border);
+}
+
+.results__table tbody tr:hover .results__id {
+  background: var(--color-surface-2);
+}
+
+.results__table tr[aria-selected='true'] .results__id {
+  background: var(--color-info-bg);
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    inset -1px 0 0 var(--color-border);
+}
+
+.results__rowbtn {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.results__reversed,
+.results__kind {
+  margin-left: var(--space-2);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.results__kind {
+  font-size: var(--font-size-xs);
+}
+
+.results__cell--error {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.results__cell--warning {
+  background: var(--color-warn-bg);
+  color: var(--color-warn);
+  font-weight: var(--font-weight-semibold);
+}
+
+.results__flag {
+  display: inline-flex;
+  margin-right: var(--space-1);
+  vertical-align: -0.15em;
+}
+
+.results__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.results__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.results__legend-item--error {
+  color: var(--color-danger);
+}
+
+.results__legend-item--warning {
+  color: var(--color-warn);
+}

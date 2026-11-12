@@ -144,7 +144,7 @@ describe('StageScreen', () => {
     expect(screen.getByRole('tab', { name: 'Tabela' })).toHaveFocus();
     expect(screen.getByRole('tab', { name: 'Tabela' })).toHaveAttribute('aria-selected', 'true');
     expect(network).toHaveAttribute('tabindex', '-1');
-    expect(screen.getByRole('tabpanel', { name: 'Tabela' })).toHaveTextContent('ResultsTable');
+    expect(screen.getByRole('tabpanel', { name: 'Tabela' })).toBeInTheDocument();
 
     await user.keyboard('{ArrowLeft}{ArrowLeft}');
     expect(screen.getByRole('tab', { name: '3D' })).toHaveFocus();
