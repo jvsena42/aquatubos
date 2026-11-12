@@ -7,6 +7,7 @@ import { getScenario, SCENARIOS } from '../../scenarios';
 import type { Diameters, Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
+import { rectsOverlap, textWidth, type Rect } from './labels';
 import { NetworkView } from './NetworkView';
 import { nodeStatuses, pipeStatuses } from './status';
 
@@ -358,6 +359,73 @@ describe('NetworkView', () => {
     expect(element('pipe', 'T1')).toHaveAccessibleName('Trecho T1, DN 75 mm');
     expect(screen.getByRole('status')).toHaveTextContent(
       'Calcule para ver pressões, vazões e velocidades.',
+    );
+  });
+
+  describe('at phone width', () => {
+    const sizes = { clientWidth: 310, clientHeight: 256 };
+    const originals = {
+      clientWidth: Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientWidth'),
+      clientHeight: Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight'),
+    };
+
+    beforeEach(() => {
+      for (const key of ['clientWidth', 'clientHeight'] as const) {
+        Object.defineProperty(HTMLElement.prototype, key, {
+          configurable: true,
+          get: () => sizes[key],
+        });
+      }
+    });
+
+    afterEach(() => {
+      for (const key of ['clientWidth', 'clientHeight'] as const) {
+        const original = originals[key];
+        if (original) Object.defineProperty(HTMLElement.prototype, key, original);
+      }
+    });
+
+    /** Box of every drawn label, from the positions of its lines and their estimated widths. */
+    function labelBoxes(): { id: string; rect: Rect }[] {
+      return [...document.querySelectorAll('text.netview__label')].map((label) => {
+        const lines = [...label.querySelectorAll('tspan')];
+        const anchor = label.getAttribute('text-anchor');
+        const x = Number(lines[0]!.getAttribute('x'));
+        const ys = lines.map((line) => Number(line.getAttribute('y')));
+        const width = Math.max(...lines.map((line) => textWidth(line.textContent ?? '')));
+        return {
+          id: label.closest('[data-id]')!.getAttribute('data-id')!,
+          rect: {
+            x: anchor === 'middle' ? x - width / 2 : anchor === 'start' ? x : x - width,
+            y: Math.min(...ys) - 10,
+            width,
+            height: Math.max(...ys) - Math.min(...ys) + 13,
+          },
+        };
+      });
+    }
+
+    it.each(SCENARIOS.map((scenario) => scenario.id))(
+      'keeps the labels of %s apart and inside the drawing',
+      (id) => {
+        const { scenario } = openStage(id, stage(id).reference.diameters);
+        render(<NetworkView />);
+        const boxes = labelBoxes();
+        // Every element keeps at least its id.
+        const drawn = new Set(boxes.map((box) => box.id));
+        for (const item of [...scenario.reservoirs, ...scenario.pumps, ...scenario.nodes]) {
+          expect(drawn, `${id} ${item.id}`).toContain(item.id);
+        }
+        for (const [index, a] of boxes.entries()) {
+          expect(a.rect.x, `${id} ${a.id}`).toBeGreaterThanOrEqual(0);
+          expect(a.rect.x + a.rect.width, `${id} ${a.id}`).toBeLessThanOrEqual(sizes.clientWidth);
+          expect(a.rect.y).toBeGreaterThanOrEqual(0);
+          expect(a.rect.y + a.rect.height).toBeLessThanOrEqual(sizes.clientHeight);
+          for (const b of boxes.slice(index + 1)) {
+            expect(rectsOverlap(a.rect, b.rect), `${id}: ${a.id} over ${b.id}`).toBe(false);
+          }
+        }
+      },
     );
   });
 

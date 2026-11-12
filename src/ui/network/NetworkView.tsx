@@ -1,56 +1,36 @@
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type MouseEvent,
-  type PointerEvent,
-} from 'react';
+import { useId, useMemo, type KeyboardEvent, type MouseEvent } from 'react';
 import { m3sToLps } from '../../engine/units';
 import { useTr } from '../../i18n';
 import { useAppStore, type Selection } from '../../state/store';
 import { IconStale } from '../shell/icons';
-import { DnPicker } from './DnPicker';
+import { describePipe, describePump, describeReservoir, NO_FLOW } from './describe';
 import { useNum } from './format';
 import {
   fitToSize,
-  INITIAL_VIEW,
   labelSide,
   nearestDistances,
-  pipeLabelAnchor,
+  pipeLabelAnchors,
   sideAnchor,
   strokeForDn,
   toScreen,
   worldPositions,
-  zoomAt,
   type LabelAnchor,
   type Point,
-  type Size,
-  type View,
+  type Side,
 } from './geometry';
+import { placeLabels, textWidth, type LabelRequest, type Rect, type ThickSegment } from './labels';
 import { Legend } from './Legend';
 import { nodeStatuses, pipeStatuses } from './status';
-import {
-  HEAD_UNIT,
-  networkStrings as text,
-  pressureStatusLabels,
-  velocityStatusLabels,
-} from './strings';
+import { HEAD_UNIT, networkStrings as text, pressureStatusLabels } from './strings';
+import { usePanZoom } from './usePanZoom';
+import { SelectionBar, ZoomControls } from './ViewControls';
 import './network.css';
 
 type ElementType = NonNullable<Selection>['type'];
 
-/** Used until the container is measured (and in tests, where there is no layout). */
-const DEFAULT_SIZE: Size = { width: 800, height: 480 };
 const NODE_RADIUS = 8;
 const LINE_HEIGHT = 14;
-/** Pointer travel in px after which a press is a drag and not a click. */
-const DRAG_THRESHOLD = 4;
-/** Flows below this (m³/s) are drawn as no flow. */
-const NO_FLOW = 1e-7;
+const SIDES: Side[] = ['s', 'n', 'e', 'w'];
 /** Length of one dash plus one gap of the flow animation, px. Must match network.css. */
 const DASH_PERIOD = 14;
 /** Pipe length on screen (px) from which its label shows DN and flow; below it, less text. */
@@ -63,14 +43,36 @@ interface LabelLine {
   className?: string;
 }
 
-function Label({ at, lines }: { at: LabelAnchor; lines: LabelLine[] }) {
-  const count = lines.length;
-  const first =
-    at.block === 'above'
-      ? at.y - 3 - (count - 1) * LINE_HEIGHT
-      : at.block === 'below'
-        ? at.y + 11
-        : at.y + 4 - ((count - 1) * LINE_HEIGHT) / 2;
+interface PlacedLabel {
+  at: LabelAnchor;
+  lines: LabelLine[];
+}
+
+/** Baseline of the first line of a label. */
+function firstBaseline(at: LabelAnchor, count: number): number {
+  return at.block === 'above'
+    ? at.y - 3 - (count - 1) * LINE_HEIGHT
+    : at.block === 'below'
+      ? at.y + 11
+      : at.y + 4 - ((count - 1) * LINE_HEIGHT) / 2;
+}
+
+/** Box that a label covers on screen, with its halo. */
+function labelRect({ at, lines }: PlacedLabel): Rect {
+  const width =
+    Math.max(...lines.map((line) => textWidth(line.text, 12, line.className?.includes('id')))) + 4;
+  const x =
+    at.anchor === 'middle' ? at.x - width / 2 : at.anchor === 'start' ? at.x - 2 : at.x - width + 2;
+  return {
+    x,
+    y: firstBaseline(at, lines.length) - 11,
+    width,
+    height: (lines.length - 1) * LINE_HEIGHT + 15,
+  };
+}
+
+function Label({ at, lines }: PlacedLabel) {
+  const first = firstBaseline(at, lines.length);
   return (
     <text className="netview__label" textAnchor={at.anchor} aria-hidden="true">
       {lines.map((line, index) => (
@@ -111,47 +113,7 @@ export function NetworkView() {
   const select = useAppStore((s) => s.select);
 
   const helpId = useId();
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [size, setSize] = useState<Size>(DEFAULT_SIZE);
-  const [view, setView] = useState<View>(INITIAL_VIEW);
-  const pointers = useRef(new Map<number, Point>());
-  const gesture = useRef({ start: { x: 0, y: 0 }, moved: false });
-
-  useLayoutEffect(() => {
-    const element = canvasRef.current;
-    if (!element) return;
-    const measure = () => {
-      const { clientWidth: width, clientHeight: height } = element;
-      if (width > 0 && height > 0) {
-        setSize((prev) =>
-          prev.width === width && prev.height === height ? prev : { width, height },
-        );
-      }
-    };
-    measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  // React registers wheel listeners as passive, so the zoom needs a native one to stop the page
-  // from scrolling.
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const rect = svg.getBoundingClientRect();
-      const anchor = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      // Pinch on a trackpad arrives as ctrl + wheel with small deltas.
-      const factor = Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015));
-      setView((v) => zoomAt(v, factor, anchor, { width: rect.width, height: rect.height }));
-    };
-    svg.addEventListener('wheel', onWheel, { passive: false });
-    return () => svg.removeEventListener('wheel', onWheel);
-  }, []);
+  const { canvasRef, svgRef, size, view, zoomBy, reset, consumeDrag, handlers } = usePanZoom();
 
   const world = useMemo(() => (scenario ? worldPositions(scenario) : {}), [scenario]);
   const nearest = useMemo(() => nearestDistances(world), [world]);
@@ -185,9 +147,6 @@ export function NetworkView() {
   const isSelected = (type: ElementType, id: string) =>
     selection?.type === type && selection.id === id;
   const result = evaluation?.result;
-  const selectedPipe =
-    selection?.type === 'pipe' ? scenario.pipes.find((p) => p.id === selection.id) : undefined;
-
   const onKeyDown = (type: ElementType, id: string) => (event: KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -198,75 +157,145 @@ export function NetworkView() {
   };
 
   const onClick = (event: MouseEvent<SVGSVGElement>) => {
-    if (gesture.current.moved) {
-      gesture.current.moved = false;
-      return;
-    }
+    if (consumeDrag()) return;
     const element = (event.target as Element).closest('[data-element]');
     const type = element?.getAttribute('data-element') as ElementType | undefined;
     const id = element?.getAttribute('data-id');
     select(type && id ? { type, id } : null);
   };
 
-  const localPoint = (event: PointerEvent<SVGSVGElement>): Point => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  const hint = stale ? text.staleHint : !evaluation && !solving ? text.notSolvedHint : null;
+  // Labels: every element offers a few places and amounts of text; the placer keeps what does
+  // not collide and drops text from the least important labels first.
+  const requests: LabelRequest<PlacedLabel>[] = [];
+  const blocked: Rect[] = [{ x: size.width - 116, y: 0, width: 116, height: 44 }];
+  if (hint) blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - 136), height: 38 });
+  const segments: ThickSegment[] = [];
+  const request = (
+    type: ElementType,
+    id: string,
+    priority: number,
+    anchors: LabelAnchor[],
+    variants: LabelLine[][],
+  ) => {
+    requests.push({
+      id: `${type}:${id}`,
+      priority: priority + (isSelected(type, id) ? 100 : 0),
+      options: variants.flatMap((lines, index) =>
+        anchors.map((anchor) => {
+          const data = { at: anchor, lines };
+          return { rect: labelRect(data), detail: variants.length - 1 - index, data };
+        }),
+      ),
+    });
+  };
+  const sidesOf = (id: string, p: Point, distance: number): LabelAnchor[] => {
+    const preferred = labelSide(p, neighbours(id));
+    return [preferred, ...SIDES.filter((side) => side !== preferred)].map((side) =>
+      sideAnchor(p, side, distance),
+    );
   };
 
-  const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    if (event.pointerType === 'mouse' && event.button !== 0) return;
-    const point = localPoint(event);
-    pointers.current.set(event.pointerId, point);
-    if (pointers.current.size === 1) gesture.current = { start: point, moved: false };
-  };
-
-  const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
-    const previous = pointers.current.get(event.pointerId);
-    if (!previous) return;
-    const point = localPoint(event);
-    const others = [...pointers.current.entries()].filter(([id]) => id !== event.pointerId);
-    pointers.current.set(event.pointerId, point);
-
-    if (others.length === 0) {
-      const { start } = gesture.current;
-      if (!gesture.current.moved) {
-        if (Math.hypot(point.x - start.x, point.y - start.y) < DRAG_THRESHOLD) return;
-        gesture.current.moved = true;
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-      }
-      const dx = point.x - previous.x;
-      const dy = point.y - previous.y;
-      setView((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
-      return;
+  for (const reservoir of scenario.reservoirs) {
+    const p = at(reservoir.id);
+    blocked.push({ x: p.x - 18, y: p.y - 15, width: 36, height: 28 });
+    const id: LabelLine = { text: reservoir.id, className: 'netview__label-id' };
+    request('reservoir', reservoir.id, 50, sidesOf(reservoir.id, p, 22), [
+      [id, { text: `${tr(text.waterLevelShort)} ${num(reservoir.waterLevel, 1)} m` }],
+      [id],
+    ]);
+  }
+  for (const pump of scenario.pumps) {
+    const a = at(pump.from);
+    const b = at(pump.to);
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    segments.push({ a, b, half: 4 });
+    blocked.push({ x: mid.x - 13, y: mid.y - 13, width: 26, height: 26 });
+    const id: LabelLine = { text: pump.id, className: 'netview__label-id' };
+    const pumpResult = result?.pumps[pump.id];
+    request(
+      'pump',
+      pump.id,
+      48,
+      (['n', 's', 'e', 'w'] as const).map((side) => sideAnchor(mid, side, 18)),
+      pumpResult
+        ? [[id, { text: `H ${num(pumpResult.head, 1)} m`, className: 'netview__result' }], [id]]
+        : [[id]],
+    );
+  }
+  for (const node of scenario.nodes) {
+    const p = at(node.id);
+    const status = nodeStatus[node.id]?.status ?? 'none';
+    const failing = status === 'low' || status === 'high';
+    const radius = failing ? NODE_RADIUS + 2 : NODE_RADIUS;
+    blocked.push({
+      x: p.x - radius - 1,
+      y: p.y - radius - 1,
+      width: 2 * radius + 2,
+      height: 2 * radius + 2,
+    });
+    const id: LabelLine = { text: node.id, className: 'netview__label-id' };
+    const nodeResult = result?.nodes[node.id];
+    const variants: LabelLine[][] = [[id]];
+    if (nodeResult && (nearest[node.id] ?? Infinity) * scale >= SHORT_LABEL) {
+      variants.unshift([
+        id,
+        {
+          text: `${num(nodeResult.pressure, 1)} ${HEAD_UNIT}`,
+          className: `netview__result netview__result--${status}`,
+        },
+      ]);
     }
-
-    // Pinch: zoom by the change in distance between two fingers and follow their midpoint.
-    const other = others[0]![1];
-    const before = Math.hypot(previous.x - other.x, previous.y - other.y);
-    const after = Math.hypot(point.x - other.x, point.y - other.y);
-    const midBefore = { x: (previous.x + other.x) / 2, y: (previous.y + other.y) / 2 };
-    const midAfter = { x: (point.x + other.x) / 2, y: (point.y + other.y) / 2 };
-    gesture.current.moved = true;
-    if (before > 0 && after > 0) {
-      setView((v) => {
-        const panned = {
-          ...v,
-          x: v.x + midAfter.x - midBefore.x,
-          y: v.y + midAfter.y - midBefore.y,
-        };
-        return zoomAt(panned, after / before, midAfter, size);
+    request('node', node.id, failing ? 60 : 40, sidesOf(node.id, p, radius + 8), variants);
+  }
+  for (const pipe of scenario.pipes) {
+    const a = at(pipe.from);
+    const b = at(pipe.to);
+    const dn = diameters[pipe.id] ?? pipe.initialDN;
+    const width = strokeForDn(dn);
+    const head = width / 2 + 4;
+    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const pipeResult = result?.pipes[pipe.id];
+    const status = pipeStatus[pipe.id] ?? 'none';
+    segments.push({ a, b, half: width / 2 + 1 });
+    if (pipeResult && Math.abs(pipeResult.flow) > NO_FLOW) {
+      blocked.push({
+        x: mid.x - head - 1,
+        y: mid.y - head - 1,
+        width: 2 * head + 2,
+        height: 2 * head + 2,
       });
     }
-  };
+    // Less text on short pipes; zooming in brings it back.
+    const id: LabelLine = { text: pipe.id, className: 'netview__label-id' };
+    const variants: LabelLine[][] = [[id]];
+    if (length >= SHORT_LABEL) variants.unshift([id, { text: `DN ${dn}` }]);
+    if (length >= FULL_LABEL) {
+      const full: LabelLine[] = [{ text: `${pipe.id} · DN ${dn}`, className: 'netview__label-id' }];
+      if (pipeResult) {
+        const mark =
+          status === 'low'
+            ? ` · ${tr(text.lowVelocityMark)}`
+            : status === 'high'
+              ? ` · ${tr(text.highVelocityMark)}`
+              : '';
+        full.push({
+          text: `${num(m3sToLps(Math.abs(pipeResult.flow)))} L/s${mark}`,
+          className: `netview__result netview__result--${status}`,
+        });
+      }
+      variants.unshift(full);
+    }
+    request('pipe', pipe.id, 30, pipeLabelAnchors(a, b, head + 5, inward), variants);
+  }
+  const placedLabels = placeLabels(requests, {
+    bounds: { x: 2, y: 2, width: size.width - 4, height: size.height - 4 },
+    rects: blocked,
+    segments,
+  });
+  const labels = new Map([...placedLabels].map(([id, option]) => [id, option.data]));
 
-  const onPointerEnd = (event: PointerEvent<SVGSVGElement>) => {
-    pointers.current.delete(event.pointerId);
-  };
-
-  const zoomBy = (factor: number) =>
-    setView((v) => zoomAt(v, factor, { x: size.width / 2, y: size.height / 2 }, size));
-
-  const hint = stale ? text.staleHint : !evaluation && !solving ? text.notSolvedHint : null;
   const showResults = result !== undefined;
   const rootClass = ['netview', stale && 'netview--stale'].filter(Boolean).join(' ');
 
@@ -280,10 +309,7 @@ export function NetworkView() {
           aria-label={tr(text.drawing)}
           aria-describedby={helpId}
           onClick={onClick}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerEnd}
-          onPointerCancel={onPointerEnd}
+          {...handlers}
         >
           {scenario.pumps.map((pump) => {
             const a = at(pump.from);
@@ -292,18 +318,8 @@ export function NetworkView() {
             const angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
             const pumpResult = result?.pumps[pump.id];
             const selected = isSelected('pump', pump.id);
-            const label = [
-              tr(text.pump(pump.id)),
-              pumpResult &&
-                `${tr(text.flow)} ${num(m3sToLps(pumpResult.flow))} L/s, ${tr(text.head)} ${num(pumpResult.head)} m`,
-              pumpResult && stale && tr(text.outdated),
-            ]
-              .filter(Boolean)
-              .join(', ');
-            const lines: LabelLine[] = [{ text: pump.id, className: 'netview__label-id' }];
-            if (pumpResult) {
-              lines.push({ text: `H ${num(pumpResult.head, 1)} m`, className: 'netview__result' });
-            }
+            const label = describePump({ tr, num }, pump, pumpResult, stale);
+            const placed = labels.get(`pump:${pump.id}`);
             return (
               <g
                 key={pump.id}
@@ -325,7 +341,7 @@ export function NetworkView() {
                   points="-5,-6 7,0 -5,6"
                   transform={`translate(${mid.x} ${mid.y}) rotate(${angle})`}
                 />
-                <Label at={sideAnchor(mid, 'n', 18)} lines={lines} />
+                {placed && <Label {...placed} />}
               </g>
             );
           })}
@@ -344,53 +360,12 @@ export function NetworkView() {
             const down = reverse ? a : b;
             const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
             const angle = (Math.atan2(down.y - up.y, down.x - up.x) * 180) / Math.PI;
-            const length = Math.hypot(b.x - a.x, b.y - a.y);
             const selected = isSelected('pipe', pipe.id);
             const speed = Math.abs(pipeResult?.velocity ?? 0);
             const head = width / 2 + 4;
 
-            const label = [
-              tr(text.pipe(pipe.id)),
-              `DN ${dn} mm`,
-              pipe.fixed && tr(text.fixedDiameter),
-              pipeResult && `${tr(text.flow)} ${num(m3sToLps(Math.abs(flow)))} L/s`,
-              pipeResult && `${tr(text.velocity)} ${num(speed)} m/s`,
-              pipeResult &&
-                (flowing
-                  ? tr(
-                      reverse
-                        ? text.flowFromTo(pipe.to, pipe.from)
-                        : text.flowFromTo(pipe.from, pipe.to),
-                    )
-                  : tr(text.noFlow)),
-              pipeResult && status !== 'none' && tr(velocityStatusLabels[status]),
-              pipeResult && stale && tr(text.outdated),
-            ]
-              .filter(Boolean)
-              .join(', ');
-
-            // Less text on short pipes; zooming in brings it back.
-            const lines: LabelLine[] = [];
-            if (length >= FULL_LABEL) {
-              lines.push({ text: `${pipe.id} · DN ${dn}`, className: 'netview__label-id' });
-              if (pipeResult) {
-                const mark =
-                  status === 'low'
-                    ? ` · ${tr(text.lowVelocityMark)}`
-                    : status === 'high'
-                      ? ` · ${tr(text.highVelocityMark)}`
-                      : '';
-                lines.push({
-                  text: `${num(m3sToLps(Math.abs(flow)))} L/s${mark}`,
-                  className: `netview__result netview__result--${status}`,
-                });
-              }
-            } else if (length >= SHORT_LABEL) {
-              lines.push({ text: pipe.id, className: 'netview__label-id' });
-              lines.push({ text: `DN ${dn}` });
-            } else {
-              lines.push({ text: pipe.id, className: 'netview__label-id' });
-            }
+            const label = describePipe({ tr, num }, pipe, dn, pipeResult, status, stale);
+            const placed = labels.get(`pipe:${pipe.id}`);
 
             const className = [
               'netview__pipe',
@@ -451,7 +426,7 @@ export function NetworkView() {
                     transform={`translate(${mid.x} ${mid.y}) rotate(${angle})`}
                   />
                 )}
-                <Label at={pipeLabelAnchor(a, b, head + 5, inward)} lines={lines} />
+                {placed && <Label {...placed} />}
               </g>
             );
           })}
@@ -459,7 +434,8 @@ export function NetworkView() {
           {scenario.reservoirs.map((reservoir) => {
             const p = at(reservoir.id);
             const selected = isSelected('reservoir', reservoir.id);
-            const label = `${tr(text.reservoir(reservoir.id))}, ${tr(text.waterLevel)} ${num(reservoir.waterLevel)} m`;
+            const label = describeReservoir({ tr, num }, reservoir);
+            const placed = labels.get(`reservoir:${reservoir.id}`);
             return (
               <g
                 key={reservoir.id}
@@ -494,15 +470,7 @@ export function NetworkView() {
                   className="netview__reservoir-tank"
                   d={`M${p.x - 15} ${p.y - 12}V${p.y + 10}H${p.x + 15}V${p.y - 12}`}
                 />
-                <Label
-                  at={sideAnchor(p, labelSide(p, neighbours(reservoir.id)), 22)}
-                  lines={[
-                    { text: reservoir.id, className: 'netview__label-id' },
-                    {
-                      text: `${tr(text.waterLevelShort)} ${num(reservoir.waterLevel, 1)} m`,
-                    },
-                  ]}
-                />
+                {placed && <Label {...placed} />}
               </g>
             );
           })}
@@ -525,13 +493,7 @@ export function NetworkView() {
             ]
               .filter(Boolean)
               .join(', ');
-            const lines: LabelLine[] = [{ text: node.id, className: 'netview__label-id' }];
-            if (nodeResult && (nearest[node.id] ?? Infinity) * scale >= SHORT_LABEL) {
-              lines.push({
-                text: `${num(nodeResult.pressure, 1)} ${HEAD_UNIT}`,
-                className: `netview__result netview__result--${status}`,
-              });
-            }
+            const placed = labels.get(`node:${node.id}`);
             const className = [
               'netview__node',
               `netview__node--${status}`,
@@ -557,10 +519,7 @@ export function NetworkView() {
                 <circle className="netview__ring" cx={p.x} cy={p.y} r={radius + 5} />
                 <circle className="netview__node-dot" cx={p.x} cy={p.y} r={radius} />
                 {failing && <StatusGlyph at={p} status={status} />}
-                <Label
-                  at={sideAnchor(p, labelSide(p, neighbours(node.id)), radius + 8)}
-                  lines={lines}
-                />
+                {placed && <Label {...placed} />}
               </g>
             );
           })}
@@ -579,56 +538,10 @@ export function NetworkView() {
           </p>
         )}
 
-        <div className="netview__zoom" role="group" aria-label={tr(text.zoomControls)}>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(text.zoomIn)}
-            title={tr(text.zoomIn)}
-            onClick={() => zoomBy(1.4)}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(text.zoomOut)}
-            title={tr(text.zoomOut)}
-            onClick={() => zoomBy(1 / 1.4)}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12h14" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(text.fit)}
-            title={tr(text.fit)}
-            onClick={() => setView(INITIAL_VIEW)}
-          >
-            <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
-            </svg>
-          </button>
-        </div>
+        <ZoomControls onZoom={zoomBy} onFit={reset} />
       </div>
 
-      <div className="netview__bar">
-        {selectedPipe ? (
-          <>
-            <span className="netview__bar-title">
-              {tr(text.pipe(selectedPipe.id))}
-              <span className="muted num"> · {num(selectedPipe.length, 0)} m · DN</span>
-            </span>
-            <DnPicker pipeId={selectedPipe.id} compact />
-          </>
-        ) : (
-          <span className="muted">{tr(text.selectHint)}</span>
-        )}
-      </div>
+      <SelectionBar />
 
       <Legend checks={scenario.checks} evaluated={showResults} />
     </div>

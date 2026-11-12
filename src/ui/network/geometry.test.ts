@@ -5,6 +5,7 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   pipeLabelAnchor,
+  pipeLabelAnchors,
   strokeForDn,
   toScreen,
   zoomAt,
@@ -84,6 +85,21 @@ describe('network geometry', () => {
       x: 170,
       anchor: 'end',
     });
+  });
+
+  it('offers the other side and both ends of a pipe as further label anchors', () => {
+    const inward = { x: 100, y: 100 };
+    const anchors = pipeLabelAnchors({ x: 0, y: 50 }, { x: 100, y: 50 }, 10, inward);
+    expect(anchors).toHaveLength(6);
+    expect(anchors[1]).toMatchObject({ x: 50, y: 60, anchor: 'middle', block: 'below' });
+    expect(anchors[2]).toMatchObject({ x: 32, y: 40, block: 'above' });
+    expect(anchors[3]).toMatchObject({ x: 68, y: 40, block: 'above' });
+    // Vertical pipe: the second anchor is on the outer side.
+    const vertical = pipeLabelAnchors({ x: 20, y: 0 }, { x: 20, y: 100 }, 10, inward);
+    expect(vertical[1]).toMatchObject({ x: 10, y: 50, anchor: 'end', block: 'centered' });
+    // A pipe without length still gets a place above and below.
+    const point = pipeLabelAnchors({ x: 5, y: 5 }, { x: 5, y: 5 }, 10, inward);
+    expect(point.map((anchor) => anchor.block)).toEqual(['above', 'below']);
   });
 
   it('scales the stroke with the DN', () => {
