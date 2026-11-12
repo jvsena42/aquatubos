@@ -31,6 +31,11 @@ export interface AppState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
 
+  /** Screen shown while no stage is open: the title screen or the stage map. */
+  screen: 'home' | 'map';
+  goHome: () => void;
+  goToMap: () => void;
+
   /** Saved progress by stage id. */
   progress: Record<string, StageProgress>;
 
@@ -131,6 +136,10 @@ export const useAppStore = create<AppState>((set, get) => {
       }
     },
 
+    screen: 'home',
+    goHome: () => set({ screen: 'home' }),
+    goToMap: () => set({ screen: 'map' }),
+
     progress: {},
 
     scenario: null,
@@ -172,6 +181,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
     closeStage: () =>
       set({
+        screen: 'map',
         scenario: null,
         diameters: {},
         selection: null,

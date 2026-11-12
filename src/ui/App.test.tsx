@@ -26,6 +26,8 @@ async function renderApp() {
 describe('App', () => {
   beforeEach(() => {
     resetStore(false);
+    // These tests start on the stage map; the title screen has its own tests.
+    useAppStore.setState({ screen: 'map' });
     document.documentElement.removeAttribute('data-theme');
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
   });
@@ -96,6 +98,8 @@ describe('App', () => {
 describe('StageScreen', () => {
   beforeEach(() => {
     resetStore(false);
+    // These tests start on the stage map; the title screen has its own tests.
+    useAppStore.setState({ screen: 'map' });
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
   });
 

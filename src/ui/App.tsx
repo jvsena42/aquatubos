@@ -9,6 +9,7 @@ import { useAppStore } from '../state/store';
 import { Header } from './shell/Header';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
+import { HomeScreen } from './home/HomeScreen';
 import { StageSelect } from './stages/StageSelect';
 
 // The stage screen (network view, panels, charts) is loaded when the first stage opens.
@@ -25,6 +26,7 @@ export function App() {
   const lang = useAppStore((s) => s.lang);
   const theme = useAppStore((s) => s.theme);
   const scenarioId = useAppStore((s) => s.scenario?.id ?? null);
+  const screen = useAppStore((s) => s.screen);
 
   const hydrateStarted = useRef(false);
   useEffect(() => {
@@ -63,8 +65,10 @@ export function App() {
           >
             <StageScreen key={scenarioId} />
           </Suspense>
-        ) : (
+        ) : screen === 'map' ? (
           <StageSelect />
+        ) : (
+          <HomeScreen />
         )}
       </main>
       <PwaNotice />

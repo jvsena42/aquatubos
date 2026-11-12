@@ -125,6 +125,12 @@ describe('app store', () => {
     expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T1' });
     store.closeStage();
     expect(useAppStore.getState().scenario).toBeNull();
+    // Leaving a stage returns to the stage map, not to the title screen.
+    expect(useAppStore.getState().screen).toBe('map');
+    store.goHome();
+    expect(useAppStore.getState().screen).toBe('home');
+    store.goToMap();
+    expect(useAppStore.getState().screen).toBe('map');
     expect(useAppStore.getState().evaluation).toBeNull();
     store.setDiameter('T1', 100);
     store.resetDiameters();
