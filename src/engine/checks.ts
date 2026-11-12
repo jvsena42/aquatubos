@@ -7,6 +7,7 @@ import type {
   CheckReport,
   CheckSettings,
   CheckSeverity,
+  Junction,
   LocalizedText,
   Network,
   SolveResult,
@@ -109,6 +110,15 @@ function severityOf(settings: CheckSettings, check: keyof CheckSettings): CheckS
 }
 
 /**
+ * Junctions where the pressure limits apply. A pump discharge node without demand is part of
+ * the pumping station, not a consumption point, so it is left out.
+ */
+export function pressureCheckedJunctions(network: Network): Junction[] {
+  const discharge = new Set(network.pumps.map((pump) => pump.to));
+  return network.junctions.filter((j) => !(discharge.has(j.id) && j.demand === 0));
+}
+
+/**
  * Compares a solved network against the design criteria. Each violation becomes one issue with
  * an explanation in pt and en that includes the computed value, the limit and a suggestion.
  * A non-converged result adds a `convergence` error.
@@ -127,6 +137,7 @@ export function runChecks(
 ): CheckReport {
   const issues: CheckIssue[] = [];
   const staticPressure = staticPressures(network);
+  const checkedJunctions = pressureCheckedJunctions(network);
 
   if (!result.converged) {
     issues.push({
@@ -172,7 +183,7 @@ export function runChecks(
   if (minPressureSeverity) {
     const limit = limits.minDynamicPressure;
     const note = standardNote('minDynamicPressure', limits);
-    for (const junction of network.junctions) {
+    for (const junction of checkedJunctions) {
       const pressure = result.nodes[junction.id]?.pressure;
       if (pressure === undefined || pressure >= limit - COMPARISON_TOLERANCE) continue;
       const atRest = staticPressure[junction.id];
@@ -207,7 +218,7 @@ export function runChecks(
   if (maxStaticSeverity) {
     const limit = limits.maxStaticPressure;
     const note = standardNote('maxStaticPressure', limits);
-    for (const junction of network.junctions) {
+    for (const junction of checkedJunctions) {
       const pressure = staticPressure[junction.id];
       if (pressure === undefined || pressure <= limit + COMPARISON_TOLERANCE) continue;
       pushIssue(

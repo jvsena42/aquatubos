@@ -1,5 +1,11 @@
-import { DEFAULT_CHECK_SETTINGS, runChecks, staticPressures } from './checks';
+import {
+  DEFAULT_CHECK_SETTINGS,
+  pressureCheckedJunctions,
+  runChecks,
+  staticPressures,
+} from './checks';
 import { NBR_12218, NBR_CHECK_LIMITS } from './config/nbr12218';
+import { solveNetwork } from './solver';
 import type { CheckSettings, Network, Pipe, SolveResult } from './types';
 import { pipeArea } from './units';
 
@@ -477,5 +483,48 @@ describe('runChecks', () => {
       makeResult(network, { N1: 49, N2: 48, N3: 29.999 }, goodFlows),
     );
     expect(report.issues[0]!.explanation.pt).toContain('pressão dinâmica de 0,00 mca');
+  });
+});
+
+describe('pump discharge node', () => {
+  const curve = { a: 50, b: 60000, c: 2 };
+  const network: Network = {
+    junctions: [
+      { id: 'J1', elevation: 101, demand: 0 },
+      { id: 'N2', elevation: 112, demand: 0.002 },
+    ],
+    reservoirs: [{ id: 'R1', head: 100 }],
+    pipes: [
+      {
+        id: 'T1',
+        from: 'J1',
+        to: 'N2',
+        length: 100,
+        diameter: 0.1,
+        hazenWilliamsC: 140,
+        roughness: 0.0000015,
+      },
+    ],
+    pumps: [{ id: 'B1', from: 'R1', to: 'J1', curve }],
+  };
+
+  it('leaves a discharge node without demand out of the pressure checks', () => {
+    expect(pressureCheckedJunctions(network).map((j) => j.id)).toEqual(['N2']);
+    // Static pressure at J1 is 100 + 50 − 101 = 49 mca, above the 40 mca limit.
+    expect(staticPressures(network).J1).toBeCloseTo(49, 9);
+    const report = runChecks(network, solveNetwork(network));
+    expect(report.issues.filter((i) => i.elementId === 'J1')).toEqual([]);
+  });
+
+  it('checks a discharge node that has demand', () => {
+    const withDemand: Network = {
+      ...network,
+      junctions: [{ id: 'J1', elevation: 101, demand: 0.001 }, network.junctions[1]!],
+    };
+    expect(pressureCheckedJunctions(withDemand).map((j) => j.id)).toEqual(['J1', 'N2']);
+    const report = runChecks(withDemand, solveNetwork(withDemand));
+    expect(report.issues.some((i) => i.elementId === 'J1' && i.check === 'maxStaticPressure')).toBe(
+      true,
+    );
   });
 });

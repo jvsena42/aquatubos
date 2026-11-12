@@ -1,3 +1,4 @@
+import { pressureCheckedJunctions } from '../engine/checks';
 import { pumpHead } from '../engine/pump';
 import { solveNetwork } from '../engine/solver';
 import type { Network, SolveOptions, SolveResult } from '../engine/types';
@@ -36,6 +37,10 @@ export function pumpChart(
   if (totalDemand <= 0) return undefined;
 
   const downstream = network.junctions.filter((j) => j.id !== discharge.id);
+  const checked = new Set(pressureCheckedJunctions(network).map((j) => j.id));
+  const dischargeRequirement = checked.has(discharge.id)
+    ? discharge.elevation + minPressure
+    : -Infinity;
   const trialHead = discharge.elevation + 100;
 
   const systemHead = (flow: number): number => {
@@ -49,7 +54,7 @@ export function pumpChart(
       pumps: [],
     };
     const solved = solveNetwork(scaled, options);
-    let deficit = discharge.elevation + minPressure - trialHead;
+    let deficit = dischargeRequirement - trialHead;
     for (const j of downstream) {
       const node = solved.nodes[j.id];
       if (node) deficit = Math.max(deficit, j.elevation + minPressure - node.head);
