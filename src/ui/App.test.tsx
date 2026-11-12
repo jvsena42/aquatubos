@@ -137,7 +137,7 @@ describe('StageScreen', () => {
     const user = await openStage(1);
     const network = screen.getByRole('tab', { name: 'Rede' });
     expect(network).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('group', { name: 'Desenho da rede' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Modo de visualização da rede' })).toBeInTheDocument();
 
     network.focus();
     await user.keyboard('{ArrowRight}');

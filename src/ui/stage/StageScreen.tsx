@@ -2,7 +2,8 @@ import { lazy, Suspense, useId, useState } from 'react';
 import { useTr } from '../../i18n';
 import type { HeadLossFormula } from '../../engine/types';
 import { useAppStore } from '../../state/store';
-import { NetworkView } from '../network/NetworkView';
+import { StageHud } from '../hud/StageHud';
+import { NetworkTab } from '../network/NetworkTab';
 import { CalcPanel } from '../panels/CalcPanel';
 import { ChecksPanel } from '../panels/ChecksPanel';
 import { HardyCrossTable } from '../panels/HardyCrossTable';
@@ -103,6 +104,8 @@ export function StageScreen() {
         </p>
       </header>
 
+      <StageHud />
+
       <div className="stage__layout">
         <section className="panel stage__main" aria-label={tr(stageStrings.views)}>
           <Tabs
@@ -119,7 +122,7 @@ export function StageScreen() {
             tabIndex={0}
             className="stage__tabpanel"
           >
-            {active === 'network' && <NetworkView />}
+            {active === 'network' && <NetworkTab />}
             {active === 'table' && <ResultsTable />}
             {active === 'profile' && <HglProfile />}
             {active === 'hardyCross' && <HardyCrossTable />}
