@@ -1,0 +1,58 @@
+.dn-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.dn-picker__options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
+  gap: 2px;
+}
+
+.dn-picker__options > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: var(--space-1);
+  line-height: var(--line-height-tight);
+}
+
+.dn-picker__options > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dn-picker__options > button[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.dn-picker__dn {
+  font-weight: var(--font-weight-semibold);
+}
+
+.dn-picker__price {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
+}
+
+.dn-picker__fixed {
+  font-size: var(--font-size-sm);
+}
+
+.dn-picker--compact .dn-picker__options {
+  display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.dn-picker--compact .dn-picker__options > button {
+  flex: none;
+  min-width: 2.5rem;
+  padding: var(--space-1) var(--space-2);
+}
