@@ -1,15 +1,23 @@
 /**
- * Placeholder for the brand mark. It will be replaced by `src/assets/brand/logo-mark.svg`;
- * keep every logo detail inside this component.
+ * Brand mark, same geometry as `src/assets/brand/logo-mark.svg`, drawn inline so its colours
+ * follow the theme tokens.
  */
 export function Logo() {
   return (
-    <svg className="logo" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-      <rect width="32" height="32" rx="7" fill="var(--color-primary)" />
+    <svg className="logo" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <path fill="var(--color-brand-water)" d="M14 39A18 18 0 0 0 50 39Z" />
       <path
-        d="M16 6.5c3.6 4.4 6 7.6 6 11a6 6 0 0 1-12 0c0-3.4 2.4-6.6 6-11Z"
-        fill="var(--color-primary-contrast)"
+        fill="none"
+        stroke="var(--color-brand)"
+        strokeWidth="5"
+        strokeLinejoin="round"
+        d="M32 9 46.4 28.2A18 18 0 1 1 17.6 28.2ZM14 39H50"
       />
+      <g fill="var(--color-brand-accent)">
+        <circle cx="32" cy="9" r="5.5" />
+        <circle cx="14" cy="39" r="5.5" />
+        <circle cx="50" cy="39" r="5.5" />
+      </g>
     </svg>
   );
 }
