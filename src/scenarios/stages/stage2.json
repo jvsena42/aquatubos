@@ -1,0 +1,172 @@
+{
+  "id": "stage2",
+  "order": 2,
+  "title": {
+    "pt": "Terreno acidentado",
+    "en": "Uneven terrain"
+  },
+  "summary": {
+    "pt": "A mesma ideia em terreno com desníveis: nós altos têm pouca pressão, nós baixos têm muita. Entram os limites de pressão estática e de velocidade.",
+    "en": "The same idea on sloping ground: high nodes have little pressure, low nodes have a lot. Static pressure and velocity limits come into play."
+  },
+  "briefing": [
+    {
+      "pt": "O reservatório está no ponto alto, com nível d'água na cota 150 m. Os nós ficam entre as cotas 111 m e 132 m. A pressão em cada nó é a cota piezométrica menos a cota do terreno.",
+      "en": "The reservoir sits on high ground with its water level at 150 m. Nodes lie between 111 m and 132 m. The pressure at each node is the hydraulic grade line minus the ground elevation."
+    },
+    {
+      "pt": "A pressão estática (rede sem consumo) não pode passar de 40 mca: ela depende só do nível do reservatório e da cota do nó, e nesta fase já foi atendida pelo traçado. A pressão dinâmica mínima continua sendo 10 mca e é ela que você controla com os diâmetros.",
+      "en": "Static pressure (no consumption) must not exceed 40 mca: it depends only on the reservoir level and the node elevation, and in this stage the layout already satisfies it. The minimum dynamic pressure is still 10 mca, and that is what you control with the diameters."
+    },
+    {
+      "pt": "A velocidade deve ficar entre 0,6 e 3,5 m/s. Acima do máximo o trecho reprova; abaixo do mínimo aparece um aviso, porque diâmetros grandes demais custam mais e deixam a água parada.",
+      "en": "Velocity should stay between 0.6 and 3.5 m/s. Above the maximum the pipe fails; below the minimum you get a warning, because oversized pipes cost more and let the water stagnate."
+    },
+    {
+      "pt": "Abra a aba Perfil para ver a linha piezométrica sobre o terreno ao longo de um caminho. Onde a linha se aproxima do terreno, falta pressão.",
+      "en": "Open the Profile tab to see the hydraulic grade line over the terrain along a path. Where the line gets close to the ground, pressure is short."
+    }
+  ],
+  "objectives": [
+    {
+      "pt": "Pressão dinâmica mínima de 10 mca",
+      "en": "Minimum dynamic pressure of 10 mca"
+    },
+    {
+      "pt": "Pressão estática máxima de 40 mca",
+      "en": "Maximum static pressure of 40 mca"
+    },
+    {
+      "pt": "Velocidade máxima de 3,5 m/s",
+      "en": "Maximum velocity of 3.5 m/s"
+    }
+  ],
+  "formula": "hazen-williams",
+  "hazenWilliamsC": 140,
+  "roughnessMm": 0.0015,
+  "nodes": [
+    {
+      "id": "N1",
+      "x": 250,
+      "y": 300,
+      "elevation": 128,
+      "demandLps": 1
+    },
+    {
+      "id": "N2",
+      "x": 500,
+      "y": 300,
+      "elevation": 118,
+      "demandLps": 2
+    },
+    {
+      "id": "N3",
+      "x": 750,
+      "y": 250,
+      "elevation": 111,
+      "demandLps": 2.5
+    },
+    {
+      "id": "N4",
+      "x": 500,
+      "y": 80,
+      "elevation": 132,
+      "demandLps": 1.5
+    },
+    {
+      "id": "N5",
+      "x": 300,
+      "y": 520,
+      "elevation": 115,
+      "demandLps": 2
+    },
+    {
+      "id": "N6",
+      "x": 760,
+      "y": 480,
+      "elevation": 112,
+      "demandLps": 1.5
+    }
+  ],
+  "reservoirs": [
+    {
+      "id": "R1",
+      "x": 0,
+      "y": 300,
+      "elevation": 146,
+      "waterLevel": 150
+    }
+  ],
+  "pipes": [
+    {
+      "id": "T1",
+      "from": "R1",
+      "to": "N1",
+      "length": 250,
+      "initialDN": 75
+    },
+    {
+      "id": "T2",
+      "from": "N1",
+      "to": "N2",
+      "length": 250,
+      "initialDN": 50
+    },
+    {
+      "id": "T3",
+      "from": "N2",
+      "to": "N3",
+      "length": 260,
+      "initialDN": 50
+    },
+    {
+      "id": "T4",
+      "from": "N2",
+      "to": "N4",
+      "length": 220,
+      "initialDN": 50
+    },
+    {
+      "id": "T5",
+      "from": "N1",
+      "to": "N5",
+      "length": 230,
+      "initialDN": 50
+    },
+    {
+      "id": "T6",
+      "from": "N3",
+      "to": "N6",
+      "length": 230,
+      "initialDN": 50
+    }
+  ],
+  "pumps": [],
+  "checks": {
+    "minDynamicPressure": "error",
+    "maxStaticPressure": "error",
+    "minVelocity": "warning",
+    "maxVelocity": "error",
+    "minDiameter": "error"
+  },
+  "budget": null,
+  "features": {
+    "hglProfile": true,
+    "hardyCross": false,
+    "cost": false,
+    "pumpChart": false
+  },
+  "profilePath": ["R1", "N1", "N2", "N4"],
+  "reference": {
+    "diameters": {
+      "T1": 100,
+      "T2": 100,
+      "T3": 75,
+      "T4": 75,
+      "T5": 50,
+      "T6": 50
+    },
+    "cost": 64160,
+    "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
+  }
+}
