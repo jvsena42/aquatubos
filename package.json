@@ -16,7 +16,8 @@
     "coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "icons": "node scripts/generate-icons.mjs",
-    "reference": "vitest run --config vitest.scripts.config.ts"
+    "reference": "vitest run --config vitest.scripts.config.ts",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
