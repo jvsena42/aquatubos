@@ -3,14 +3,18 @@ import '@fontsource-variable/jetbrains-mono';
 import '../styles/tokens.css';
 import '../styles/global.css';
 import './shell/shell.css';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTr } from '../i18n';
 import { useAppStore } from '../state/store';
 import { Header } from './shell/Header';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
-import { StageScreen } from './stage/StageScreen';
 import { StageSelect } from './stages/StageSelect';
+
+// The stage screen (network view, panels, charts) is loaded when the first stage opens.
+const StageScreen = lazy(() =>
+  import('./stage/StageScreen').then((module) => ({ default: module.StageScreen })),
+);
 
 const HTML_LANG = { pt: 'pt-BR', en: 'en' } as const;
 
@@ -50,7 +54,15 @@ export function App() {
             {tr(shellStrings.loading)}
           </p>
         ) : scenarioId ? (
-          <StageScreen key={scenarioId} />
+          <Suspense
+            fallback={
+              <p className="app__loading" role="status">
+                {tr(shellStrings.loading)}
+              </p>
+            }
+          >
+            <StageScreen key={scenarioId} />
+          </Suspense>
         ) : (
           <StageSelect />
         )}
