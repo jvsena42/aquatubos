@@ -36,6 +36,9 @@ Node 22.12 or newer (CI uses the version in `.nvmrc`). Package manager: npm.
 
 The app is served under `/aquatubos/` in dev, preview and production.
 `npm run e2e` needs a Playwright browser: `npx playwright install chromium`.
+`npm run e2e` runs three projects: `chromium` (desktop, `e2e/stages.spec.ts`) and `pixel-7` and
+`iphone-14` (phone viewports with touch, `e2e/mobile.spec.ts`). One project:
+`npx playwright test --project=pixel-7`.
 
 ## Folder layout
 
@@ -72,6 +75,11 @@ docs/              ARCHITECTURE.md, BRAND.md, screenshots
 - Styling is plain CSS next to the component with BEM-style class names. Colours, fonts, spacing
   and radii come from `src/styles/tokens.css`; never hard-code a colour. Status is never shown by
   colour alone: pair it with an icon or a label.
+- Phones are a first-class target. Every screen must work at 360 px wide with touch only: no
+  horizontal page scroll, tap targets of at least 44 px on coarse pointers, nothing that needs
+  hover, inputs of at least 16 px. Views inside a stage fill their container and scroll
+  internally (the stage screen does not scroll on phones). See "Phone layout" in
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#phone-layout).
 - Tests live next to the code as `*.test.ts(x)`. Engine tests show the hand calculation in a
   comment.
 - Comments and docs in plain prose.
@@ -156,8 +164,9 @@ npm run coverage
 npm run build
 ```
 
-For UI changes also run `npm run e2e` and look at the result in a browser in light and dark
-themes and at phone width.
+For UI changes also run `npm run e2e` (desktop and phone projects) and look at the result in a
+browser in light and dark themes, on a desktop viewport and on phone viewports (360, 390 and
+430 px portrait, 844×390 landscape) with touch emulation.
 
 ## Deploy
 

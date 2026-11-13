@@ -159,6 +159,38 @@ placed by a collision-avoiding placer shared with the schematic (`src/ui/network
 which drops lower-priority text first on small screens. The illustration style is described in
 [BRAND.md](BRAND.md#illustration-style).
 
+## Phone layout
+
+Phones are a first-class target. The phone condition is `(max-width: 760px)`, or a short
+landscape screen (`max-height: 500px`); it is evaluated in JavaScript (`useMediaQuery`) for layout
+changes and repeated in the style sheets.
+
+- **Stage screen** (`src/ui/stage`): an app frame of `100dvh` that does not scroll. From top to
+  bottom: one-row header (logo, back, stage name, settings menu), a one-line HUD that expands on
+  tap plus a "Mais ações" menu (briefing, formula, reset), a horizontally scrollable tab bar with
+  the Cidade | Esquema switch, the view filling the rest, and a bottom sheet.
+- **Bottom sheet** (`BottomSheet.tsx`, state in a pure reducer): detents `peek`, `half` and
+  `full`. It holds the calculation panel and the checks, switched by a segmented control. The
+  handle is a button (cycles the detents) and can be dragged; selecting a pipe or node raises the
+  sheet to half; a failed check opens the checks; a pass leaves it closed with a notice so the
+  map animation is visible. "Calcular / Verificar" sits in a bar at the bottom of the sheet and is
+  never covered. In landscape the sheet becomes a panel on the right.
+- **Maps** (`src/ui/network/usePanZoom.ts`, `gestures.ts`, `hit.ts`): pointer events with
+  `touch-action: none`; one finger pans, two fingers pinch about their midpoint, a double tap
+  zooms. A tap is resolved to the nearest drawn element within reach (`resolveHit`), with 44 px
+  hit areas on coarse pointers. The town drops detail by zoom bucket (`town--detail-far|mid|near`).
+  The legend collapses behind a button.
+- **Tables**: sticky header and first column inside a horizontally scrolling frame with edge
+  fades; on phones the results tab shows pipes or nodes, one table at a time.
+- **Charts**: tick count and height follow the container; values are read by tapping (a readout
+  area), not by hover.
+- **3D**: touch orbit, pinch and pan; on small touch screens the pixel ratio is capped at 1.5 and
+  the geometry uses the `low` quality budget.
+- **Safe areas**: `viewport-fit=cover` and `env(safe-area-inset-*)` paddings on the header, the
+  sheet and the main content; inputs are at least 16 px so iOS does not zoom.
+
+The page never scrolls sideways; `e2e/mobile.spec.ts` asserts this on every screen.
+
 ## Hydraulic engine
 
 ### Units
@@ -337,8 +369,11 @@ gives 3 stars, within 25 % gives 2, otherwise 1.
   least one check with its initial diameters, passes all checks with its reference solution, and
   stores the right reference cost.
 - **Store, persistence and UI tests** with Testing Library and fake-indexeddb.
-- **End-to-end** (`e2e/`, Playwright): plays the stages in a real browser against the production
-  build. Run locally; not part of CI.
+- **End-to-end** (`e2e/`, Playwright) against the production build. The desktop project
+  (`stages.spec.ts`) plays the five stages from the title screen in the town view; it runs
+  locally. The phone projects (`mobile.spec.ts`, Pixel 7 and iPhone 14 viewports with touch, in
+  Chromium) play stage 1 by touch through the bottom sheet and assert that no screen overflows
+  sideways; they also run in CI.
 
 Coverage is measured for `src/engine` and `src/game`; the build fails under 80 % of lines in
 `src/engine`.
@@ -346,7 +381,8 @@ Coverage is measured for `src/engine` and `src/game`; the build fails under 80 %
 ## CI/CD
 
 - `.github/workflows/ci.yml`, on every push to `main` and every pull request: `npm ci`, lint
-  (ESLint and Prettier), typecheck, unit tests with coverage, build.
+  (ESLint and Prettier), typecheck, unit tests with coverage, build. A second job installs
+  Chromium and runs the phone end-to-end projects.
 - `.github/workflows/deploy.yml`, on push to `main`: build, upload `dist` with
   `actions/upload-pages-artifact`, deploy with `actions/deploy-pages`. GitHub Pages is configured
   with source "GitHub Actions". Vite `base` is `/aquatubos/`, matching the repository name.
