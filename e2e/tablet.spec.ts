@@ -24,13 +24,23 @@ async function expectFittedPage(page: Page, where: string) {
 }
 
 async function tapPipe(page: Page, pipeId: string) {
-  const centre = await page
-    .locator(`[data-element="pipe"][data-id="${pipeId}"]`)
-    .evaluate((element) => {
+  const pipe = page.locator(`[data-element="pipe"][data-id="${pipeId}"]`);
+  const centre = () =>
+    pipe.evaluate((element) => {
       const box = element.getBoundingClientRect();
       return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     });
-  await page.touchscreen.tap(centre.x, centre.y);
+  // The map refits when its container changes size (sheet opening or closing, fonts loading),
+  // so wait until the pipe stops moving before aiming at it.
+  let previous = await centre();
+  await expect(async () => {
+    await page.waitForTimeout(120);
+    const current = await centre();
+    const moved = Math.hypot(current.x - previous.x, current.y - previous.y);
+    previous = current;
+    expect(moved).toBeLessThan(0.5);
+  }).toPass();
+  await page.touchscreen.tap(previous.x, previous.y);
 }
 
 test('plays stage 1 on a tablet without page scrolling', async ({ page }) => {
