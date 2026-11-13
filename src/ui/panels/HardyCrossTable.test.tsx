@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { evaluateStage } from '../../game/evaluate';
 import { getScenario } from '../../scenarios';
@@ -237,6 +237,48 @@ describe('HardyCrossTable', () => {
     await user.click(row);
     expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T3' });
     expect(row).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the header row and the first column sticky inside scrolling frames', () => {
+    open('stage4');
+    render(<HardyCrossTable />);
+
+    const loops = screen.getAllByRole('region', { name: /^Anel .+, iteração 1$/ });
+    expect(loops).toHaveLength(3);
+    const compare = screen.getByRole('region', { name: 'Vazões finais: Hardy Cross e solver' });
+    for (const scroller of [...loops, compare]) {
+      expect(scroller).toHaveClass('hscroll__scroller');
+      expect(scroller).toHaveAttribute('tabindex', '0');
+      expect(scroller.parentElement).toHaveClass('hscroll', 'hc__wrap');
+      const table = scroller.querySelector('table')!;
+      // Every row starts with a sticky header cell: pipe, sum or correction.
+      for (const row of table.querySelectorAll('tr')) {
+        expect(row.firstElementChild).toHaveClass('sticky-col');
+        expect(row.firstElementChild!.tagName).toBe('TH');
+      }
+      for (const cell of table.querySelectorAll('tbody td')) expect(cell).toHaveClass('num');
+    }
+    // The labels of the sums sit in the sticky column, with the unit on its own line.
+    const footer = [...loops[0]!.querySelectorAll('tfoot th')].map((th) => th.textContent);
+    expect(footer).toEqual(['Σh (m)', 'Σ n·|h|/|Q| (m/(L/s))', 'ΔQ (L/s)']);
+    expect(loops[0]!.querySelectorAll('tfoot .hc__unit')).toHaveLength(3);
+  });
+
+  it('fades the side of a loop table that has hidden columns', () => {
+    open('stage3');
+    render(<HardyCrossTable />);
+    const scroller = screen.getByRole('region', { name: 'Anel I, iteração 1' });
+    const frame = scroller.parentElement!;
+    expect(frame).toHaveAttribute('data-fade-end', 'false');
+    for (const [name, value] of Object.entries({ clientWidth: 308, scrollWidth: 453 })) {
+      Object.defineProperty(scroller, name, { configurable: true, value });
+    }
+    fireEvent.scroll(scroller);
+    expect(frame).toHaveAttribute('data-fade-end', 'true');
+    Object.defineProperty(scroller, 'scrollLeft', { configurable: true, value: 145 });
+    fireEvent.scroll(scroller);
+    expect(frame).toHaveAttribute('data-fade-start', 'true');
+    expect(frame).toHaveAttribute('data-fade-end', 'false');
   });
 
   it('keeps the old table with a note when the design changed', () => {
