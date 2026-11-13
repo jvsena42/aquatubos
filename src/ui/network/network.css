@@ -352,13 +352,16 @@ rect.netview__hit {
   height: 34px;
 }
 
-/* A finger gets 44 px: 5 px beyond the visible button on every side, inside STRIP_MARGIN. */
+/*
+ * A finger gets 44 px: 5 px beyond the visible button on every side, inside STRIP_MARGIN. The
+ * inset is measured from inside the 1 px border.
+ */
 @media (pointer: coarse) {
   .netview__ctl::after,
   .netview__ctl-slot .help__button::after {
     content: '';
     position: absolute;
-    inset: -5px;
+    inset: -6px;
   }
 }
 
