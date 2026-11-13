@@ -1,8 +1,13 @@
 import type { ReactNode } from 'react';
-import { useFormat, useTr } from '../../i18n';
-import type { CheckIssue } from '../../engine/types';
+import { NBR_12218 } from '../../engine/config/nbr12218';
+import type { CheckId, CheckIssue } from '../../engine/types';
+import { mToMm } from '../../engine/units';
+import { useTr } from '../../i18n';
 import { SCENARIOS } from '../../scenarios';
 import { isUnlocked, useAppStore } from '../../state/store';
+import { useNum } from '../network/format';
+import { HEAD_UNIT } from '../network/strings';
+import { HelpButton } from '../shell/Help';
 import {
   IconCheck,
   IconError,
@@ -11,8 +16,6 @@ import {
   IconStale,
   IconWarning,
 } from '../shell/icons';
-import { Stars } from '../shell/Stars';
-import { money } from '../shell/strings';
 import { checkLabels, checksStrings, severityLabels } from './checksStrings';
 import './checks.css';
 
@@ -26,10 +29,25 @@ const STATUS_VIEW: Record<Status, { badge: string; icon: ReactNode }> = {
   failed: { badge: 'badge badge--danger', icon: <IconError /> },
 };
 
-/** Result of the last "Calcular / Verificar": status, cost, stars and the list of issues. */
+/** How the value and the limit of each check are written: unit, decimals and direction. */
+const CHECK_FORMAT: Record<
+  CheckId,
+  { unit: string; digits: number; scale: (si: number) => number; bound: 'min' | 'max' } | null
+> = {
+  minDynamicPressure: { unit: ` ${HEAD_UNIT}`, digits: 1, scale: (v) => v, bound: 'min' },
+  maxStaticPressure: { unit: ` ${HEAD_UNIT}`, digits: 1, scale: (v) => v, bound: 'max' },
+  minVelocity: { unit: ' m/s', digits: 2, scale: (v) => v, bound: 'min' },
+  maxVelocity: { unit: ' m/s', digits: 2, scale: (v) => v, bound: 'max' },
+  minDiameter: { unit: ' mm', digits: 0, scale: mToMm, bound: 'min' },
+  convergence: null,
+};
+
+/**
+ * Result of the last "Calcular / Verificar": one status line and one line per issue. Cost,
+ * budget and stars are in the HUD; what each issue means is behind its "?".
+ */
 export function ChecksPanel() {
   const tr = useTr();
-  const fmt = useFormat();
   const scenario = useAppStore((s) => s.scenario);
   const evaluation = useAppStore((s) => s.evaluation);
   const stale = useAppStore((s) => s.stale);
@@ -53,22 +71,9 @@ export function ChecksPanel() {
   const view = STATUS_VIEW[status];
   const passedNow = status === 'passed';
 
-  const showCost = scenario.budget !== null || scenario.features.cost;
   const next = SCENARIOS.find((s) => s.order === scenario.order + 1);
   const nextUnlocked = next ? isUnlocked(next, progress) : false;
-
-  const referenceText = () => {
-    if (!evaluation) return null;
-    const reference = scenario.reference.cost;
-    const difference = reference > 0 ? ((evaluation.cost - reference) / reference) * 100 : 0;
-    if (Math.abs(difference) < 0.05) return tr(checksStrings.equalToReference);
-    const percent = fmt(Math.abs(difference), 1);
-    return tr(
-      difference > 0
-        ? checksStrings.aboveReference(percent)
-        : checksStrings.belowReference(percent),
-    );
-  };
+  const issues = evaluation?.report.issues ?? [];
 
   return (
     <div className="checks">
@@ -77,9 +82,9 @@ export function ChecksPanel() {
           {view.icon}
           {tr(checksStrings[status])}
         </span>
-        {status === 'notVerified' && <p className="muted">{tr(checksStrings.notVerifiedHint)}</p>}
-        {status === 'stale' && <p className="muted">{tr(checksStrings.staleHint)}</p>}
-        {passedNow && <p>{tr(checksStrings.success)}</p>}
+        {evaluation && (
+          <span className="checks__count">{tr(checksStrings.issueCount(issues.length))}</span>
+        )}
       </div>
 
       {error && (
@@ -99,70 +104,16 @@ export function ChecksPanel() {
         </button>
       )}
 
-      {evaluation && (
-        <dl className="checks__facts">
-          {showCost && (
-            <div>
-              <dt>{tr(checksStrings.cost)}</dt>
-              <dd className="num">{money(fmt(evaluation.cost, 2))}</dd>
-            </div>
-          )}
-          {showCost && scenario.budget !== null && (
-            <div>
-              <dt>{tr(checksStrings.budget)}</dt>
-              <dd>
-                <span className="num">{money(fmt(scenario.budget, 2))}</span>
-                {evaluation.withinBudget ? (
-                  <span className="badge badge--ok">
-                    <IconCheck />
-                    {tr(checksStrings.withinBudget)}
-                  </span>
-                ) : (
-                  <span className="badge badge--danger">
-                    <IconError />
-                    {tr(checksStrings.overBudget)}
-                  </span>
-                )}
-              </dd>
-            </div>
-          )}
-          {passedNow && (
-            <div>
-              <dt>{tr(checksStrings.rating)}</dt>
-              <dd>
-                <Stars value={evaluation.stars} />
-              </dd>
-            </div>
-          )}
-          {passedNow && showCost && (
-            <div>
-              <dt>{tr(checksStrings.referenceCost)}</dt>
-              <dd>
-                <span className="num">{money(fmt(scenario.reference.cost, 2))}</span>
-                <span className="checks__reference">{referenceText()}</span>
-              </dd>
-            </div>
-          )}
-        </dl>
-      )}
-
-      {evaluation && (
-        <section className="checks__issues">
-          <h3>
-            {tr(checksStrings.issues)} ({evaluation.report.issues.length})
-          </h3>
-          {evaluation.report.issues.length === 0 ? (
-            <p className="muted">{tr(checksStrings.noIssues)}</p>
-          ) : (
-            <ul>
-              {evaluation.report.issues.map((issue, index) => (
-                <li key={`${issue.check}-${issue.elementType}-${issue.elementId}-${index}`}>
-                  <IssueItem issue={issue} onSelect={select} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {issues.length > 0 && (
+        <ul className="checks__issues" aria-label={tr(checksStrings.issues)}>
+          {issues.map((issue, index) => (
+            <IssueItem
+              key={`${issue.check}-${issue.elementType}-${issue.elementId}-${index}`}
+              issue={issue}
+              onSelect={select}
+            />
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -173,9 +124,15 @@ interface IssueItemProps {
   onSelect: (selection: { type: 'pipe' | 'node'; id: string }) => void;
 }
 
+/** "Pressão mín. · N4 · 9,4 mca": tapping it selects the element, the "?" explains it. */
 function IssueItem({ issue, onSelect }: IssueItemProps) {
   const tr = useTr();
+  const fmt = useNum();
   const isError = issue.severity === 'error';
+  const label = tr(checkLabels[issue.check]);
+  const format = CHECK_FORMAT[issue.check];
+  const write = (si: number) =>
+    format ? `${fmt(format.scale(si), format.digits)}${format.unit}` : '';
   const element =
     issue.elementType === 'pipe'
       ? tr(checksStrings.pipe(issue.elementId))
@@ -185,30 +142,53 @@ function IssueItem({ issue, onSelect }: IssueItemProps) {
 
   const content = (
     <>
-      <span className="issue__head">
-        <span className={isError ? 'badge badge--danger' : 'badge badge--warn'}>
-          {isError ? <IconError /> : <IconWarning />}
-          {tr(severityLabels[issue.severity])}
-        </span>
-        <span className="issue__check">{tr(checkLabels[issue.check])}</span>
-        <span className="issue__element num">{element}</span>
+      <span className="issue__icon">
+        {isError ? <IconError /> : <IconWarning />}
+        <span className="visually-hidden">{tr(severityLabels[issue.severity])}: </span>
       </span>
-      <span className="issue__explanation">{tr(issue.explanation)}</span>
+      <span className="issue__check">{label}</span>
+      {issue.elementType !== 'network' && (
+        <span className="issue__element num" title={element}>
+          <span aria-hidden="true">{issue.elementId}</span>
+          <span className="visually-hidden">{element}</span>
+        </span>
+      )}
+      {format && <span className="issue__value num">{write(issue.value)}</span>}
     </>
   );
 
-  if (issue.elementType === 'network') {
-    return <div className={`issue issue--${issue.severity}`}>{content}</div>;
-  }
   const { elementType, elementId } = issue;
   return (
-    <button
-      type="button"
-      className={`issue issue--${issue.severity} issue--action`}
-      title={tr(checksStrings.selectHint)}
-      onClick={() => onSelect({ type: elementType, id: elementId })}
-    >
-      {content}
-    </button>
+    <li className={`issue issue--${issue.severity}`}>
+      {elementType === 'network' ? (
+        <div className="issue__main">{content}</div>
+      ) : (
+        <button
+          type="button"
+          className="issue__main issue__main--action"
+          title={tr(checksStrings.selectHint)}
+          onClick={() => onSelect({ type: elementType, id: elementId })}
+        >
+          {content}
+        </button>
+      )}
+      <HelpButton topic={label} className="issue__help">
+        <span className="issue__explanation">{tr(issue.explanation)}</span>
+        {format && (
+          <span className="issue__limit">
+            {tr(
+              checksStrings.limit(
+                tr(
+                  (format.bound === 'min' ? checksStrings.atLeast : checksStrings.atMost)(
+                    write(issue.limit),
+                  ),
+                ),
+                NBR_12218.reference,
+              ),
+            )}
+          </span>
+        )}
+      </HelpButton>
+    </li>
   );
 }
