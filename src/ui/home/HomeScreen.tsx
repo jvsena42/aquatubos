@@ -47,81 +47,86 @@ export function HomeScreen() {
   return (
     <section className="home" aria-labelledby="home-heading">
       <div className="home__content">
-        <h1 id="home-heading" className="home__title" tabIndex={-1}>
-          <HomeLogo />
-          <span className="visually-hidden">{tr(shellStrings.appName)}</span>
-        </h1>
-        <p className="home__tagline">{tr(homeStrings.tagline)}</p>
-        <p className="home__lead">{tr(homeStrings.lead)}</p>
-
-        <div className="home__actions">
-          <button
-            type="button"
-            className="btn btn--primary home__play"
-            // The visible label and the line under it, as one name.
-            aria-label={playDetail ? `${playLabel}: ${playDetail}` : undefined}
-            onClick={action.kind === 'continue' ? () => void openStage(action.stage.id) : goToMap}
-          >
-            <span className="home__play-label">
-              {playLabel}
-              <IconNext />
-            </span>
-            {playDetail && <span className="home__play-stage">{playDetail}</span>}
-          </button>
-          {action.kind === 'continue' && (
-            <button type="button" className="btn home__secondary" onClick={goToMap}>
-              {tr(homeStrings.stageMap)}
-            </button>
-          )}
+        {/* Two groups: stacked in portrait, side by side on a phone in landscape. */}
+        <div className="home__intro">
+          <h1 id="home-heading" className="home__title" tabIndex={-1}>
+            <HomeLogo />
+            <span className="visually-hidden">{tr(shellStrings.appName)}</span>
+          </h1>
+          <p className="home__tagline">{tr(homeStrings.tagline)}</p>
+          <p className="home__lead">{tr(homeStrings.lead)}</p>
         </div>
 
-        <ul className="home__links" aria-label={tr(homeStrings.more)}>
-          <li>
-            <button type="button" className="btn" onClick={() => setDialog('howto')}>
-              {tr(homeStrings.howToPlay)}
+        <div className="home__menu">
+          <div className="home__actions">
+            <button
+              type="button"
+              className="btn btn--primary home__play"
+              // The visible label and the line under it, as one name.
+              aria-label={playDetail ? `${playLabel}: ${playDetail}` : undefined}
+              onClick={action.kind === 'continue' ? () => void openStage(action.stage.id) : goToMap}
+            >
+              <span className="home__play-label">
+                {playLabel}
+                <IconNext />
+              </span>
+              {playDetail && <span className="home__play-stage">{playDetail}</span>}
             </button>
-          </li>
-          <li>
-            <button type="button" className="btn" onClick={() => setDialog('glossary')}>
-              <IconBook />
-              {tr(homeStrings.glossary)}
-            </button>
-          </li>
-          <li>
-            <button type="button" className="btn" onClick={() => setDialog('about')}>
-              <IconInfo />
-              {tr(homeStrings.about)}
-            </button>
-          </li>
-        </ul>
-
-        {summary.hasProgress ? (
-          <dl className="home__stats" role="group" aria-label={tr(homeStrings.progress)}>
-            <div className="home__stat">
-              <dt>{tr(homeStrings.stars)}</dt>
-              <dd className="num">
-                <span className="home__star">
-                  <IconStar filled />
-                </span>
-                {summary.stars} / {summary.maxStars}
-              </dd>
-            </div>
-            <div className="home__stat">
-              <dt>{tr(homeStrings.stagesCompleted)}</dt>
-              <dd className="num">
-                {summary.completed} / {summary.total}
-              </dd>
-            </div>
-            {summary.bestCostTotal !== null && (
-              <div className="home__stat">
-                <dt>{tr(homeStrings.bestCost(summary.costStages))}</dt>
-                <dd className="num">{money(fmt(summary.bestCostTotal, 2))}</dd>
-              </div>
+            {action.kind === 'continue' && (
+              <button type="button" className="btn home__secondary" onClick={goToMap}>
+                {tr(homeStrings.stageMap)}
+              </button>
             )}
-          </dl>
-        ) : (
-          <p className="home__zero">{tr(homeStrings.noProgress)}</p>
-        )}
+          </div>
+
+          <ul className="home__links" aria-label={tr(homeStrings.more)}>
+            <li>
+              <button type="button" className="btn" onClick={() => setDialog('howto')}>
+                {tr(homeStrings.howToPlay)}
+              </button>
+            </li>
+            <li>
+              <button type="button" className="btn" onClick={() => setDialog('glossary')}>
+                <IconBook />
+                {tr(homeStrings.glossary)}
+              </button>
+            </li>
+            <li>
+              <button type="button" className="btn" onClick={() => setDialog('about')}>
+                <IconInfo />
+                {tr(homeStrings.about)}
+              </button>
+            </li>
+          </ul>
+
+          {summary.hasProgress ? (
+            <dl className="home__stats" role="group" aria-label={tr(homeStrings.progress)}>
+              <div className="home__stat">
+                <dt>{tr(homeStrings.stars)}</dt>
+                <dd className="num">
+                  <span className="home__star">
+                    <IconStar filled />
+                  </span>
+                  {summary.stars} / {summary.maxStars}
+                </dd>
+              </div>
+              <div className="home__stat">
+                <dt>{tr(homeStrings.stagesCompleted)}</dt>
+                <dd className="num">
+                  {summary.completed} / {summary.total}
+                </dd>
+              </div>
+              {summary.bestCostTotal !== null && (
+                <div className="home__stat">
+                  <dt>{tr(homeStrings.bestCost(summary.costStages))}</dt>
+                  <dd className="num">{money(fmt(summary.bestCostTotal, 2))}</dd>
+                </div>
+              )}
+            </dl>
+          ) : (
+            <p className="home__zero">{tr(homeStrings.noProgress)}</p>
+          )}
+        </div>
       </div>
 
       <div className="home__scene">

@@ -35,8 +35,17 @@
   width: 100%;
   max-width: 46rem;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-4) var(--space-4);
+  /* The sides keep clear of a notch. */
+  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-4)
+    max(var(--space-4), env(safe-area-inset-left, 0px));
   text-align: center;
+}
+
+/* Name and pitch; actions and progress. Their children are laid out by .home__content, except
+   on a phone in landscape, where the two groups are columns. */
+.home__intro,
+.home__menu {
+  display: contents;
 }
 
 .home__title {
@@ -562,13 +571,27 @@
 
 @media (max-width: 560px) {
   .home__content {
-    padding: var(--space-5) var(--space-4) var(--space-3);
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-3);
   }
 
-  .home__actions,
-  .home__links {
+  .home__actions {
     flex-direction: column;
     align-self: stretch;
+  }
+
+  /* One row of three; they wrap when the labels do not fit. */
+  .home__links {
+    align-self: stretch;
+  }
+
+  .home__links > li {
+    flex: 1 1 auto;
+  }
+
+  .home__links .btn {
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
   }
 
   .home__play,
@@ -586,6 +609,13 @@
 
   .home__stat {
     padding: var(--space-2) var(--space-3);
+  }
+
+  /* Two counters side by side and the cost on its own line below them. */
+  .home__stat:nth-child(3) {
+    flex-basis: 100%;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
   }
 
   .howto__step {
@@ -606,5 +636,75 @@
   .howto__nav > .btn {
     flex: 1;
     min-width: 0;
+  }
+}
+
+/* Phone in landscape: little height. Name and pitch on the left, actions on the right, so the
+   main button and the links show without scrolling; the scene follows below. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .home__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-5);
+    max-width: 56rem;
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .home__intro,
+  .home__menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .home-logo {
+    width: 13rem;
+  }
+
+  .home__tagline {
+    font-size: var(--font-size-lg);
+  }
+
+  .home__lead,
+  .home__zero {
+    font-size: var(--font-size-sm);
+  }
+
+  .home__actions {
+    align-self: stretch;
+    margin-top: 0;
+  }
+
+  .home__play,
+  .home__secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 3rem;
+  }
+
+  .home__links {
+    flex-direction: row;
+  }
+
+  .home__stats,
+  .home__zero {
+    margin-top: 0;
+  }
+
+  .home__stats {
+    align-self: stretch;
+  }
+
+  .home__stat {
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .home__stat:nth-child(3) {
+    flex-basis: 100%;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
   }
 }

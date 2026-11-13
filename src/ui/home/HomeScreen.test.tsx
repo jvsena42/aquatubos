@@ -45,6 +45,21 @@ describe('HomeScreen', () => {
     expect(screen.getByText(/Hazen-Williams.*Hardy Cross.*NBR 12218/)).toBeInTheDocument();
   });
 
+  it('groups the pitch apart from the actions, so they can sit side by side in landscape', () => {
+    const { container } = renderHome({ progress: allCompleted });
+    const intro = within(container.querySelector<HTMLElement>('.home__intro')!);
+    const menu = within(container.querySelector<HTMLElement>('.home__menu')!);
+    expect(intro.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(intro.queryByRole('button')).not.toBeInTheDocument();
+    expect(menu.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      'Mapa de etapasTodas as etapas concluídas',
+      'Como jogar',
+      'Glossário',
+      'Sobre',
+    ]);
+    expect(menu.getByRole('group', { name: 'Seu progresso' })).toBeInTheDocument();
+  });
+
   it('draws a decorative scene that stays light', () => {
     const { container } = renderHome();
     const scene = container.querySelector('.home-scene')!;
