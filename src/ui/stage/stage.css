@@ -193,6 +193,15 @@
 }
 
 /*
+ * With the sheet half open the view keeps only the space above it, so the map refits there and
+ * the selected pipe or node is not hidden under the sheet.
+ */
+.stage--phone:not(.stage--side):has(.sheet[data-detent='half']) .stage__tabpanel {
+  margin-bottom: calc(50vh - var(--sheet-peek));
+  margin-bottom: calc(50dvh - var(--sheet-peek));
+}
+
+/*
  * The drawings ask for a minimum canvas height that a phone held sideways does not have; with
  * a lower floor the selection bar under the canvas stays on screen.
  */
