@@ -7,10 +7,12 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useTr } from '../../i18n';
 import { GLOSSARY, type TermId } from './glossary';
+import { useTermRepeat } from './TermScope';
 import { placeTooltip, tooltipWidth } from './tooltipPosition';
 import './glossary.css';
 
@@ -55,6 +57,29 @@ function viewportSize() {
  */
 export function Term({ id, children }: TermProps) {
   const tr = useTr();
+  const anchor = useRef<HTMLSpanElement>(null);
+  const repeat = useTermRepeat(id, anchor);
+  // A repeat inside a TermScope reads as plain text: the first occurrence carries the tooltip.
+  if (repeat) {
+    return (
+      <span ref={anchor} className="term term--repeat">
+        {children ?? tr(GLOSSARY[id].term)}
+      </span>
+    );
+  }
+  return (
+    <InteractiveTerm id={id} anchor={anchor}>
+      {children}
+    </InteractiveTerm>
+  );
+}
+
+function InteractiveTerm({
+  id,
+  children,
+  anchor,
+}: TermProps & { anchor: RefObject<HTMLSpanElement | null> }) {
+  const tr = useTr();
   const entry = GLOSSARY[id];
   const tooltipId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -87,17 +112,9 @@ export function Term({ id, children }: TermProps) {
     const width = tooltipWidth(viewport.width);
     tooltip.style.width = `${width}px`;
     tooltip.style.maxHeight = '';
-    // The term has invisible vertical padding on touch screens (a larger target): the tooltip
-    // goes next to the text, not to the padding.
     const rect = trigger.getBoundingClientRect();
-    const computed = getComputedStyle(trigger);
     const placement = placeTooltip({
-      anchor: {
-        left: rect.left,
-        right: rect.right,
-        top: rect.top + (parseFloat(computed.paddingTop) || 0),
-        bottom: rect.bottom - (parseFloat(computed.paddingBottom) || 0),
-      },
+      anchor: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom },
       height: tooltip.offsetHeight,
       viewport,
     });
@@ -113,7 +130,7 @@ export function Term({ id, children }: TermProps) {
     if (!open) return;
     const inside = (target: EventTarget | null) =>
       target instanceof Node &&
-      (triggerRef.current?.contains(target) || tooltipRef.current?.contains(target));
+      (anchor.current?.contains(target) || tooltipRef.current?.contains(target));
     const onPointerDown = (event: PointerEvent) => {
       if (!inside(event.target)) hide();
     };
@@ -138,7 +155,10 @@ export function Term({ id, children }: TermProps) {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', hide);
     };
-  }, [open, hide]);
+  }, [open, hide, anchor]);
+
+  const inTooltip = (target: EventTarget) =>
+    target instanceof Node && tooltipRef.current?.contains(target) === true;
 
   const tooltip = (
     <span
@@ -159,7 +179,25 @@ export function Term({ id, children }: TermProps) {
 
   return (
     <span
+      ref={anchor}
       className="term"
+      // The press and the click are read here and not on the button: on a touch screen the term
+      // has an invisible 44 px area around the word (glossary.css) that belongs to this element.
+      onPointerDown={(event) => {
+        if (inTooltip(event.target)) return;
+        press.current = { type: event.pointerType, wasOpen: open };
+      }}
+      onClick={(event) => {
+        // The tooltip is a React child through its portal: its events bubble to here.
+        if (inTooltip(event.target)) return;
+        const pressed = press.current;
+        press.current = null;
+        // A mouse click keeps the tooltip that hover or focus opened. A tap or a key toggles:
+        // on a touch screen there is no hover to bring it up or to dismiss it.
+        if (pressed?.type === 'mouse') show();
+        else if (pressed ? pressed.wasOpen : open) hide();
+        else show();
+      }}
       // Hover is for the mouse only. A touch screen also reports a tap as the pointer entering
       // and leaving (and as mouse events after it), which would close what the tap just opened.
       onPointerEnter={(event) => {
@@ -179,18 +217,6 @@ export function Term({ id, children }: TermProps) {
         onBlur={() => {
           if (pressedTooltip.current) pressedTooltip.current = false;
           else hide();
-        }}
-        onPointerDown={(event) => {
-          press.current = { type: event.pointerType, wasOpen: open };
-        }}
-        onClick={() => {
-          const pressed = press.current;
-          press.current = null;
-          // A mouse click keeps the tooltip that hover or focus opened. A tap or a key toggles:
-          // on a touch screen there is no hover to bring it up or to dismiss it.
-          if (pressed?.type === 'mouse') show();
-          else if (pressed ? pressed.wasOpen : open) hide();
-          else show();
         }}
       >
         {children ?? tr(entry.term)}
