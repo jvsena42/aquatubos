@@ -25,12 +25,6 @@
   min-width: 9rem;
 }
 
-.profile__summary {
-  flex: 1 1 16rem;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
 .profile__alert {
   color: var(--color-danger);
   font-weight: var(--font-weight-semibold);
@@ -139,11 +133,6 @@
   stroke-dasharray: 3 2;
 }
 
-.profile__notes {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
 /* Touch: the picker is 44 px tall, and 16 px text keeps iOS from zooming when it opens. */
 @media (pointer: coarse) {
   .profile__picker .select {
@@ -158,8 +147,8 @@
 }
 
 /*
- * Phones: the view fills the tab panel and scrolls inside it. The readout goes above the
- * chart, where the finger does not cover it, and the summary after the legend.
+ * Phones: the view fills the tab panel and scrolls inside it. The picker and the readout go
+ * above the chart, where the finger does not cover them.
  */
 :root[data-device='phone'] .profile {
   flex: 1 1 0;
@@ -168,33 +157,22 @@
   overscroll-behavior: contain;
 }
 
+:root[data-device='phone'] .profile__bar {
+  order: -2;
+  align-items: center;
+}
+
 :root[data-device='phone'] .profile__readout {
   order: -1;
-  min-height: 5.75em;
+  min-height: 4.5em;
 }
 
-:root[data-device='phone'] .profile__bar {
-  display: contents;
+/* The help holds the legend of the chart. */
+.profile__help {
+  align-self: center;
 }
 
-:root[data-device='phone'] .profile__picker {
-  order: -2;
-}
-
-:root[data-device='phone'] .profile__summary {
-  order: 1;
-  flex: none;
-}
-
-:root[data-device='phone'] .profile__notes {
-  order: 2;
-}
-
-/* Short screens (a phone in landscape): the readout stays next to the chart, above it. */
-:root[data-device='phone'][data-orientation='landscape'] .profile__bar {
-  order: -2;
-}
-
-:root[data-device='phone'][data-orientation='landscape'] .profile__readout {
-  order: -1;
+.profile__help .chart__legend {
+  flex-direction: column;
+  gap: var(--space-1);
 }

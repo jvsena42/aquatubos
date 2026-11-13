@@ -2,6 +2,7 @@ import type { LocalizedText } from '../../engine/types';
 
 export const profileStrings = {
   endNode: { pt: 'Perfil até o nó', en: 'Profile to node' },
+  helpTopic: { pt: 'Perfil', en: 'Profile' },
   chartTitle: (from: string, to: string): LocalizedText => ({
     pt: `Perfil longitudinal de ${from} a ${to}`,
     en: `Longitudinal profile from ${from} to ${to}`,
@@ -11,14 +12,8 @@ export const profileStrings = {
     en: `Path ${path}, ${length} m. Lowest pressure on the path: ${pressure} at node ${node}.`,
   }),
   belowCount: (count: number, limit: string): LocalizedText => ({
-    pt:
-      count === 1
-        ? `1 nó do caminho está abaixo do mínimo de ${limit}.`
-        : `${count} nós do caminho estão abaixo do mínimo de ${limit}.`,
-    en:
-      count === 1
-        ? `1 node on the path is below the minimum of ${limit}.`
-        : `${count} nodes on the path are below the minimum of ${limit}.`,
+    pt: count === 1 ? `1 nó abaixo de ${limit}` : `${count} nós abaixo de ${limit}`,
+    en: count === 1 ? `1 node below ${limit}` : `${count} nodes below ${limit}`,
   }),
   clipped: {
     pt: 'A linha piezométrica desce além da escala do gráfico (pressões negativas); os valores estão nos rótulos.',
@@ -48,8 +43,8 @@ export const profileStrings = {
     en: `Pump ${id}: +${head} m`,
   }),
   hint: {
-    pt: 'Passe o cursor ou toque em um nó para ver os valores. Clicar seleciona o nó na rede.',
-    en: 'Hover or tap a node to see its values. Clicking selects the node in the network.',
+    pt: 'Passe o cursor ou toque em um nó para ver os valores. Clicar seleciona o nó na rede. Sem um nó escolhido, aparecem os valores do nó de menor pressão do caminho.',
+    en: 'Hover or tap a node to see its values. Clicking selects the node in the network. With no node chosen, the values are those of the node with the lowest pressure on the path.',
   },
 
   node: { pt: 'Nó', en: 'Node' },

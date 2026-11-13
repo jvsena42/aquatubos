@@ -16,6 +16,8 @@ import {
 } from '../charts/scale';
 import { useChartSize } from '../charts/useChartWidth';
 import { Term } from '../glossary/Term';
+import { TermScope } from '../glossary/TermScope';
+import { HelpButton } from '../shell/Help';
 import { profileStrings as s } from './HglProfile.strings';
 import './HglProfile.css';
 
@@ -221,309 +223,328 @@ export function HglProfile() {
 
   const active = points.find((p) => p.id === activeId) ?? null;
   const title = tr(s.chartTitle(first.id, last.id));
+  const summary = tr(
+    s.summary(
+      points.map((p) => p.id).join(' → '),
+      fmt(totalLength, 0),
+      critical.id,
+      pressureText(critical),
+    ),
+  );
+  // Until a node is chosen the readout shows the node with the lowest pressure of the path.
+  const shown = active ?? critical;
 
   return (
-    <ResultBody className="profile">
-      <div className="profile__bar">
-        {picker}
-        <p id={summaryId} className="profile__summary">
-          {tr(
-            s.summary(
-              points.map((p) => p.id).join(' → '),
-              fmt(totalLength, 0),
-              critical.id,
-              pressureText(critical),
-            ),
-          )}{' '}
+    <TermScope>
+      <ResultBody className="profile">
+        <div className="profile__bar">
+          {picker}
+          <HelpButton topic={tr(s.helpTopic)} className="profile__help">
+            <p>{tr(s.hint)}</p>
+            <p>{summary}</p>
+            <ul className="chart__legend">
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <line className="profile__hgl" x1="0" x2="28" y1="6" y2="6" />
+                </svg>
+                {tr(s.legendHgl)}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <line className="profile__static" x1="0" x2="28" y1="6" y2="6" />
+                </svg>
+                {tr(s.legendStatic)}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <line className="profile__min" x1="0" x2="28" y1="6" y2="6" />
+                </svg>
+                {tr(s.legendMin(limitText))}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <rect className="profile__terrain-fill" x="0" y="3" width="28" height="9" />
+                  <line className="profile__terrain" x1="0" x2="28" y1="3" y2="3" />
+                </svg>
+                {tr(s.legendTerrain)}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <line className="profile__pipe" x1="0" x2="28" y1="6" y2="6" />
+                </svg>
+                {tr(s.legendPipe)}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12">
+                  <circle className="profile__marker" cx="14" cy="6" r="4.5" />
+                </svg>
+                {tr(s.legendNode)}
+              </li>
+              <li>
+                <svg viewBox="0 0 28 12" className="profile__node--below">
+                  <path className="profile__marker" d="M14,0 L20,6 L14,12 L8,6 Z" />
+                </svg>
+                {tr(s.legendBelow)}
+              </li>
+            </ul>
+            {clipped && <p>{tr(s.clipped)}</p>}
+            <p>
+              <Term id="hglLine" /> · <Term id="staticPressure" /> · <Term id="dynamicPressure" />
+            </p>
+          </HelpButton>
           {below.length > 0 && (
             <strong className="profile__alert">{tr(s.belowCount(below.length, limitText))}</strong>
           )}
-        </p>
-      </div>
+          <p id={summaryId} className="visually-hidden">
+            {summary}
+          </p>
+        </div>
 
-      <div ref={frameRef} className="chart profile__chart">
-        <svg
-          className="chart__svg"
-          viewBox={`0 0 ${width} ${height}`}
-          role="group"
-          aria-label={title}
-          aria-describedby={summaryId}
-        >
-          <defs>
-            <clipPath id={clipId}>
-              <rect x={plot.x0} y={plot.y0} width={plot.x1 - plot.x0} height={plot.y1 - plot.y0} />
-            </clipPath>
-          </defs>
-
-          <g aria-hidden="true">
-            {yTicks.map((tick) => (
-              <g key={tick}>
-                <line className="chart__grid" x1={plot.x0} x2={plot.x1} y1={y(tick)} y2={y(tick)} />
-                <text
-                  className="chart__tick"
-                  x={plot.x0 - 6}
-                  y={y(tick)}
-                  dy="0.32em"
-                  textAnchor="end"
-                >
-                  {fmt(tick, yAxis.digits)}
-                </text>
-              </g>
-            ))}
-            {xTicks.map((tick) => (
-              <g key={tick}>
-                <line
-                  className="chart__axis"
-                  x1={x(tick)}
-                  x2={x(tick)}
-                  y1={plot.y1}
-                  y2={plot.y1 + 4}
-                />
-                <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
-                  {fmt(tick, 0)}
-                </text>
-              </g>
-            ))}
-            <text className="chart__axis-title" x={4} y={12}>
-              {tr(s.axisY)}
-            </text>
-            <text
-              className="chart__axis-title"
-              x={(plot.x0 + plot.x1) / 2}
-              y={height - 6}
-              textAnchor="middle"
-            >
-              {tr(s.axisX)}
-            </text>
-
-            <rect
-              className="profile__plot"
-              x={plot.x0}
-              y={0}
-              width={plot.x1 - plot.x0}
-              height={plot.y1}
-              onClick={chooseNearest}
-            />
-            <g clipPath={`url(#${clipId})`}>
-              <polygon className="profile__terrain-fill" points={polyline(terrainArea)} />
-              <polyline className="profile__pipe" points={polyline(pipeLine)} />
-              <polyline className="profile__terrain" points={polyline(terrain)} />
-              {first.kind === 'reservoir' && (
+        <div ref={frameRef} className="chart profile__chart">
+          <svg
+            className="chart__svg"
+            viewBox={`0 0 ${width} ${height}`}
+            role="group"
+            aria-label={title}
+            aria-describedby={summaryId}
+          >
+            <defs>
+              <clipPath id={clipId}>
                 <rect
-                  className="profile__tank"
-                  x={x(first.distance)}
-                  y={y(first.head)}
-                  width={10}
-                  height={Math.max(y(first.elevation) - y(first.head), 3)}
+                  x={plot.x0}
+                  y={plot.y0}
+                  width={plot.x1 - plot.x0}
+                  height={plot.y1 - plot.y0}
                 />
-              )}
-              {points.map((p) => (
-                <line
-                  key={p.id}
-                  className="profile__drop"
-                  x1={x(p.distance)}
-                  x2={x(p.distance)}
-                  y1={y(p.elevation)}
-                  y2={y(p.head)}
-                />
-              ))}
-              {minLine.length > 1 && (
-                <polyline className="profile__min" points={polyline(minLine)} />
-              )}
-              {staticLine.length > 1 && (
-                <polyline className="profile__static" points={polyline(staticLine)} />
-              )}
-              <polyline className="profile__hgl" points={polyline(hgl)} />
-            </g>
-            <line className="chart__axis" x1={plot.x0} x2={plot.x0} y1={plot.y0} y2={plot.y1} />
-            <line className="chart__axis" x1={plot.x0} x2={plot.x1} y1={plot.y1} y2={plot.y1} />
+              </clipPath>
+            </defs>
 
-            {segments.map((segment, index) => {
-              if (segment.kind !== 'pump') return null;
-              const from = points[index]!;
-              const to = points[index + 1]!;
+            <g aria-hidden="true">
+              {yTicks.map((tick) => (
+                <g key={tick}>
+                  <line
+                    className="chart__grid"
+                    x1={plot.x0}
+                    x2={plot.x1}
+                    y1={y(tick)}
+                    y2={y(tick)}
+                  />
+                  <text
+                    className="chart__tick"
+                    x={plot.x0 - 6}
+                    y={y(tick)}
+                    dy="0.32em"
+                    textAnchor="end"
+                  >
+                    {fmt(tick, yAxis.digits)}
+                  </text>
+                </g>
+              ))}
+              {xTicks.map((tick) => (
+                <g key={tick}>
+                  <line
+                    className="chart__axis"
+                    x1={x(tick)}
+                    x2={x(tick)}
+                    y1={plot.y1}
+                    y2={plot.y1 + 4}
+                  />
+                  <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
+                    {fmt(tick, 0)}
+                  </text>
+                </g>
+              ))}
+              <text className="chart__axis-title" x={4} y={12}>
+                {tr(s.axisY)}
+              </text>
+              <text
+                className="chart__axis-title"
+                x={(plot.x0 + plot.x1) / 2}
+                y={height - 6}
+                textAnchor="middle"
+              >
+                {tr(s.axisX)}
+              </text>
+
+              <rect
+                className="profile__plot"
+                x={plot.x0}
+                y={0}
+                width={plot.x1 - plot.x0}
+                height={plot.y1}
+                onClick={chooseNearest}
+              />
+              <g clipPath={`url(#${clipId})`}>
+                <polygon className="profile__terrain-fill" points={polyline(terrainArea)} />
+                <polyline className="profile__pipe" points={polyline(pipeLine)} />
+                <polyline className="profile__terrain" points={polyline(terrain)} />
+                {first.kind === 'reservoir' && (
+                  <rect
+                    className="profile__tank"
+                    x={x(first.distance)}
+                    y={y(first.head)}
+                    width={10}
+                    height={Math.max(y(first.elevation) - y(first.head), 3)}
+                  />
+                )}
+                {points.map((p) => (
+                  <line
+                    key={p.id}
+                    className="profile__drop"
+                    x1={x(p.distance)}
+                    x2={x(p.distance)}
+                    y1={y(p.elevation)}
+                    y2={y(p.head)}
+                  />
+                ))}
+                {minLine.length > 1 && (
+                  <polyline className="profile__min" points={polyline(minLine)} />
+                )}
+                {staticLine.length > 1 && (
+                  <polyline className="profile__static" points={polyline(staticLine)} />
+                )}
+                <polyline className="profile__hgl" points={polyline(hgl)} />
+              </g>
+              <line className="chart__axis" x1={plot.x0} x2={plot.x0} y1={plot.y0} y2={plot.y1} />
+              <line className="chart__axis" x1={plot.x0} x2={plot.x1} y1={plot.y1} y2={plot.y1} />
+
+              {segments.map((segment, index) => {
+                if (segment.kind !== 'pump') return null;
+                const from = points[index]!;
+                const to = points[index + 1]!;
+                return (
+                  <text
+                    key={segment.id}
+                    className="chart__label"
+                    x={x(to.distance) + 16}
+                    y={(yClamped(from.head) + yClamped(to.head)) / 2}
+                    dy="0.32em"
+                  >
+                    {tr(s.pumpLabel(segment.id, fmt(segment.headChange, 1)))}
+                  </text>
+                );
+              })}
+            </g>
+
+            {points.map((p) => {
+              const px = x(p.distance);
+              const py = yClamped(p.head);
+              const offScale = y(p.head) > plot.y1 + 0.5;
+              // Off-scale points sit on the bottom edge; their label goes above the ground line.
+              const label = labels.get(p.id);
+              const labelY =
+                (offScale ? Math.min(y(p.elevation), plot.y1) - 26 : py - 24) -
+                (label?.row ?? 0) * LABEL_HEIGHT;
+              const isActive = activeId === p.id;
+              const isSelected =
+                (selection?.type === 'node' || selection?.type === 'reservoir') &&
+                selection.id === p.id;
               return (
-                <text
-                  key={segment.id}
-                  className="chart__label"
-                  x={x(to.distance) + 16}
-                  y={(yClamped(from.head) + yClamped(to.head)) / 2}
-                  dy="0.32em"
+                <g
+                  key={p.id}
+                  className={[
+                    'profile__node',
+                    p.belowMin ? 'profile__node--below' : '',
+                    isActive ? 'profile__node--active' : '',
+                    isSelected ? 'profile__node--selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={describe(p)}
+                  aria-pressed={isSelected}
+                  onMouseEnter={() => setHoverId(p.id)}
+                  onMouseLeave={() => setHoverId((current) => (current === p.id ? null : current))}
+                  onFocus={() => setPinnedId(p.id)}
+                  onClick={() => choose(p)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      choose(p);
+                    }
+                  }}
                 >
-                  {tr(s.pumpLabel(segment.id, fmt(segment.headChange, 1)))}
-                </text>
+                  <circle className="profile__hit" cx={px} cy={py} r={HIT_RADIUS} />
+                  <circle className="profile__ring" cx={px} cy={py} r={13} />
+                  {p.belowMin ? (
+                    <path
+                      className="profile__marker"
+                      d={`M${px},${py - 6.5} L${px + 6.5},${py} L${px},${py + 6.5} L${px - 6.5},${py} Z`}
+                    />
+                  ) : (
+                    <circle className="profile__marker" cx={px} cy={py} r={4.5} />
+                  )}
+                  {label && (
+                    <g aria-hidden="true">
+                      <text
+                        className="chart__label"
+                        x={label.x}
+                        y={labelY}
+                        textAnchor={label.anchor}
+                      >
+                        {p.id}
+                      </text>
+                      <text
+                        className="chart__label chart__label--num profile__value"
+                        x={label.x}
+                        y={labelY + 13}
+                        textAnchor={label.anchor}
+                      >
+                        {valueText(p)}
+                      </text>
+                    </g>
+                  )}
+                </g>
               );
             })}
-          </g>
+          </svg>
+        </div>
 
-          {points.map((p) => {
-            const px = x(p.distance);
-            const py = yClamped(p.head);
-            const offScale = y(p.head) > plot.y1 + 0.5;
-            // Off-scale points sit on the bottom edge; their label goes above the ground line.
-            const label = labels.get(p.id);
-            const labelY =
-              (offScale ? Math.min(y(p.elevation), plot.y1) - 26 : py - 24) -
-              (label?.row ?? 0) * LABEL_HEIGHT;
-            const isActive = activeId === p.id;
-            const isSelected =
-              (selection?.type === 'node' || selection?.type === 'reservoir') &&
-              selection.id === p.id;
-            return (
-              <g
-                key={p.id}
-                className={[
-                  'profile__node',
-                  p.belowMin ? 'profile__node--below' : '',
-                  isActive ? 'profile__node--active' : '',
-                  isSelected ? 'profile__node--selected' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                role="button"
-                tabIndex={0}
-                aria-label={describe(p)}
-                aria-pressed={isSelected}
-                onMouseEnter={() => setHoverId(p.id)}
-                onMouseLeave={() => setHoverId((current) => (current === p.id ? null : current))}
-                onFocus={() => setPinnedId(p.id)}
-                onClick={() => choose(p)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    choose(p);
-                  }
-                }}
-              >
-                <circle className="profile__hit" cx={px} cy={py} r={HIT_RADIUS} />
-                <circle className="profile__ring" cx={px} cy={py} r={13} />
-                {p.belowMin ? (
-                  <path
-                    className="profile__marker"
-                    d={`M${px},${py - 6.5} L${px + 6.5},${py} L${px},${py + 6.5} L${px - 6.5},${py} Z`}
-                  />
-                ) : (
-                  <circle className="profile__marker" cx={px} cy={py} r={4.5} />
-                )}
-                {label && (
-                  <g aria-hidden="true">
-                    <text className="chart__label" x={label.x} y={labelY} textAnchor={label.anchor}>
-                      {p.id}
-                    </text>
-                    <text
-                      className="chart__label chart__label--num profile__value"
-                      x={label.x}
-                      y={labelY + 13}
-                      textAnchor={label.anchor}
-                    >
-                      {valueText(p)}
-                    </text>
-                  </g>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      <p className="chart__readout profile__readout" role="status">
-        {active ? (
-          facts(active).map((fact, index) => (
+        <p className="chart__readout profile__readout" role="status">
+          {facts(shown).map((fact, index) => (
             <Fragment key={fact}>
               {index > 0 && ' · '}
               <span className={index === 0 ? 'chart__readout-title' : 'chart__readout-item'}>
                 {fact}
               </span>
             </Fragment>
-          ))
-        ) : (
-          <span className="muted">{tr(s.hint)}</span>
-        )}
-      </p>
+          ))}
+        </p>
 
-      <ul className="chart__legend" aria-hidden="true">
-        <li>
-          <svg viewBox="0 0 28 12">
-            <line className="profile__hgl" x1="0" x2="28" y1="6" y2="6" />
-          </svg>
-          {tr(s.legendHgl)}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12">
-            <line className="profile__static" x1="0" x2="28" y1="6" y2="6" />
-          </svg>
-          {tr(s.legendStatic)}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12">
-            <line className="profile__min" x1="0" x2="28" y1="6" y2="6" />
-          </svg>
-          {tr(s.legendMin(limitText))}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12">
-            <rect className="profile__terrain-fill" x="0" y="3" width="28" height="9" />
-            <line className="profile__terrain" x1="0" x2="28" y1="3" y2="3" />
-          </svg>
-          {tr(s.legendTerrain)}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12">
-            <line className="profile__pipe" x1="0" x2="28" y1="6" y2="6" />
-          </svg>
-          {tr(s.legendPipe)}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12">
-            <circle className="profile__marker" cx="14" cy="6" r="4.5" />
-          </svg>
-          {tr(s.legendNode)}
-        </li>
-        <li>
-          <svg viewBox="0 0 28 12" className="profile__node--below">
-            <path className="profile__marker" d="M14,0 L20,6 L14,12 L8,6 Z" />
-          </svg>
-          {tr(s.legendBelow)}
-        </li>
-      </ul>
-
-      <p className="profile__notes">
-        {clipped && <span>{tr(s.clipped)} </span>}
-        <Term id="hglLine" /> · <Term id="staticPressure" /> · <Term id="dynamicPressure" />
-      </p>
-
-      <div className="visually-hidden">
-        <table>
-          <caption>{tr(s.tableCaption)}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{tr(s.node)}</th>
-              <th scope="col">{tr(s.distance)} (m)</th>
-              <th scope="col">{tr(s.elevation)} (m)</th>
-              <th scope="col">{tr(s.hgl)} (m)</th>
-              <th scope="col">
-                {tr(s.pressure)} ({mca})
-              </th>
-              <th scope="col">{tr(s.staticHead)} (m)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {points.map((p) => (
-              <tr key={p.id}>
-                <th scope="row">{p.id}</th>
-                <td>{fmt(p.distance, 0)}</td>
-                <td>{fmt(p.elevation, 2)}</td>
-                <td>{fmt(p.head, 2)}</td>
-                <td>
-                  {fmt(p.pressure, 2)}
-                  {p.belowMin ? ` (${tr(s.belowMin)})` : ''}
-                </td>
-                <td>{p.staticHead === null ? '–' : fmt(p.staticHead, 2)}</td>
+        <div className="visually-hidden">
+          <table>
+            <caption>{tr(s.tableCaption)}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{tr(s.node)}</th>
+                <th scope="col">{tr(s.distance)} (m)</th>
+                <th scope="col">{tr(s.elevation)} (m)</th>
+                <th scope="col">{tr(s.hgl)} (m)</th>
+                <th scope="col">
+                  {tr(s.pressure)} ({mca})
+                </th>
+                <th scope="col">{tr(s.staticHead)} (m)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </ResultBody>
+            </thead>
+            <tbody>
+              {points.map((p) => (
+                <tr key={p.id}>
+                  <th scope="row">{p.id}</th>
+                  <td>{fmt(p.distance, 0)}</td>
+                  <td>{fmt(p.elevation, 2)}</td>
+                  <td>{fmt(p.head, 2)}</td>
+                  <td>
+                    {fmt(p.pressure, 2)}
+                    {p.belowMin ? ` (${tr(s.belowMin)})` : ''}
+                  </td>
+                  <td>{p.staticHead === null ? '–' : fmt(p.staticHead, 2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ResultBody>
+    </TermScope>
   );
 }

@@ -31,15 +31,16 @@ export const pumpStrings = {
 
   readerLabel: { pt: 'Vazão de leitura das curvas', en: 'Flow at which the curves are read' },
   readerHint: {
-    pt: 'Toque no gráfico ou passe o cursor sobre ele para ler as duas curvas em uma vazão. Com o teclado, use as setas.',
-    en: 'Tap the chart or move the pointer over it to read both curves at a flow. With the keyboard, use the arrow keys.',
+    pt: 'Toque no gráfico ou passe o cursor sobre ele para ler as duas curvas em uma vazão. Com o teclado, use as setas. Sem leitura, aparecem os valores do ponto de operação.',
+    en: 'Tap the chart or move the pointer over it to read both curves at a flow. With the keyboard, use the arrow keys. With nothing read, the values are those of the operating point.',
   },
   readFlow: { pt: 'Vazão', en: 'Flow' },
   readPump: { pt: 'Bomba', en: 'Pump' },
   readSystem: { pt: 'Sistema', en: 'System' },
 
-  statusOk: { pt: 'A bomba atende', en: 'The pump is sufficient' },
-  statusFail: { pt: 'A bomba não atende', en: 'The pump is not sufficient' },
+  helpTopic: { pt: 'Bomba', en: 'Pump' },
+  statusOk: { pt: 'Bomba atende', en: 'Pump is sufficient' },
+  statusFail: { pt: 'Bomba não atende', en: 'Pump is not sufficient' },
   verdictOk: (flow: string, head: string, required: string, margin: string): LocalizedText => ({
     pt: `Na vazão de ${flow} L/s a bomba fornece ${head} m e a rede precisa de ${required} m. A folga é de ${margin} m: a pressão mínima é mantida em todos os nós.`,
     en: `At ${flow} L/s the pump delivers ${head} m and the network needs ${required} m. The margin is ${margin} m: the minimum pressure is kept at every node.`,
