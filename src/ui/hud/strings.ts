@@ -12,6 +12,8 @@ export const hudStrings = {
     en: 'Result from before the last change',
   },
   cost: { pt: 'Custo', en: 'Cost' },
+  costOverBudget: { pt: 'Custo, acima do orçamento', en: 'Cost, over the budget' },
+  details: { pt: 'Detalhes e objetivos', en: 'Details and objectives' },
   budget: (value: string): LocalizedText => ({
     pt: `Orçamento ${value}`,
     en: `Budget ${value}`,

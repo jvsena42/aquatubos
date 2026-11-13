@@ -212,21 +212,14 @@
   }
 }
 
+/* Tablets keep the single row with tighter cells; phones use the compact form below. */
 @media (max-width: 960px) {
   .hud {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: auto auto auto minmax(0, 1fr);
   }
 
   .hud__item {
     padding: var(--space-2) var(--space-3);
-  }
-
-  .hud__item:nth-child(odd) {
-    border-left: 0;
-  }
-
-  .hud__item:nth-child(n + 3) {
-    border-top: 1px solid var(--color-border);
   }
 
   .hud__value {
@@ -240,4 +233,126 @@
   .hud__popover {
     right: 0;
   }
+}
+
+/*
+ * Phone form (StageHud compact): one line that opens a popover with the full figures and the
+ * objectives. The popover is placed against the stage head row (position: relative there).
+ */
+.hud--compact {
+  position: static;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.hud__summary {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.hud__summary:focus-visible {
+  outline-offset: -2px;
+}
+
+.hud__summary:active,
+.hud__summary[aria-expanded='true'] {
+  background: var(--color-surface-2);
+}
+
+.hud__chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.hud__chip > .icon {
+  color: var(--color-text-muted);
+}
+
+.hud__chip--over,
+.hud__chip--over > .icon {
+  color: var(--color-danger);
+}
+
+.hud__chip--stars {
+  font-size: var(--font-size-md);
+}
+
+.hud__chip[data-stale] .hud__dimmable {
+  opacity: 0.5;
+}
+
+.hud__chevron {
+  display: inline-flex;
+  margin-left: auto;
+  color: var(--color-text-muted);
+  transition: transform 150ms ease;
+}
+
+.hud__summary[aria-expanded='true'] .hud__chevron {
+  transform: rotate(180deg);
+}
+
+.hud__details {
+  position: absolute;
+  top: 100%;
+  right: var(--space-2);
+  left: var(--space-2);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: min(70vh, 28rem);
+  max-height: min(70dvh, 28rem);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-3);
+  font-size: var(--font-size-sm);
+}
+
+.hud__details[hidden] {
+  display: none;
+}
+
+.hud__details .hud__item {
+  padding: var(--space-2) 0;
+  border-top: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-left: 0;
+}
+
+.hud__details .hud__value {
+  font-size: var(--font-size-md);
+}
+
+.hud__details-objectives ol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-5);
 }

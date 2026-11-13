@@ -1,11 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { useFormat, useTr } from '../../i18n';
 import { designCost } from '../../game/evaluate';
 import { housesSummary } from '../../game/houses';
 import { STAR_THRESHOLDS } from '../../game/stars';
 import type { Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
-import { IconError } from '../shell/icons';
+import { IconChevronDown, IconError } from '../shell/icons';
 import { Stars } from '../shell/Stars';
 import { money } from '../shell/strings';
 import { hudStrings } from './strings';
@@ -66,11 +66,42 @@ function IconHouse() {
   );
 }
 
+/** Closes a popover on a tap outside `wrapper` or on Escape, while it is open. */
+function useDismiss(
+  open: boolean,
+  wrapper: RefObject<HTMLElement | null>,
+  close: () => void,
+): void {
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !wrapper.current?.contains(event.target)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, wrapper, close]);
+}
+
+interface StageHudProps {
+  /**
+   * Phone form: one line with houses, cost and stars that opens the full figures and the
+   * objectives when tapped.
+   */
+  compact?: boolean;
+}
+
 /**
  * Game status of the open stage, above the map: houses served, cost (against the budget when
  * the stage has one), the stars the current design earns and the first objective.
  */
-export function StageHud() {
+export function StageHud({ compact = false }: StageHudProps) {
   const tr = useTr();
   const fmt = useFormat();
   const scenario = useAppStore((s) => s.scenario);
@@ -91,6 +122,12 @@ export function StageHud() {
   const verifiedNow = fresh && !solving && verifiedAt !== null;
   const celebrate = verifiedNow && verifiedAt !== mountedAt && evaluation.passed && !reducedMotion;
   const shownServed = useCountUp(houses.served, celebrate ? verifiedAt : null);
+
+  const detailsId = useId();
+  const compactRef = useRef<HTMLElement>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const closeDetails = useCallback(() => setDetailsOpen(false), []);
+  useDismiss(detailsOpen, compactRef, closeDetails);
 
   if (!scenario) return null;
 
@@ -148,8 +185,8 @@ export function StageHud() {
     <span className="visually-hidden"> ({tr(hudStrings.staleNote)})</span>
   );
 
-  return (
-    <section className="hud" aria-label={tr(hudStrings.label)}>
+  const items = (
+    <>
       <div
         className="hud__item hud__item--houses"
         data-stale={stale && evaluation ? 'true' : undefined}
@@ -232,12 +269,80 @@ export function StageHud() {
         </span>
         <span className="hud__note hud__dimmable">{starsHint}</span>
       </div>
+    </>
+  );
 
+  const live = (
+    <p className="visually-hidden" aria-live="polite" data-testid="hud-live">
+      {announcement}
+    </p>
+  );
+
+  if (compact) {
+    return (
+      <section className="hud hud--compact" aria-label={tr(hudStrings.label)} ref={compactRef}>
+        <button
+          type="button"
+          className="hud__summary"
+          aria-expanded={detailsOpen}
+          aria-controls={detailsId}
+          onClick={() => setDetailsOpen((value) => !value)}
+        >
+          <span className="hud__chip" data-stale={stale && evaluation ? 'true' : undefined}>
+            <IconHouse />
+            <span className="visually-hidden">{tr(hudStrings.houses)}:</span>
+            <span className="num hud__dimmable">
+              {evaluation ? shownServed : '–'} / {houses.total}
+            </span>
+            {staleNote}
+          </span>
+          <span className={overBudget ? 'hud__chip hud__chip--over' : 'hud__chip'}>
+            {overBudget && <IconError />}
+            <span className="visually-hidden">
+              {tr(overBudget ? hudStrings.costOverBudget : hudStrings.cost)}:
+            </span>
+            <span className="num">{brl(cost)}</span>
+          </span>
+          <span
+            key={verifiedAt ?? 0}
+            className={
+              celebrate
+                ? 'hud__chip hud__chip--stars hud__stars--reveal'
+                : 'hud__chip hud__chip--stars'
+            }
+            data-stale={stale && evaluation ? 'true' : undefined}
+          >
+            <span className="hud__dimmable">
+              <Stars value={stars} />
+            </span>
+          </span>
+          <span className="visually-hidden">{tr(hudStrings.details)}</span>
+          <span className="hud__chevron">
+            <IconChevronDown />
+          </span>
+        </button>
+        <div id={detailsId} className="hud__details" hidden={!detailsOpen}>
+          <div className="hud__details-items">{items}</div>
+          <div className="hud__details-objectives">
+            <strong>{tr(hudStrings.objectivesTitle)}</strong>
+            <ol>
+              {scenario.objectives.map((objective, index) => (
+                <li key={index}>{tr(objective)}</li>
+              ))}
+            </ol>
+          </div>
+        </div>
+        {live}
+      </section>
+    );
+  }
+
+  return (
+    <section className="hud" aria-label={tr(hudStrings.label)}>
+      {items}
       <Objectives scenario={scenario} />
 
-      <p className="visually-hidden" aria-live="polite" data-testid="hud-live">
-        {announcement}
-      </p>
+      {live}
     </section>
   );
 }
@@ -277,21 +382,8 @@ function Objectives({ scenario }: { scenario: Scenario }) {
   const [open, setOpen] = useState(false);
   const first = scenario.objectives[0];
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Node && !wrapper.current?.contains(event.target)) setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, wrapper, close);
 
   if (!first) return null;
 

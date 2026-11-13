@@ -358,3 +358,75 @@ describe('StageHud', () => {
     );
   });
 });
+
+describe('StageHud compact (phone)', () => {
+  beforeEach(() => resetStore());
+
+  const summary = () => screen.getByRole('button', { name: /Casas atendidas/ });
+
+  it('shows houses, cost and stars in one button', () => {
+    const scenario = stage(2);
+    open(scenario, scenario.reference.diameters);
+    render(<StageHud compact />);
+    const cost = brl(
+      designCost(scenario, scenario.reference.diameters).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+      }),
+    );
+    expect(summary()).toHaveTextContent(/Casas atendidas:\s*\d+ \/ \d+/);
+    expect(summary()).toHaveTextContent(`Custo:${cost}`);
+    expect(within(summary()).getByRole('img', { name: /de 3 estrelas/ })).toBeInTheDocument();
+    expect(summary()).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('opens the full figures and every objective, and closes on Escape or a press outside', async () => {
+    const user = userEvent.setup();
+    const scenario = stage(2);
+    open(scenario, scenario.reference.diameters);
+    render(
+      <>
+        <StageHud compact />
+        <button type="button">Fora</button>
+      </>,
+    );
+    const details = document.getElementById(summary().getAttribute('aria-controls') ?? '');
+    expect(details).not.toBeVisible();
+
+    await user.click(summary());
+    expect(summary()).toHaveAttribute('aria-expanded', 'true');
+    expect(details).toBeVisible();
+    expect(within(details!).getByText('Custo')).toBeInTheDocument();
+    expect(within(details!).getAllByRole('listitem')).toHaveLength(scenario.objectives.length);
+
+    await user.keyboard('{Escape}');
+    expect(details).not.toBeVisible();
+    await user.click(summary());
+    await user.click(screen.getByRole('button', { name: 'Fora' }));
+    expect(details).not.toBeVisible();
+  });
+
+  it('marks a cost over the budget with words, not only colour', () => {
+    const scenario = stage(4);
+    const expensive = Object.fromEntries(scenario.pipes.map((pipe) => [pipe.id, 300]));
+    open(scenario, expensive);
+    render(<StageHud compact />);
+    expect(summary()).toHaveTextContent('Custo, acima do orçamento:');
+    expect(summary().querySelector('.hud__chip--over svg')).not.toBeNull();
+  });
+
+  it('says that a result is from before the last change', () => {
+    const scenario = stage(2);
+    open(scenario, scenario.reference.diameters);
+    act(() => useAppStore.setState({ stale: true }));
+    render(<StageHud compact />);
+    expect(summary()).toHaveTextContent('Resultado anterior à última alteração');
+  });
+
+  it('announces the result of a verification like the wide form', () => {
+    const scenario = stage(2);
+    open(scenario, initialDiameters(scenario));
+    render(<StageHud compact />);
+    verify(scenario, scenario.reference.diameters, 10);
+    expect(screen.getByTestId('hud-live')).toHaveTextContent(/Etapa aprovada/);
+  });
+});
