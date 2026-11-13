@@ -30,3 +30,18 @@ jobs:
         run: npm run coverage
       - name: Build
         run: npm run build
+
+  e2e-mobile:
+    name: Mobile e2e (touch, no overflow)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Phone projects (Pixel 7 and iPhone 14 viewports)
+        run: npx playwright test --project=pixel-7 --project=iphone-14
