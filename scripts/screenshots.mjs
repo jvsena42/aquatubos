@@ -16,7 +16,7 @@ import { chromium } from '@playwright/test';
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4173/aquatubos/';
 const EXTRA_DIR = process.env.EXTRA_DIR;
 const OUT_DIR = fileURLToPath(new URL('../docs/screenshots/', import.meta.url));
-const README_STAGE = 3;
+const README_STAGE = 2;
 
 const stages = [1, 2, 3, 4, 5].map((n) =>
   JSON.parse(
@@ -77,7 +77,26 @@ async function extraShots(stage, label) {
   await page.getByRole('tab', { name: 'Rede' }).click();
 }
 
+const PHONE = { width: 360, height: 780 };
+const DESKTOP = { width: 1366, height: 860 };
+
 await page.goto(BASE_URL);
+const play = page.getByRole('button', { name: 'Jogar', exact: true });
+await play.waitFor();
+
+// Title screen, before any progress.
+for (const [theme, name] of [
+  ['Claro', 'light'],
+  ['Escuro', 'dark'],
+]) {
+  await setTheme(theme);
+  await shot(`${OUT_DIR}home-${name}.png`);
+  await page.setViewportSize(PHONE);
+  await shot(`${OUT_DIR}home-phone-${name}.png`);
+  await page.setViewportSize(DESKTOP);
+}
+await setTheme('Claro');
+await play.click();
 await page.getByRole('button', { name: /^Etapa 1: / }).click();
 
 for (const stage of stages) {
@@ -85,8 +104,15 @@ for (const stage of stages) {
   if (EXTRA_DIR) await shot(`${EXTRA_DIR}/${stage.id}-briefing.png`);
   await page.keyboard.press('Escape');
   if (EXTRA_DIR) {
-    await selectPipe(stage.pipes[1].id);
+    await page.getByRole('button', { name: 'Calcular / Verificar' }).click();
+    await page.waitForTimeout(400);
     await extraShots(stage, 'initial');
+    await page.setViewportSize(PHONE);
+    await shot(`${EXTRA_DIR}/${stage.id}-initial-phone-town.png`);
+    await page.getByRole('button', { name: 'Esquema', exact: true }).click();
+    await shot(`${EXTRA_DIR}/${stage.id}-initial-phone-schematic.png`);
+    await page.getByRole('button', { name: 'Cidade', exact: true }).click();
+    await page.setViewportSize(DESKTOP);
   }
   await solve(stage);
   await selectPipe(stage.pipes[1].id);
@@ -94,32 +120,47 @@ for (const stage of stages) {
 
   if (stage.order === README_STAGE) {
     await setTheme('Claro');
-    await shot(`${OUT_DIR}stage-light.png`);
+    await shot(`${OUT_DIR}town-light.png`);
+    await page.getByRole('button', { name: 'Esquema', exact: true }).click();
+    await shot(`${OUT_DIR}schematic-light.png`);
+    await page.getByRole('button', { name: 'Cidade', exact: true }).click();
     await setTheme('Escuro');
-    await shot(`${OUT_DIR}stage-dark.png`);
+    await shot(`${OUT_DIR}town-dark.png`);
+    await page.setViewportSize(PHONE);
+    await shot(`${OUT_DIR}town-phone-dark.png`);
+    await page.setViewportSize(DESKTOP);
     if (EXTRA_DIR) await extraShots(stage, 'dark');
     await setTheme('Claro');
+  }
+  if (EXTRA_DIR) {
+    await page.setViewportSize(PHONE);
+    await shot(`${EXTRA_DIR}/${stage.id}-solved-phone-town.png`);
+    await page.getByRole('button', { name: 'Esquema', exact: true }).click();
+    await shot(`${EXTRA_DIR}/${stage.id}-solved-phone-schematic.png`);
+    await page.getByRole('button', { name: 'Cidade', exact: true }).click();
+    await page.setViewportSize(DESKTOP);
   }
   if (stage.order < stages.length) {
     await page.getByRole('button', { name: 'Próxima etapa' }).click();
   }
 }
 
-if (EXTRA_DIR) {
-  await page.setViewportSize({ width: 390, height: 800 });
-  await extraShots(stages[4], 'phone');
-  await page.setViewportSize({ width: 1366, height: 860 });
-}
-
+// Stage map with every stage completed.
 await page.getByRole('button', { name: 'Voltar para a lista de etapas' }).click();
 await page.getByRole('heading', { name: 'Etapas' }).waitFor();
 await setTheme('Claro');
-await shot(`${OUT_DIR}stage-select-light.png`);
+await shot(`${OUT_DIR}stage-map-light.png`);
 await setTheme('Escuro');
-await shot(`${OUT_DIR}stage-select-dark.png`);
+await shot(`${OUT_DIR}stage-map-dark.png`);
+await page.setViewportSize(PHONE);
+await shot(`${OUT_DIR}stage-map-phone-dark.png`);
+await page.setViewportSize(DESKTOP);
+
 if (EXTRA_DIR) {
-  await page.setViewportSize({ width: 390, height: 800 });
-  await shot(`${EXTRA_DIR}/select-phone-dark.png`);
+  await page.getByRole('button', { name: 'Início' }).click();
+  await shot(`${EXTRA_DIR}/home-progress-dark.png`);
+  await page.setViewportSize(PHONE);
+  await shot(`${EXTRA_DIR}/home-progress-phone-dark.png`);
 }
 
 await browser.close();
