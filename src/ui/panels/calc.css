@@ -9,8 +9,11 @@
 .calc__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-2) var(--space-3);
+}
+
+.calc__head > .btn {
+  margin-left: auto;
 }
 
 .calc__title {
@@ -37,17 +40,22 @@
   margin: 0;
 }
 
+/* Label beside the value, or over it when the panel is too narrow for both. */
 .calc__facts > div {
-  display: grid;
-  grid-template-columns: 8.5rem minmax(0, 1fr);
-  gap: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
 }
 
 .calc__facts dt {
+  flex: 0 0 8.5rem;
   color: var(--color-text-muted);
 }
 
 .calc__facts dd {
+  flex: 1 1 9rem;
+  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -117,16 +125,15 @@
 }
 
 .calc__notice {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  font-weight: var(--font-weight-semibold);
   border-radius: var(--radius-md);
   background: var(--color-warn-bg);
   color: var(--color-warn);
-}
-
-.calc__notice .icon {
-  margin-top: 0.15em;
 }
 
 .calc__table th,
@@ -135,9 +142,140 @@
   white-space: normal;
 }
 
-@media (max-width: 400px) {
-  .calc__facts > div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+/* Selected diameter as text (phones: the picker is in the bar under the map). */
+.calc__dn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-2);
+  min-width: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.calc__link {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.calc__link:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Compact results: as many columns as fit, label over value. */
+.calc__results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.calc__result {
+  min-width: 0;
+}
+
+.calc__result dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.calc__result dt sub {
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.calc__result dd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.calc__mark {
+  display: inline-flex;
+}
+
+.calc__mark--ok {
+  color: var(--color-ok);
+}
+
+.calc__mark--warn {
+  color: var(--color-warn);
+}
+
+.calc__mark--danger {
+  color: var(--color-danger);
+}
+
+/* "Ver cálculo": the step-by-step calculation, collapsed by default. */
+.calc__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.calc__toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.calc__toggle .icon {
+  transition: transform 150ms ease;
+}
+
+.calc__toggle[aria-expanded='true'] .icon {
+  transform: rotate(180deg);
+}
+
+.calc__details-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.calc__details-body[hidden] {
+  display: none;
+}
+
+/* 44 px hit areas for the two text buttons on touch screens. */
+@media (pointer: coarse) {
+  .calc__link::after,
+  .calc__toggle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 2.75rem);
+    height: 2.75rem;
+    transform: translate(-50%, -50%);
   }
+}
+
+/* Phones: the sheet is short, so the blocks sit closer. */
+:root[data-device='phone'] .calc {
+  gap: var(--space-2);
 }

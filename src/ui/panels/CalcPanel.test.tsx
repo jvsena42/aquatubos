@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
 import { networkCost, pipeCost } from '../../engine/cost';
@@ -12,7 +12,10 @@ import { getScenario } from '../../scenarios';
 import type { Diameters, Scenario } from '../../scenarios/types';
 import { useAppStore, type Selection } from '../../state/store';
 import { resetStore } from '../../test/store';
-import { CalcPanel } from './CalcPanel';
+import { PHONE_QUERY, UP_TO_TABLET_QUERY } from '../shell/breakpoints';
+import { mockMatchMedia, type MatchMediaMock } from '../shell/testMatchMedia';
+import { CalcPanel, focusDnBar } from './CalcPanel';
+import { SHOW_CALC_KEY } from './calcParts';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
@@ -75,12 +78,17 @@ const parse = (text: string): number =>
   );
 
 describe('CalcPanel', () => {
-  beforeEach(() => resetStore());
+  // These tests read the hand calculation, so "Ver cálculo" starts open.
+  beforeEach(() => {
+    resetStore();
+    window.localStorage.setItem(SHOW_CALC_KEY, '1');
+  });
+  afterEach(() => window.localStorage.clear());
 
-  it('shows a hint and the network summary when nothing is selected', () => {
+  it('shows only the network summary when nothing is selected', () => {
     const { scenario } = openStage('stage3', null);
-    render(<CalcPanel />);
-    expect(screen.getByText(/Selecione um trecho ou um nó/)).toBeInTheDocument();
+    const { container } = render(<CalcPanel />);
+    expect(container.querySelector('p')).toBeNull();
     expect(value('total-demand')).toBe('10,50 L/s');
     expect(value('pipe-count')).toBe('5');
     expect(value('total-length')).toBe('1.780 m');
@@ -141,7 +149,8 @@ describe('CalcPanel', () => {
       const speed = Math.abs(evaluation.result.pipes.T1!.velocity);
       expect(speed).toBeGreaterThan(NBR_CHECK_LIMITS.minVelocity);
       expect(speed).toBeLessThan(NBR_CHECK_LIMITS.maxVelocity);
-      expect(screen.getByText('Atende (0,6 a 3,5 m/s)')).toBeInTheDocument();
+      // Once as the mark of the result block, once as the badge in the calculation.
+      expect(screen.getAllByText('Atende (0,6 a 3,5 m/s)')).toHaveLength(2);
       expect(value('cost')).toBe(`R$${NBSP}${pt(pipeCost(100, 250))}`);
       expect(screen.getByText(/R\$\s65,00\/m × 250 m =/)).toBeInTheDocument();
     });
@@ -157,7 +166,8 @@ describe('CalcPanel', () => {
         NBR_CHECK_LIMITS.maxVelocity,
       );
       render(<CalcPanel />);
-      expect(screen.getByText('Acima do máximo de 3,5 m/s')).toBeInTheDocument();
+      // Once as the mark of the result block, once as the badge in the calculation.
+      expect(screen.getAllByText('Acima do máximo de 3,5 m/s')).toHaveLength(2);
     });
 
     it('follows the real direction when the flow is negative', () => {
@@ -247,9 +257,7 @@ describe('CalcPanel', () => {
       // Geometry and cost follow the new DN; the old calculation is not shown.
       expect(value('cost')).toBe(`R$${NBSP}${pt(pipeCost(150, 350))}`);
       expect(document.querySelector('[data-value="hf"]')).toBeNull();
-      expect(screen.getByRole('status')).toHaveTextContent(
-        'Os resultados precisam ser recalculados',
-      );
+      expect(screen.getByRole('status')).toHaveTextContent('Recalcular');
     });
 
     it('says that a fixed pipe cannot change', () => {
@@ -281,7 +289,7 @@ describe('CalcPanel', () => {
     expect(screen.getByRole('heading', { name: 'Trecho T1' })).toBeInTheDocument();
     expect(screen.getByText('L = 250 m')).toBeInTheDocument();
     expect(screen.getByText('C = 140')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Os resultados precisam ser recalculados');
+    expect(screen.getByRole('status')).toHaveTextContent('Recalcular');
     expect(document.querySelector('[data-value="hf"]')).toBeNull();
   });
 
@@ -297,13 +305,14 @@ describe('CalcPanel', () => {
       expect(screen.getByRole('list')).toHaveTextContent(
         `p = CP − z = ${pt(node.head)} − 100,00 = ${pt(node.pressure)} mca`,
       );
-      expect(screen.getByText('Atende (mín. 10 mca)')).toBeInTheDocument();
+      // Once as the mark of the result block, once as the badge in the calculation.
+      expect(screen.getAllByText('Atende (mín. 10 mca)')).toHaveLength(2);
 
       const atRest = evaluation.report.staticPressure.C!;
       expect(atRest).toBeCloseTo(28, 9);
       expect(value('static')).toBe('28,00 mca');
       expect(screen.getByRole('list')).toHaveTextContent('pest = 128,00 − 100,00 = 28,00 mca');
-      expect(screen.getByText('Atende (máx. 40 mca)')).toBeInTheDocument();
+      expect(screen.getAllByText('Atende (máx. 40 mca)')).toHaveLength(2);
     });
 
     it('checks continuity with the connected pipes', () => {
@@ -341,7 +350,8 @@ describe('CalcPanel', () => {
       );
       expect(evaluation.result.nodes.C!.pressure).toBeLessThan(NBR_CHECK_LIMITS.minDynamicPressure);
       render(<CalcPanel />);
-      expect(screen.getByText('Abaixo do mínimo de 10 mca')).toBeInTheDocument();
+      // Once as the mark of the result block, once as the badge in the calculation.
+      expect(screen.getAllByText('Abaixo do mínimo de 10 mca')).toHaveLength(2);
       expect(value('pressure')).toBe(`${pt(evaluation.result.nodes.C!.pressure)} mca`);
       expect(value('pressure')).toMatch(/^−/);
     });
@@ -350,13 +360,11 @@ describe('CalcPanel', () => {
       openStage('stage3', { type: 'node', id: 'C' });
       useAppStore.setState({ stale: true });
       render(<CalcPanel />);
-      expect(screen.getByRole('status')).toHaveTextContent(
-        'Os resultados precisam ser recalculados',
-      );
+      expect(screen.getByRole('status')).toHaveTextContent('Recalcular');
       expect(document.querySelector('[data-value="pressure"]')).toBeNull();
       expect(document.querySelector('[data-value="continuity"]')).toBeNull();
       expect(value('static')).toBe('28,00 mca');
-      expect(screen.getByText('4,00 L/s')).toBeInTheDocument();
+      expect(document.querySelector('[data-result="demand"]')).toHaveTextContent('4,00 L/s');
     });
 
     it('says that a pump discharge node without demand is not checked', () => {
@@ -418,7 +426,7 @@ describe('CalcPanel', () => {
     render(<CalcPanel />);
     expect(value('a')).toBe('50,00');
     expect(document.querySelector('[data-value="h"]')).toBeNull();
-    expect(screen.getByRole('status')).toHaveTextContent('Os resultados precisam ser recalculados');
+    expect(screen.getByRole('status')).toHaveTextContent('Recalcular');
   });
 
   it('clears the selection', async () => {
@@ -438,7 +446,136 @@ describe('CalcPanel', () => {
     expect(screen.getByRole('button', { name: 'Head loss' })).toBeInTheDocument();
     expect(screen.getByRole('list')).toHaveTextContent('J = 10.643 × Q1.852 / (C1.852 × D4.87)');
     expect(value('hf')).toBe(`${Math.abs(evaluation.result.pipes.T1!.headLoss).toFixed(3)} m`);
-    expect(screen.getByText('OK (0.6 to 3.5 m/s)')).toBeInTheDocument();
+    expect(screen.getAllByText('OK (0.6 to 3.5 m/s)')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show calculation' })).toBeInTheDocument();
+  });
+
+  describe('default view', () => {
+    const result = (name: string): string =>
+      document.querySelector(`[data-result="${name}"]`)?.textContent ?? '';
+
+    beforeEach(() => window.localStorage.clear());
+
+    it('shows a compact result block for a pipe and keeps the calculation collapsed', () => {
+      const { evaluation } = openStage('stage3', { type: 'pipe', id: 'T1' });
+      render(<CalcPanel />);
+      const solved = evaluation.result.pipes.T1!;
+      expect(result('q')).toBe(`${pt(Math.abs(solved.flow) * 1000)} L/s`);
+      expect(result('v')).toBe(`${pt(Math.abs(solved.velocity))} m/s`);
+      expect(result('j')).toBe(`${sig(solved.unitHeadLoss * 1000, 3)} m/km`);
+      expect(result('hf')).toBe(`${pt(Math.abs(solved.headLoss))} m`);
+      expect(result('cost')).toBe(`R$${NBSP}${pt(pipeCost(100, 250))}`);
+      // The velocity carries its status as an icon with the comparison in words for readers.
+      const mark = document.querySelector('.calc__mark')!;
+      expect(mark).toHaveAttribute('data-status', 'ok');
+      expect(mark).toHaveTextContent('Atende (0,6 a 3,5 m/s)');
+
+      const toggle = screen.getByRole('button', { name: 'Ver cálculo' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByRole('list')).toBeNull();
+      expect(document.querySelector('[data-value]')).toBeNull();
+      expect(screen.queryByText(/Escoamento de/)).toBeNull();
+      expect(screen.queryByText('Material')).toBeNull();
+    });
+
+    it('opens the full calculation and remembers it across selections and reloads', async () => {
+      const user = userEvent.setup();
+      openStage('stage3', { type: 'pipe', id: 'T1' });
+      const { unmount } = render(<CalcPanel />);
+      const toggle = () => screen.getByRole('button', { name: 'Ver cálculo' });
+      await user.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('list')).toHaveTextContent('Vazão');
+      expect(screen.getByText(/Escoamento de R1 para A/)).toBeInTheDocument();
+      expect(screen.getByText('Material')).toBeInTheDocument();
+      expect(window.localStorage.getItem(SHOW_CALC_KEY)).toBe('1');
+
+      // Another element: still open.
+      act(() => useAppStore.getState().select({ type: 'node', id: 'C' }));
+      expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+      expect(value('pressure')).not.toBe('');
+
+      // A new mount reads the stored choice, as after a reload.
+      unmount();
+      render(<CalcPanel />);
+      expect(toggle()).toHaveAttribute('aria-expanded', 'true');
+
+      await user.click(toggle());
+      expect(window.localStorage.getItem(SHOW_CALC_KEY)).toBe('0');
+      expect(screen.queryByRole('list')).toBeNull();
+    });
+
+    it('shows demand, grade and both pressures with status for a node', () => {
+      const { evaluation } = openStage('stage3', { type: 'node', id: 'C' });
+      render(<CalcPanel />);
+      const node = evaluation.result.nodes.C!;
+      expect(result('demand')).toBe('4,00 L/s');
+      expect(result('hgl')).toBe(`${pt(node.head)} m`);
+      expect(result('pressure')).toBe(`${pt(node.pressure)} mca`);
+      expect(result('static')).toBe('28,00 mca');
+      const marks = [...document.querySelectorAll('.calc__mark')];
+      expect(marks.map((mark) => mark.textContent)).toEqual([
+        'Atende (mín. 10 mca)',
+        'Atende (máx. 40 mca)',
+      ]);
+      expect(screen.queryByText(/Σ entra/)).toBeNull();
+    });
+
+    it('marks a pressure below the minimum in the result block', () => {
+      openStage('stage3', { type: 'node', id: 'C' }, initialDiameters(stage('stage3')));
+      render(<CalcPanel />);
+      const mark = document.querySelector('.calc__mark')!;
+      expect(mark).toHaveAttribute('data-status', 'danger');
+      expect(mark).toHaveTextContent('Abaixo do mínimo de 10 mca');
+    });
+
+    it('shows level and flow of a reservoir, and Q and H of a pump', () => {
+      openStage('stage3', { type: 'reservoir', id: 'R1' });
+      const first = render(<CalcPanel />);
+      expect(result('level')).toBe('128,00 m');
+      expect(result('outflow')).toBe('10,50 L/s');
+      expect(screen.queryByRole('table')).toBeNull();
+      first.unmount();
+
+      const { evaluation } = openStage('stage5', { type: 'pump', id: 'B1' });
+      render(<CalcPanel />);
+      expect(result('q')).toBe(`${pt(evaluation.result.pumps.B1!.flow * 1000)} L/s`);
+      expect(result('h')).toBe(`${pt(evaluation.result.pumps.B1!.head)} m`);
+      expect(screen.queryByRole('list')).toBeNull();
+    });
+  });
+
+  describe('on a phone', () => {
+    let media: MatchMediaMock;
+    beforeEach(() => {
+      media = mockMatchMedia((query) => query === PHONE_QUERY || query === UP_TO_TABLET_QUERY);
+    });
+    afterEach(() => media.restore());
+
+    it('shows the diameter as text with a button that goes to the bar under the map', async () => {
+      const user = userEvent.setup();
+      openStage('stage3', { type: 'pipe', id: 'T1' });
+      const bar = document.createElement('div');
+      bar.id = 'dn-bar';
+      bar.innerHTML =
+        '<button aria-pressed="false">50</button><button aria-pressed="true">100</button>';
+      document.body.append(bar);
+      const onChangeDn = vi.fn(focusDnBar);
+      render(<CalcPanel onChangeDn={onChangeDn} />);
+      expect(screen.queryByRole('group', { name: /Diâmetro nominal/ })).toBeNull();
+      expect(document.querySelector('[data-result="dn"]')).toHaveTextContent(
+        /^DN 100 · R\$\s65\/m$/,
+      );
+      await user.click(screen.getByRole('button', { name: 'Alterar o diâmetro do trecho T1' }));
+      expect(onChangeDn).toHaveBeenCalledTimes(1);
+      expect(bar.querySelector('[aria-pressed="true"]')).toHaveFocus();
+
+      // Without a pressed diameter the first button takes the focus.
+      bar.innerHTML = '<button>50</button><button>100</button>';
+      focusDnBar();
+      expect(bar.querySelector('button')).toHaveFocus();
+      document.body.removeChild(bar);
+    });
   });
 });

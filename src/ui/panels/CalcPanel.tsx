@@ -3,10 +3,13 @@ import { networkCost } from '../../engine/cost';
 import { useTr } from '../../i18n';
 import type { Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
+import { TermScope } from '../glossary/TermScope';
+import { usePhone } from '../shell/breakpoints';
+import { IconClose } from '../shell/icons';
 import { money } from '../shell/strings';
 import { CalcNode } from './CalcNode';
 import { Fact, useCalcFormat } from './calcParts';
-import { CalcPipe } from './CalcPipe';
+import { CalcPipe, PipeDn } from './CalcPipe';
 import { CalcPump, CalcReservoir } from './CalcSource';
 import { calcStrings as text } from './calcStrings';
 import './calc.css';
@@ -14,17 +17,40 @@ import './calc.css';
 interface Target {
   title: string;
   body: ReactNode;
+  /** Shown next to the title. */
+  aside?: ReactNode;
+}
+
+interface CalcPanelProps {
+  /**
+   * Phones only: called by "Alterar" next to the diameter of a pipe. The caller takes the
+   * player to the diameter bar under the map (`focusDnBar`).
+   */
+  onChangeDn?: () => void;
+}
+
+/**
+ * Moves the focus to the diameter bar under the map: the pressed diameter, or the first one.
+ * The bar is the element with id `dn-bar` (see SelectionBar in the network views).
+ */
+export function focusDnBar(): void {
+  const bar = document.getElementById('dn-bar');
+  const target =
+    bar?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
+    bar?.querySelector<HTMLElement>('button');
+  target?.focus();
 }
 
 /**
  * The calculation of the selected element written out with the numbers of the last solve, or
  * a summary of the network when nothing is selected.
  */
-export function CalcPanel() {
+export function CalcPanel({ onChangeDn }: CalcPanelProps) {
   const tr = useTr();
   const scenario = useAppStore((s) => s.scenario);
   const selection = useAppStore((s) => s.selection);
   const select = useAppStore((s) => s.select);
+  const phone = usePhone();
 
   if (!scenario) return null;
 
@@ -36,7 +62,11 @@ export function CalcPanel() {
     const node = scenario.nodes.find((n) => n.id === id);
     const reservoir = scenario.reservoirs.find((r) => r.id === id);
     if (type === 'pipe' && pipe) {
-      return { title: tr(text.pipe(id)), body: <CalcPipe pipe={pipe} /> };
+      return {
+        title: tr(text.pipe(id)),
+        body: <CalcPipe pipe={pipe} />,
+        aside: phone ? <PipeDn pipe={pipe} onChangeDn={onChangeDn ?? focusDnBar} /> : undefined,
+      };
     }
     if (type === 'pump' && pump) {
       return { title: tr(text.pump(id)), body: <CalcPump pump={pump} /> };
@@ -49,18 +79,33 @@ export function CalcPanel() {
     return null;
   })();
 
-  if (!target) return <Summary scenario={scenario} />;
+  if (!target) {
+    return (
+      <TermScope>
+        <Summary scenario={scenario} />
+      </TermScope>
+    );
+  }
 
   return (
-    <div className="calc">
-      <div className="calc__head">
-        <h3 className="calc__title">{target.title}</h3>
-        <button type="button" className="btn btn--sm btn--ghost" onClick={() => select(null)}>
-          {tr(text.clear)}
-        </button>
+    <TermScope>
+      <div className="calc">
+        <div className="calc__head">
+          <h3 className="calc__title">{target.title}</h3>
+          {target.aside}
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost btn--icon"
+            aria-label={tr(text.clear)}
+            title={tr(text.clear)}
+            onClick={() => select(null)}
+          >
+            <IconClose />
+          </button>
+        </div>
+        {target.body}
       </div>
-      {target.body}
-    </div>
+    </TermScope>
   );
 }
 
@@ -79,7 +124,6 @@ function Summary({ scenario }: { scenario: Scenario }) {
 
   return (
     <div className="calc">
-      <p className="muted calc__hint">{tr(text.hint)}</p>
       <h3 className="calc__title">{tr(text.summary)}</h3>
       <dl className="calc__facts">
         <Fact label={tr(text.totalDemand)}>

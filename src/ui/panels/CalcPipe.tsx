@@ -13,24 +13,65 @@ import { useAppStore } from '../../state/store';
 import { Term } from '../glossary/Term';
 import { DnPicker } from '../network/DnPicker';
 import { classifyVelocity } from '../network/status';
+import { networkStrings } from '../network/strings';
+import { usePhone } from '../shell/breakpoints';
 import { money } from '../shell/strings';
 import { pipeCalc, type PipeCalc } from './calcModel';
 import {
+  CalcDetails,
   Eq,
   Fact,
   LimitBadge,
   NeedsCalculation,
   NO_FLOW,
+  Result,
+  Results,
+  StatusMark,
   Step,
   useCalcFormat,
   Val,
 } from './calcParts';
 import { calcStrings as text, regimeLabels } from './calcStrings';
 
-/** Diameter picker, data and hand-checkable head loss calculation of one pipe. */
-export function CalcPipe({ pipe }: { pipe: ScenarioPipe }) {
+interface PipeDnProps {
+  pipe: ScenarioPipe;
+  /** What "Alterar" does: go to the diameter bar under the map. */
+  onChangeDn?: () => void;
+}
+
+/**
+ * Phones: the diameter of a pipe as text ("DN 100 · R$ 65/m") with "Alterar". The picker itself
+ * is in the bar under the map, so the sheet does not repeat it. Shown in the head of the panel.
+ */
+export function PipeDn({ pipe, onChangeDn }: PipeDnProps) {
   const tr = useTr();
   const { num } = useCalcFormat();
+  const dn = useAppStore((s) => s.diameters[pipe.id]) ?? pipe.initialDN;
+  return (
+    <p className="calc__dn">
+      <span className="num" data-result="dn">
+        DN {dn} · {money(num(catalogEntry(dn).pricePerMeter, 0))}
+        {tr(networkStrings.perMetre)}
+      </span>
+      {pipe.fixed !== true && (
+        <button
+          type="button"
+          className="calc__link"
+          aria-label={tr(text.changeDnLabel(pipe.id))}
+          onClick={onChangeDn}
+        >
+          {tr(text.changeDn)}
+        </button>
+      )}
+    </p>
+  );
+}
+
+/** Diameter, results and, behind "Ver cálculo", the hand-checkable head loss calculation. */
+export function CalcPipe({ pipe }: { pipe: ScenarioPipe }) {
+  const tr = useTr();
+  const { num, sig } = useCalcFormat();
+  const phone = usePhone();
   const scenario = useAppStore((s) => s.scenario);
   const diameters = useAppStore((s) => s.diameters);
   const formula = useAppStore((s) => s.formula);
@@ -41,57 +82,130 @@ export function CalcPipe({ pipe }: { pipe: ScenarioPipe }) {
   const dn = diameters[pipe.id] ?? pipe.initialDN;
   const entry = catalogEntry(dn);
   const calc = evaluation && !stale ? pipeCalc(evaluation, pipe.id) : null;
+  const cost = money(num(pipeCost(dn, pipe.length), 2));
 
   return (
     <>
-      <div className="field">
-        <span className="field__label">
-          <Term id="dn">{tr(text.diameter)}</Term> (DN, mm)
-        </span>
-        <DnPicker pipeId={pipe.id} />
-      </div>
+      {!phone && (
+        <div className="field">
+          <span className="field__label">
+            <Term id="dn">{tr(text.diameter)}</Term> (DN, mm)
+          </span>
+          <DnPicker pipeId={pipe.id} />
+        </div>
+      )}
 
-      <dl className="calc__facts">
-        <Fact label={tr(text.ends)}>
-          <span className="num">
-            {pipe.from} → {pipe.to}
-          </span>
-        </Fact>
-        <Fact label={tr(text.length)}>
-          <span className="num">L = {num(pipe.length, 0)} m</span>
-        </Fact>
-        <Fact label={tr(text.material)}>
-          <span className="num">
-            {entry.material}, D = {num(entry.internalDiameterMm, 0)} mm
-          </span>
-        </Fact>
-        {formula === 'hazen-williams' ? (
-          <Fact label={<Term id="hazenWilliamsC">{tr(text.roughnessHw)}</Term>}>
-            <span className="num">C = {num(scenario.hazenWilliamsC, 0)}</span>
-          </Fact>
-        ) : (
-          <Fact label={<Term id="roughness">{tr(text.roughnessDw)}</Term>}>
-            <span className="num">ε = {num(scenario.roughnessMm, 4)} mm</span>
-          </Fact>
+      <Results>
+        {calc && (
+          <>
+            <Result label="Q" name={tr(text.stepFlow)} id="q">
+              {num(m3sToLps(calc.flow), 2)} L/s
+            </Result>
+            <Result
+              label="V"
+              name={tr(text.stepVelocity)}
+              id="v"
+              status={<VelocityStatus velocity={calc.velocity} mark />}
+            >
+              {num(calc.velocity, 2)} m/s
+            </Result>
+            <Result label="J" name={tr(text.stepUnitLoss)} id="j">
+              {sig(calc.unitHeadLoss * 1000, 3)} m/km
+            </Result>
+            <Result
+              label={
+                <>
+                  h<sub>f</sub>
+                </>
+              }
+              name={tr(text.stepHeadLoss)}
+              id="hf"
+            >
+              {num(calc.headLoss, 2)} m
+            </Result>
+          </>
         )}
-        <Fact label={tr(text.cost)}>
-          <span className="num">
-            {money(num(entry.pricePerMeter, 2))}/m × {num(pipe.length, 0)} m ={' '}
-            <Val name="cost">{money(num(pipeCost(dn, pipe.length), 2))}</Val>
-          </span>
-        </Fact>
-      </dl>
+        <Result label={tr(text.costShort)} id="cost">
+          {cost}
+        </Result>
+      </Results>
 
-      {calc ? <PipeSteps calc={calc} /> : <NeedsCalculation />}
+      {!calc && <NeedsCalculation />}
+
+      <CalcDetails>
+        <dl className="calc__facts">
+          <Fact label={tr(text.ends)}>
+            <span className="num">
+              {pipe.from} → {pipe.to}
+            </span>
+          </Fact>
+          <Fact label={tr(text.length)}>
+            <span className="num">L = {num(pipe.length, 0)} m</span>
+          </Fact>
+          <Fact label={tr(text.material)}>
+            <span className="num">
+              {entry.material}, D = {num(entry.internalDiameterMm, 0)} mm
+            </span>
+          </Fact>
+          {formula === 'hazen-williams' ? (
+            <Fact label={<Term id="hazenWilliamsC">{tr(text.roughnessHw)}</Term>}>
+              <span className="num">C = {num(scenario.hazenWilliamsC, 0)}</span>
+            </Fact>
+          ) : (
+            <Fact label={<Term id="roughness">{tr(text.roughnessDw)}</Term>}>
+              <span className="num">ε = {num(scenario.roughnessMm, 4)} mm</span>
+            </Fact>
+          )}
+          <Fact label={tr(text.cost)}>
+            <span className="num">
+              {money(num(entry.pricePerMeter, 2))}/m × {num(pipe.length, 0)} m ={' '}
+              <Val name="cost">{cost}</Val>
+            </span>
+          </Fact>
+        </dl>
+
+        {calc && <PipeSteps calc={calc} />}
+      </CalcDetails>
     </>
+  );
+}
+
+/** Velocity against the limits of the stage, as a badge with words or as an icon mark. */
+function VelocityStatus({ velocity, mark = false }: { velocity: number; mark?: boolean }) {
+  const tr = useTr();
+  const { num } = useCalcFormat();
+  const checks = useAppStore((s) => s.scenario?.checks);
+  const limits = NBR_CHECK_LIMITS;
+  const Badge = mark ? StatusMark : LimitBadge;
+  const status = classifyVelocity(velocity);
+  const minLimit = `${num(limits.minVelocity, 1)} m/s`;
+  const maxLimit = `${num(limits.maxVelocity, 1)} m/s`;
+  const minSetting: CheckSetting = checks?.minVelocity ?? 'off';
+  const maxSetting: CheckSetting = checks?.maxVelocity ?? 'off';
+  if (status === 'low') {
+    return (
+      <Badge ok={false} setting={minSetting}>
+        {tr(text.belowMin(minLimit))}
+      </Badge>
+    );
+  }
+  if (status === 'high') {
+    return (
+      <Badge ok={false} setting={maxSetting}>
+        {tr(text.aboveMax(maxLimit))}
+      </Badge>
+    );
+  }
+  return (
+    <Badge ok setting={minSetting === 'off' && maxSetting === 'off' ? 'off' : 'error'}>
+      {tr(text.within(tr(text.range(num(limits.minVelocity, 1), maxLimit))))}
+    </Badge>
   );
 }
 
 function PipeSteps({ calc }: { calc: PipeCalc }) {
   const tr = useTr();
   const { num, plain, sig, sci } = useCalcFormat();
-  const checks = useAppStore((s) => s.scenario?.checks);
-  const limits = NBR_CHECK_LIMITS;
 
   const q = num(calc.flow, 5);
   const d = num(calc.diameter, 3);
@@ -105,26 +219,6 @@ function PipeSteps({ calc }: { calc: PipeCalc }) {
   const k = num(HAZEN_WILLIAMS_CONSTANT, 3);
   const c = num(calc.hazenWilliamsC, 0);
   const hgl = tr(text.hglAbbr);
-
-  const velocityStatus = classifyVelocity(calc.velocity);
-  const minLimit = `${num(limits.minVelocity, 1)} m/s`;
-  const maxLimit = `${num(limits.maxVelocity, 1)} m/s`;
-  const minSetting: CheckSetting = checks?.minVelocity ?? 'off';
-  const maxSetting: CheckSetting = checks?.maxVelocity ?? 'off';
-  const velocityBadge =
-    velocityStatus === 'low' ? (
-      <LimitBadge ok={false} setting={minSetting}>
-        {tr(text.belowMin(minLimit))}
-      </LimitBadge>
-    ) : velocityStatus === 'high' ? (
-      <LimitBadge ok={false} setting={maxSetting}>
-        {tr(text.aboveMax(maxLimit))}
-      </LimitBadge>
-    ) : (
-      <LimitBadge ok setting={minSetting === 'off' && maxSetting === 'off' ? 'off' : 'error'}>
-        {tr(text.within(tr(text.range(num(limits.minVelocity, 1), maxLimit))))}
-      </LimitBadge>
-    );
 
   const unitLossValues = (
     <>
@@ -165,7 +259,9 @@ function PipeSteps({ calc }: { calc: PipeCalc }) {
           <Eq>
             V = Q / A = {q} / {area} = <Val name="v">{v} m/s</Val>
           </Eq>
-          <p className="calc__status">{velocityBadge}</p>
+          <p className="calc__status">
+            <VelocityStatus velocity={calc.velocity} />
+          </p>
         </Step>
 
         {calc.formula === 'hazen-williams' ? (

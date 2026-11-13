@@ -1,10 +1,17 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useId, useSyncExternalStore, type ReactNode } from 'react';
 import type { CheckSetting, LocalizedText } from '../../engine/types';
 import { m3sToLps } from '../../engine/units';
 import { useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { useNum } from '../network/format';
-import { IconCheck, IconError, IconInfo, IconStale, IconWarning } from '../shell/icons';
+import {
+  IconCheck,
+  IconChevronDown,
+  IconError,
+  IconInfo,
+  IconStale,
+  IconWarning,
+} from '../shell/icons';
 import type { LinkFlow } from './calcModel';
 import { calcStrings as text } from './calcStrings';
 
@@ -180,6 +187,118 @@ export function LinkTable({ links, caption }: { links: LinkFlow[]; caption: Loca
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Compact block of results: symbol or short label, value with unit and a status mark. */
+export function Results({ children }: { children: ReactNode }) {
+  const tr = useTr();
+  return (
+    <dl className="calc__results" aria-label={tr(text.results)}>
+      {children}
+    </dl>
+  );
+}
+
+interface ResultProps {
+  /** Symbol or a label of one word. */
+  label: ReactNode;
+  /** Full name of the quantity, for assistive tech and the tooltip. */
+  name?: string;
+  /** Lets tests find the value. */
+  id: string;
+  /** A `StatusMark`, shown after the value. */
+  status?: ReactNode;
+  children: ReactNode;
+}
+
+export function Result({ label, name, id, status, children }: ResultProps) {
+  return (
+    <div className="calc__result">
+      <dt title={name}>
+        {label}
+        {name && <span className="visually-hidden"> ({name})</span>}
+      </dt>
+      <dd>
+        <span className="num" data-result={id}>
+          {children}
+        </span>
+        {status}
+      </dd>
+    </div>
+  );
+}
+
+/** Icon form of `LimitBadge`: the comparison in words stays for assistive tech and as a tooltip. */
+export function StatusMark({ ok, setting, children }: LimitBadgeProps) {
+  if (setting === 'off') return null;
+  const state = ok ? 'ok' : setting === 'warning' ? 'warn' : 'danger';
+  return (
+    <span className={`calc__mark calc__mark--${state}`} data-status={state} title={children}>
+      {ok ? <IconCheck /> : setting === 'warning' ? <IconWarning /> : <IconError />}
+      <span className="visually-hidden">{children}</span>
+    </span>
+  );
+}
+
+/** localStorage key of the "Ver cálculo" disclosure: '1' while it is open. */
+export const SHOW_CALC_KEY = 'aquatubos:show-calc';
+
+const showCalcListeners = new Set<() => void>();
+/** Used only when localStorage throws. */
+let memoryShowCalc: boolean | null = null;
+
+function readShowCalc(): boolean {
+  try {
+    return window.localStorage.getItem(SHOW_CALC_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeShowCalc(open: boolean): void {
+  try {
+    window.localStorage.setItem(SHOW_CALC_KEY, open ? '1' : '0');
+  } catch {
+    // Storage can be unavailable (private mode); the choice then lasts until the reload.
+    memoryShowCalc = open;
+  }
+  for (const listener of showCalcListeners) listener();
+}
+
+function subscribeShowCalc(listener: () => void): () => void {
+  showCalcListeners.add(listener);
+  return () => showCalcListeners.delete(listener);
+}
+
+/**
+ * The step-by-step calculation, collapsed by default behind "Ver cálculo". The state is shared
+ * by every element and remembered across selections and reloads.
+ */
+export function CalcDetails({ children }: { children: ReactNode }) {
+  const tr = useTr();
+  const id = useId();
+  const open = useSyncExternalStore(
+    subscribeShowCalc,
+    () => memoryShowCalc ?? readShowCalc(),
+    () => false,
+  );
+  return (
+    <div className="calc__details">
+      <button
+        type="button"
+        className="calc__toggle"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => writeShowCalc(!open)}
+      >
+        <IconChevronDown />
+        {tr(text.showCalculation)}
+      </button>
+      <div id={id} className="calc__details-body" hidden={!open}>
+        {open && children}
+      </div>
     </div>
   );
 }
