@@ -146,3 +146,70 @@
 .pump__notes strong {
   color: var(--color-danger);
 }
+
+/* Reader of the curves: an invisible slider over the plot area and its cursor in the chart. */
+.pump__chart {
+  position: relative;
+}
+
+.pump__reader {
+  position: absolute;
+  border-radius: var(--radius-sm);
+  cursor: crosshair;
+  /* Vertical swipes still scroll the view; horizontal ones move the cursor. */
+  touch-action: pan-y;
+}
+
+.pump__read line {
+  stroke: var(--color-text);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.pump__read circle {
+  stroke: var(--color-text);
+  stroke-width: 2;
+}
+
+.pump__read-pump {
+  fill: var(--color-hgl);
+}
+
+.pump__read-system {
+  fill: var(--color-velocity-high);
+}
+
+/* Short screens (a phone in landscape): the readout stays next to the chart, above it. */
+@media (min-width: 761px) and (max-height: 500px) {
+  .pump__verdict,
+  .pump__readout {
+    order: -1;
+  }
+}
+
+/* Phones: the view fills the tab panel and scrolls inside it; the readout goes above the chart. */
+@media (max-width: 760px) {
+  .pump {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .pump__verdict,
+  .pump__readout {
+    order: -1;
+  }
+
+  .pump__readout {
+    min-height: 4.25em;
+  }
+
+  .pump__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pump__facts dd {
+    font-size: var(--font-size-md);
+  }
+}
