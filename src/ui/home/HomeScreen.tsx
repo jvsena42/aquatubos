@@ -3,16 +3,18 @@ import { useFormat, useTr } from '../../i18n';
 import { SCENARIOS } from '../../scenarios';
 import { useAppStore } from '../../state/store';
 import { GlossaryDialog } from '../glossary/GlossaryDialog';
-import { IconBook, IconNext, IconStar } from '../shell/icons';
+import { IconBook, IconInfo, IconNext, IconStar } from '../shell/icons';
 import { money, shellStrings } from '../shell/strings';
 import { stagesStrings } from '../stages/strings';
+import { AboutDialog } from './AboutDialog';
 import { HomeLogo } from './HomeLogo';
 import { homeAction, summarizeProgress } from './homeModel';
 import { HomeScene } from './HomeScene';
+import { HowToPlayDialog } from './HowToPlayDialog';
 import { homeStrings } from './strings';
 import './home.css';
 
-type DialogId = 'glossary' | null;
+type DialogId = 'howto' | 'glossary' | 'about' | null;
 
 /** Title screen: what the game is, the main action and the saved progress. */
 export function HomeScreen() {
@@ -75,9 +77,20 @@ export function HomeScreen() {
 
         <ul className="home__links" aria-label={tr(homeStrings.more)}>
           <li>
+            <button type="button" className="btn" onClick={() => setDialog('howto')}>
+              {tr(homeStrings.howToPlay)}
+            </button>
+          </li>
+          <li>
             <button type="button" className="btn" onClick={() => setDialog('glossary')}>
               <IconBook />
               {tr(homeStrings.glossary)}
+            </button>
+          </li>
+          <li>
+            <button type="button" className="btn" onClick={() => setDialog('about')}>
+              <IconInfo />
+              {tr(homeStrings.about)}
             </button>
           </li>
         </ul>
@@ -115,7 +128,9 @@ export function HomeScreen() {
         <HomeScene />
       </div>
 
+      <HowToPlayDialog open={dialog === 'howto'} onClose={close} />
       <GlossaryDialog open={dialog === 'glossary'} onClose={close} />
+      <AboutDialog open={dialog === 'about'} onClose={close} />
     </section>
   );
 }

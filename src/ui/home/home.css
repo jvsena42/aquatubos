@@ -334,6 +334,232 @@
   }
 }
 
+/* How to play */
+.howto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.howto__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 19rem;
+  text-align: center;
+}
+
+.howto__art {
+  width: min(100%, 20rem);
+  height: auto;
+  margin-bottom: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-map-ground);
+}
+
+.howto__art * {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.howto__count {
+  font-size: var(--font-size-xs);
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.howto__title {
+  font-size: var(--font-size-lg);
+}
+
+.howto__text {
+  max-width: 32rem;
+}
+
+.howto__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.howto__nav > .btn {
+  min-width: 7rem;
+  min-height: 2.75rem;
+}
+
+.howto__dots {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The dot is small but its button is 28 px wide and tall. */
+.howto__dot {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  cursor: pointer;
+}
+
+.howto__dot::before {
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  content: '';
+}
+
+.howto__dot[aria-current]::before {
+  width: 1.25rem;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.ht-pipe,
+.ht-water,
+.ht-line,
+.ht-arrow,
+.ht-ok,
+.ht-on-button {
+  fill: none;
+}
+
+.ht-pipe {
+  stroke: var(--color-pipe);
+  stroke-width: 13;
+}
+
+.ht-water {
+  stroke: var(--color-water);
+  stroke-width: 8;
+}
+
+.ht-arrow {
+  stroke: var(--color-water-fill);
+  stroke-width: 3;
+}
+
+.ht-node {
+  fill: var(--color-brand-accent);
+  stroke: var(--color-pipe);
+  stroke-width: 2.5;
+}
+
+.ht-chip {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.ht-chip--on {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.ht-bore {
+  fill: var(--color-water-fill);
+  stroke: var(--color-pipe);
+  stroke-width: 2.5;
+}
+
+.ht-bore--on {
+  fill: var(--color-water);
+}
+
+.ht-button {
+  fill: var(--color-primary);
+}
+
+.ht-on-button {
+  stroke: var(--color-primary-contrast);
+  stroke-width: 3;
+}
+
+.ht-line {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 3;
+}
+
+.ht-body,
+.ht-roof,
+.ht-lit {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2;
+}
+
+.ht-body {
+  fill: var(--color-map-building);
+}
+
+.ht-roof {
+  fill: var(--color-map-roof);
+}
+
+.ht-roof--alt {
+  fill: var(--color-map-roof-alt);
+}
+
+.ht-lit {
+  fill: var(--color-map-window-lit);
+  stroke-width: 1.5;
+}
+
+.ht-ok {
+  stroke: var(--color-ok);
+  stroke-width: 3;
+}
+
+.ht-star {
+  fill: var(--color-map-window-lit);
+  stroke: var(--color-warn);
+  stroke-width: 2;
+}
+
+.ht-text {
+  fill: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
+.ht-star--off {
+  fill: none;
+  stroke: var(--color-border-strong);
+}
+
+/* About */
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.about h3 {
+  margin-top: var(--space-3);
+}
+
+.about__note {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-weight: 550;
+}
+
 @media (max-width: 560px) {
   .home__content {
     padding: var(--space-5) var(--space-4) var(--space-3);
@@ -360,5 +586,25 @@
 
   .home__stat {
     padding: var(--space-2) var(--space-3);
+  }
+
+  .howto__step {
+    min-height: 21rem;
+  }
+
+  /* Dots on their own line above the two buttons. */
+  .howto__nav {
+    flex-wrap: wrap;
+  }
+
+  .howto__dots {
+    flex-basis: 100%;
+    justify-content: center;
+    order: -1;
+  }
+
+  .howto__nav > .btn {
+    flex: 1;
+    min-width: 0;
   }
 }

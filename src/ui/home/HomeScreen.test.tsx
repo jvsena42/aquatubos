@@ -77,7 +77,11 @@ describe('HomeScreen', () => {
       await user.keyboard('{Enter}');
       expect(goToMap).toHaveBeenCalledTimes(1);
       await user.tab();
+      expect(screen.getByRole('button', { name: 'Como jogar' })).toHaveFocus();
+      await user.tab();
       expect(screen.getByRole('button', { name: 'Glossário' })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('button', { name: 'Sobre' })).toHaveFocus();
     });
   });
 
@@ -157,7 +161,7 @@ describe('HomeScreen', () => {
     });
     expect(screen.getByText("Design the town's water network")).toBeInTheDocument();
     expect(screen.getByText(/Learn to size water distribution networks/)).toBeInTheDocument();
-    for (const name of ['Stage map', 'Glossary']) {
+    for (const name of ['Stage map', 'How to play', 'Glossary', 'About']) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
     const totals = within(screen.getByRole('group', { name: 'Your progress' }));
