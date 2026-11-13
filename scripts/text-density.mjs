@@ -1,5 +1,5 @@
 /**
- * Counts the words visible on the main screens, to keep the default UI short.
+ * Counts the words and the buttons visible on the main screens, to keep the default UI short.
  *
  * Needs the production build being served (npm run build && npm run preview), then:
  *   npm run text-density
@@ -53,6 +53,31 @@ const countWords = () => {
   return words;
 };
 
+/** Buttons, links, tabs and selects rendered inside the viewport (map elements excluded). */
+const countControls = () => {
+  let controls = 0;
+  for (const element of document.querySelectorAll(
+    'button, a[href], select, [role="button"], [role="tab"]',
+  )) {
+    if (element.closest('svg, [aria-hidden="true"], [inert]')) continue;
+    const style = getComputedStyle(element);
+    if (style.visibility === 'hidden' || style.display === 'none') continue;
+    const box = element.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0) continue;
+    if (box.bottom <= 0 || box.top >= innerHeight || box.right <= 0 || box.left >= innerWidth) {
+      continue;
+    }
+    controls++;
+  }
+  return controls;
+};
+
+const measure = async (page) => ({
+  words: await page.evaluate(countWords),
+  controls: await page.evaluate(countControls),
+});
+const cell = (m) => `${m.words} words, ${m.controls} controls`;
+
 const browser = await chromium.launch();
 const rows = [];
 for (const [name, profile] of Object.entries(profiles)) {
@@ -64,7 +89,7 @@ for (const [name, profile] of Object.entries(profiles)) {
   const page = await context.newPage();
   await page.goto(BASE_URL);
   await page.getByRole('button', { name: 'Jogar', exact: true }).waitFor();
-  const home = await page.evaluate(countWords);
+  const home = await measure(page);
 
   // Stage 1 completed so stage 2 is unlocked; stage 2 opens with its reference design.
   await page.evaluate(
@@ -93,25 +118,25 @@ for (const [name, profile] of Object.entries(profiles)) {
     .getByRole('button', { name: /^Mapa de etapas|^Continuar/ })
     .first()
     .waitFor();
-  const homeProgress = await page.evaluate(countWords);
+  const homeProgress = await measure(page);
   await page
     .getByRole('button', { name: /^Mapa de etapas/ })
     .first()
     .click();
   await page.getByRole('heading', { name: 'Etapas' }).waitFor();
-  const map = await page.evaluate(countWords);
+  const map = await measure(page);
 
   await page.getByRole('button', { name: /^Etapa 2: / }).click();
   await page.getByRole('dialog').waitFor();
   await page.keyboard.press('Escape');
   await page.waitForTimeout(500);
-  const stage = await page.evaluate(countWords);
+  const stage = await measure(page);
   rows.push({
     profile: name,
-    home,
-    'home with progress': homeProgress,
-    'stage map': map,
-    'stage 2': stage,
+    home: cell(home),
+    'home with progress': cell(homeProgress),
+    'stage map': cell(map),
+    'stage 2': cell(stage),
   });
   await context.close();
 }
