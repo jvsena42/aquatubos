@@ -663,8 +663,6 @@ line.town__hit {
 }
 
 /* Phones: the drawing takes what the panel gives it, also when that is little (landscape). */
-@media (max-width: 760px), (max-height: 500px) {
-  .town__canvas {
-    min-height: 8rem;
-  }
+:root[data-device='phone'] .town__canvas {
+  min-height: 8rem;
 }

@@ -11,7 +11,7 @@ import { rectsOverlap, textWidth, type Rect } from './labels';
 import { mockMatchMedia } from './mockMatchMedia';
 import { NetworkView } from './NetworkView';
 import { nodeStatuses, pipeStatuses } from './status';
-import { PHONE_QUERY } from './useMediaQuery';
+import { PHONE_QUERY } from '../shell/breakpoints';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 

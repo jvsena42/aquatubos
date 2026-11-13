@@ -23,7 +23,7 @@ import { placeLabels, textWidth, type LabelRequest, type Rect, type ThickSegment
 import { Legend } from './Legend';
 import { nodeStatuses, pipeStatuses } from './status';
 import { HEAD_UNIT, networkStrings as text, pressureStatusLabels } from './strings';
-import { useCoarsePointer, usePhone } from './useMediaQuery';
+import { useCoarsePointer, usePhone } from '../shell/breakpoints';
 import { usePanZoom } from './usePanZoom';
 import { SelectionBar, ZoomControls, zoomControlsArea } from './ViewControls';
 import './network.css';

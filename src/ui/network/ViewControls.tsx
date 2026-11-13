@@ -1,7 +1,7 @@
 import { useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { DnPicker } from './DnPicker';
-import { usePhone } from './useMediaQuery';
+import { usePhone } from '../shell/breakpoints';
 import { useNum } from './format';
 import { networkStrings as text } from './strings';
 

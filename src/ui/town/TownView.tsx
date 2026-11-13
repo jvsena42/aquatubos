@@ -29,7 +29,7 @@ import type { Rect } from '../network/labels';
 import { Legend } from '../network/Legend';
 import { pipeStatuses } from '../network/status';
 import { networkStrings } from '../network/strings';
-import { useCoarsePointer, usePhone } from '../network/useMediaQuery';
+import { useCoarsePointer, usePhone } from '../shell/breakpoints';
 import { usePanZoom } from '../network/usePanZoom';
 import { SelectionBar, ZoomControls, zoomControlsArea } from '../network/ViewControls';
 import { detailClass } from './detail';

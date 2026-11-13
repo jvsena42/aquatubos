@@ -283,7 +283,7 @@ rect.netview__hit {
   touch-action: manipulation;
 }
 
-@media (pointer: coarse), (max-width: 760px), (max-height: 500px) {
+@media (pointer: coarse) {
   .netview__zoom .btn.btn--icon {
     min-width: 2.75rem;
     min-height: 2.75rem;
@@ -291,6 +291,14 @@ rect.netview__hit {
   .netview__hint {
     max-width: calc(100% - 10.75rem);
   }
+}
+
+:root[data-device='phone'] .netview__zoom .btn.btn--icon {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+:root[data-device='phone'] .netview__hint {
+  max-width: calc(100% - 10.75rem);
 }
 
 .netview__zoom .icon,
@@ -423,21 +431,19 @@ rect.netview__hit {
   text-overflow: ellipsis;
 }
 
-@media (max-width: 760px) {
-  .netview__bar--phone {
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: center;
-    min-height: 5rem;
-  }
+:root[data-device='phone'] .netview__bar--phone {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 5rem;
+}
 
-  .netview__bar--phone .netview__bar-title {
-    flex: none;
-  }
+:root[data-device='phone'] .netview__bar--phone .netview__bar-title {
+  flex: none;
+}
 
-  .netview__bar--phone .dn-picker {
-    flex: none;
-  }
+:root[data-device='phone'] .netview__bar--phone .dn-picker {
+  flex: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -447,8 +453,6 @@ rect.netview__hit {
 }
 
 /* Phones: the drawing takes what the panel gives it, also when that is little (landscape). */
-@media (max-width: 760px), (max-height: 500px) {
-  .netview__canvas {
-    min-height: 8rem;
-  }
+:root[data-device='phone'] .netview__canvas {
+  min-height: 8rem;
 }

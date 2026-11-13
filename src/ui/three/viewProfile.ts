@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react';
+import { COARSE_QUERY, PHONE_QUERY } from '../shell/breakpoints';
 import type { Quality } from './geometry';
 
-/** Finger input: phones, tablets and touch-first laptops. */
-export const COARSE_QUERY = '(pointer: coarse)';
-/** Phone widths, and phones lying on their side (wide but very short). */
-export const SMALL_QUERY = '(max-width: 760px), (pointer: coarse) and (max-height: 500px)';
+export { COARSE_QUERY };
+/** Phones, upright or lying on their side: the shared phone breakpoint. */
+export const SMALL_QUERY = PHONE_QUERY;
 
 export interface ViewProfile {
   /** Finger input: larger hit areas and tap tolerance. */

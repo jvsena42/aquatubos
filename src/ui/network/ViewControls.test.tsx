@@ -6,7 +6,7 @@ import { getScenario } from '../../scenarios';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
 import { mockMatchMedia } from './mockMatchMedia';
-import { PHONE_QUERY } from './useMediaQuery';
+import { PHONE_QUERY } from '../shell/breakpoints';
 import { SelectionBar, zoomControlsArea } from './ViewControls';
 
 function openStage() {

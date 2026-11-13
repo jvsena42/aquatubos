@@ -75,7 +75,7 @@
   font-size: 0.6875rem;
 }
 
-@media (pointer: coarse), (max-width: 760px), (max-height: 500px) {
+@media (pointer: coarse) {
   .dn-picker:not(.dn-picker--compact) .dn-picker__options > button {
     min-height: 2.75rem;
     touch-action: manipulation;
@@ -85,4 +85,17 @@
     min-width: 2.75rem;
     min-height: 2.75rem;
   }
+}
+
+:root[data-device='phone'] .dn-picker:not(.dn-picker--compact) .dn-picker__options > button {
+  min-height: 2.75rem;
+  touch-action: manipulation;
+}
+
+:root[data-device='phone']
+  .dn-picker--compact:not(.dn-picker--prices)
+  .dn-picker__options
+  > button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
 }

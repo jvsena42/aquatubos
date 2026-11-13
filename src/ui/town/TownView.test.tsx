@@ -11,7 +11,7 @@ import { resetStore } from '../../test/store';
 import { distanceToSegment } from '../network/hit';
 import { mockMatchMedia } from '../network/mockMatchMedia';
 import { NetworkView } from '../network/NetworkView';
-import { COARSE_QUERY, PHONE_QUERY } from '../network/useMediaQuery';
+import { COARSE_QUERY, PHONE_QUERY } from '../shell/breakpoints';
 import { TownView } from './TownView';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));

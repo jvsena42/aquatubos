@@ -230,10 +230,14 @@
 }
 
 /* Rows are tap targets on touch screens. */
-@media (pointer: coarse), (max-width: 760px) {
+@media (pointer: coarse) {
   .hscroll .table tbody :is(th, td) {
     height: 2.75rem;
   }
+}
+
+:root[data-device='phone'] .hscroll .table tbody :is(th, td) {
+  height: 2.75rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
