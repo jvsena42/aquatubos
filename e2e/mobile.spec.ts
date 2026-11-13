@@ -82,10 +82,13 @@ test('plays stage 1 by touch with the bottom sheet', async ({ page }) => {
     await tapPipe(page, pipe.id);
     await expect(sheet).toHaveAttribute('data-detent', 'half');
     await expect(sheet.getByRole('heading', { name: `Trecho ${pipe.id}` })).toBeVisible();
-    await sheet
-      .getByRole('group', { name: `Diâmetro nominal do trecho ${pipe.id}` })
-      .getByRole('button', { name: new RegExp(`^DN ${dn},`) })
-      .tap();
+    // The sheet shows the DN as text; the picker is the bar under the map, in thumb reach.
+    await expect(
+      sheet.getByRole('button', { name: `Alterar o diâmetro do trecho ${pipe.id}` }),
+    ).toBeVisible();
+    const bar = page.locator('#dn-bar');
+    await expect(bar).toBeInViewport();
+    await bar.getByRole('button', { name: new RegExp(`^DN ${dn},`) }).tap();
     // The verify button stays on screen and shows that results are outdated.
     await expect(verify).toBeInViewport();
     await expect(verify).toHaveAttribute('data-stale', 'true');
@@ -128,17 +131,19 @@ test('has no horizontal overflow on any tab or dialog', async ({ page }) => {
   await expect(page.locator('.netview__canvas')).toBeVisible();
   await expectNoHorizontalOverflow(page, 'schematic');
 
-  // Stage actions live in a menu on phones.
-  await page.getByRole('button', { name: 'Mais ações' }).tap();
-  await expect(page.getByRole('menu', { name: 'Mais ações' })).toBeVisible();
-  await page.getByRole('menuitem', { name: 'Enunciado' }).tap();
+  // The briefing is one tap away in the header.
+  await page.getByRole('button', { name: 'Enunciado' }).tap();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expectNoHorizontalOverflow(page, 'briefing from the menu');
+  await expectNoHorizontalOverflow(page, 'briefing');
   await page.getByRole('dialog').getByRole('button', { name: 'Continuar' }).tap();
 
-  // Language, theme and glossary live in the settings menu.
-  await page.getByRole('button', { name: 'Configurações' }).tap();
-  await page.getByRole('menuitem', { name: 'Glossário' }).tap();
+  // Everything else lives in the single header menu, stage actions included.
+  await page.getByRole('button', { name: 'Menu' }).tap();
+  const menu = page.getByRole('menu', { name: 'Menu' });
+  await expect(menu.getByRole('menuitemradio', { name: 'Darcy-Weisbach' })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'Restaurar diâmetros' })).toBeVisible();
+  await expectNoHorizontalOverflow(page, 'menu');
+  await menu.getByRole('menuitem', { name: 'Glossário' }).tap();
   await expect(page.getByRole('dialog', { name: 'Glossário' })).toBeVisible();
   await expectNoHorizontalOverflow(page, 'glossary');
 });
