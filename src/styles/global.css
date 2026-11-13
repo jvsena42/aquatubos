@@ -19,6 +19,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* Controls show their own pressed state; the grey flash of mobile browsers is not needed. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -29,6 +31,8 @@ body {
   font-family: var(--font-sans);
   font-size: var(--font-size-md);
   line-height: var(--line-height);
+  /* No sideways bounce or back-swipe from a pan inside a drawing or a table. */
+  overscroll-behavior-x: none;
 }
 
 #root {
@@ -81,6 +85,19 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+}
+
+/* No double-tap zoom delay on controls. */
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+[role='tab'],
+[role='button'] {
+  touch-action: manipulation;
 }
 
 svg {
@@ -319,6 +336,7 @@ button.card,
 .table-wrap {
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
 }
 
 .table {
@@ -435,6 +453,58 @@ button.card,
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/*
+ * Touch screens: every control is at least 44 px (2.75rem) in each direction. Regular buttons
+ * and fields grow to that size; the small variants keep their look and get a larger invisible
+ * hit area instead, so dense toolbars do not change.
+ */
+@media (pointer: coarse) {
+  .btn,
+  .select,
+  .input {
+    min-height: 2.75rem;
+  }
+
+  .btn--icon {
+    min-width: 2.75rem;
+  }
+
+  .btn--sm {
+    position: relative;
+    min-height: 2rem;
+  }
+
+  .btn--icon.btn--sm {
+    min-width: 2rem;
+  }
+
+  .segmented > button {
+    position: relative;
+  }
+
+  .btn--sm::after,
+  .segmented > button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* iOS zooms the page when a focused field has text smaller than 16 px. */
+@media (pointer: coarse), (max-width: 760px) {
+  .select,
+  .input,
+  select,
+  input,
+  textarea {
+    font-size: max(1rem, 16px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
