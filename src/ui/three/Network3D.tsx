@@ -4,10 +4,12 @@ import { useFormat, useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { DEFAULT_EXAGGERATION, EXAGGERATIONS, type Exaggeration } from './geometry';
 import { buildSceneModel } from './model';
-import Scene3D, { type LabelAnchor } from './Scene3D';
+import { buildLabels, type Label, type LabelTexts } from './labels';
+import Scene3D from './Scene3D';
 import { criticalNode } from './status';
 import { HEAD_UNIT, statusLabels, strings3d } from './strings';
 import { useThemeColors } from './useThemeColors';
+import { useViewProfile } from './viewProfile';
 import { isWebGLAvailable } from './webgl';
 import './network3d.css';
 
@@ -26,13 +28,6 @@ class SceneBoundary extends Component<{ onError: () => void; children: ReactNode
   render() {
     return this.state.failed ? null : this.props.children;
   }
-}
-
-interface Label extends LabelAnchor {
-  /** Id of the pipe, node or reservoir the label belongs to. */
-  element: string;
-  text: string;
-  kind: 'node' | 'pipe' | 'reservoir' | 'pump';
 }
 
 const STATUSES = ['low', 'ok', 'high'] as const;
@@ -55,55 +50,37 @@ export default function Network3D() {
   const [showHgl, setShowHgl] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [resetCount, setResetCount] = useState(0);
+  const [legendOpen, setLegendOpen] = useState(false);
   const colors = useThemeColors();
-  const exaggerationId = useId();
+  const profile = useViewProfile();
+  const { compact, touch } = profile;
+  const legendId = useId();
 
   // A result of another stage (or none) is ignored: the scene then shows the network only.
   const current =
     evaluation && scenario && evaluation.scenarioId === scenario.id ? evaluation : null;
   const model = useMemo(
-    () => (scenario ? buildSceneModel(scenario, diameters, current, exaggeration) : null),
-    [scenario, diameters, current, exaggeration],
+    () =>
+      scenario
+        ? buildSceneModel(scenario, diameters, current, exaggeration, profile.quality)
+        : null,
+    [scenario, diameters, current, exaggeration, profile.quality],
   );
   const hasResult = model?.hgl != null;
 
   const unit = tr(HEAD_UNIT);
+  const criticalId = criticalNode(current)?.id ?? null;
   const labels = useMemo<Label[]>(() => {
     if (!model || !showLabels) return [];
-    return [
-      ...model.pipes.map((pipe): Label => {
-        const middle = pipe.path[Math.floor(pipe.path.length / 2)] ?? { x: 0, y: 0, z: 0 };
-        return {
-          id: `pipe-${pipe.id}`,
-          element: pipe.id,
-          kind: 'pipe',
-          position: { ...middle, y: middle.y + pipe.radius * 2 },
-          text: `DN ${pipe.dn}`,
-        };
-      }),
-      ...model.nodes.map((node): Label => ({
-        id: `node-${node.id}`,
-        element: node.id,
-        kind: 'node',
-        position: { ...node.position, y: node.position.y + node.radius * 1.6 },
-        text: node.pressure === null ? node.id : `${node.id} · ${format(node.pressure, 1)} ${unit}`,
-      })),
-      ...model.reservoirs.map((reservoir): Label => ({
-        id: `reservoir-${reservoir.id}`,
-        element: reservoir.id,
-        kind: 'reservoir',
-        position: { ...reservoir.position, y: reservoir.topY },
-        text: `${reservoir.id} · ${tr(strings3d.waterLevel(format(reservoir.waterLevel, 1)))}`,
-      })),
-      ...model.pumps.map((pump): Label => ({
-        id: `pump-${pump.id}`,
-        element: pump.id,
-        kind: 'pump',
-        position: { ...pump.marker.position, y: pump.marker.position.y + pump.radius * 8 },
-        text: `${pump.id} · ${tr(strings3d.pump)}`,
-      })),
-    ];
-  }, [model, showLabels, format, unit, tr]);
+    const texts: LabelTexts = {
+      pipe: (dn) => `DN ${dn}`,
+      node: (id, pressure) => (pressure === null ? id : `${id} · ${format(pressure, 1)} ${unit}`),
+      nodeCompact: (id, pressure) => (pressure === null ? id : `${id} · ${format(pressure, 1)}`),
+      reservoir: (id, level) => `${id} · ${tr(strings3d.waterLevel(format(level, 1)))}`,
+      pump: (id) => `${id} · ${tr(strings3d.pump)}`,
+    };
+    return buildLabels(model, texts, { compact, selection, criticalId });
+  }, [model, showLabels, format, unit, tr, compact, selection, criticalId]);
 
   const labelElements = useRef(new Map<string, HTMLElement>());
   const setLabelElement = useCallback((id: string, element: HTMLElement | null) => {
@@ -126,15 +103,53 @@ export default function Network3D() {
       )
     : tr(strings3d.noResult);
 
+  const legend = (
+    <ul className="net3d__legend" aria-label={tr(strings3d.legend)}>
+      <li>
+        <span className="muted">{tr(strings3d.nodePressure)}</span>
+        {STATUSES.map((status) => (
+          <span key={status} className="net3d__key">
+            <span className={`net3d__dot net3d__dot--pressure-${status}`} aria-hidden />
+            {tr(statusLabels[status])}
+          </span>
+        ))}
+      </li>
+      <li>
+        <span className="muted">{tr(strings3d.pipeVelocity)}</span>
+        {STATUSES.map((status) => (
+          <span key={status} className="net3d__key">
+            <span className={`net3d__bar net3d__bar--velocity-${status}`} aria-hidden />
+            {tr(statusLabels[status])}
+          </span>
+        ))}
+      </li>
+      <li>
+        <span className="net3d__key">
+          <span className="net3d__swatch net3d__swatch--hgl" aria-hidden />
+          {tr(strings3d.hglSurface)}
+        </span>
+        {model.pumps.length > 0 && (
+          <span className="net3d__key">
+            <span className="net3d__dot net3d__dot--pump" aria-hidden />
+            {tr(strings3d.pump)}
+          </span>
+        )}
+      </li>
+    </ul>
+  );
+  const hint = (
+    <p className="net3d__hint muted">{tr(touch ? strings3d.hintTouch : strings3d.hint)}</p>
+  );
+
   return (
-    <div className="net3d">
+    <div className={`net3d${compact ? ' net3d--compact' : ''}`}>
       {webgl && (
         <div className="net3d__toolbar" role="group" aria-label={tr(strings3d.controls)}>
           <div className="net3d__field">
-            <span className="muted" id={exaggerationId}>
-              {tr(strings3d.exaggeration)}
+            <span className="muted" aria-hidden>
+              {tr(compact ? strings3d.exaggerationShort : strings3d.exaggeration)}
             </span>
-            <div className="segmented" role="group" aria-labelledby={exaggerationId}>
+            <div className="segmented" role="group" aria-label={tr(strings3d.exaggeration)}>
               {EXAGGERATIONS.map((factor) => (
                 <button
                   key={factor}
@@ -167,10 +182,11 @@ export default function Network3D() {
           </div>
           <button
             type="button"
-            className="btn btn--sm"
+            className="btn btn--sm net3d__reset"
+            aria-label={compact ? tr(strings3d.resetView) : undefined}
             onClick={() => setResetCount((count) => count + 1)}
           >
-            {tr(strings3d.resetView)}
+            {tr(compact ? strings3d.resetShort : strings3d.resetView)}
           </button>
         </div>
       )}
@@ -181,6 +197,7 @@ export default function Network3D() {
             <div className="net3d__canvas">
               <Scene3D
                 model={model}
+                profile={profile}
                 colors={colors}
                 selection={selection}
                 onSelect={select}
@@ -203,15 +220,40 @@ export default function Network3D() {
                       : ''
                   }`}
                 >
-                  {label.text}
+                  {label.short === undefined ? (
+                    label.text
+                  ) : (
+                    <>
+                      <span className="net3d__label-full">{label.text}</span>
+                      <span className="net3d__label-short">{label.short}</span>
+                    </>
+                  )}
                 </span>
               ))}
             </div>
             <p className="net3d__scale">{tr(strings3d.scaleNote(exaggeration))}</p>
             {stale && hasResult && (
               <p className="net3d__note" role="status">
-                {tr(strings3d.stale)}
+                {tr(compact ? strings3d.staleShort : strings3d.stale)}
               </p>
+            )}
+            {/* On a small screen the legend and the gesture help open over the scene on demand. */}
+            {compact && (
+              <>
+                <button
+                  type="button"
+                  className="btn btn--sm net3d__legend-toggle"
+                  aria-expanded={legendOpen}
+                  aria-controls={legendId}
+                  onClick={() => setLegendOpen((on) => !on)}
+                >
+                  {tr(strings3d.legend)}
+                </button>
+                <div id={legendId} className="net3d__legend-panel" hidden={!legendOpen}>
+                  {legend}
+                  {hint}
+                </div>
+              </>
             )}
           </SceneBoundary>
         ) : (
@@ -221,43 +263,9 @@ export default function Network3D() {
         )}
       </div>
 
-      {webgl && (
-        <ul className="net3d__legend" aria-label={tr(strings3d.legend)}>
-          <li>
-            <span className="muted">{tr(strings3d.nodePressure)}</span>
-            {STATUSES.map((status) => (
-              <span key={status} className="net3d__key">
-                <span className={`net3d__dot net3d__dot--pressure-${status}`} aria-hidden />
-                {tr(statusLabels[status])}
-              </span>
-            ))}
-          </li>
-          <li>
-            <span className="muted">{tr(strings3d.pipeVelocity)}</span>
-            {STATUSES.map((status) => (
-              <span key={status} className="net3d__key">
-                <span className={`net3d__bar net3d__bar--velocity-${status}`} aria-hidden />
-                {tr(statusLabels[status])}
-              </span>
-            ))}
-          </li>
-          <li>
-            <span className="net3d__key">
-              <span className="net3d__swatch net3d__swatch--hgl" aria-hidden />
-              {tr(strings3d.hglSurface)}
-            </span>
-            {model.pumps.length > 0 && (
-              <span className="net3d__key">
-                <span className="net3d__dot net3d__dot--pump" aria-hidden />
-                {tr(strings3d.pump)}
-              </span>
-            )}
-          </li>
-        </ul>
-      )}
-
+      {webgl && !compact && legend}
       <p className="net3d__summary">{summary}</p>
-      {webgl && <p className="net3d__hint muted">{tr(strings3d.hint)}</p>}
+      {webgl && !compact && hint}
     </div>
   );
 }

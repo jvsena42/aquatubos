@@ -27,7 +27,7 @@
   opacity: 0.6;
 }
 
-.net3d__toolbar > .btn {
+.net3d__reset {
   margin-left: auto;
 }
 
@@ -39,6 +39,12 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg);
+  /* Label z-indexes (depth order) stay inside the viewport. */
+  isolation: isolate;
+  /* A long press on the scene must not select text or open the callout of the browser. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .net3d__canvas {
@@ -46,13 +52,19 @@
   inset: 0;
 }
 
+/* The scene takes every gesture: the page must not scroll or zoom under the fingers. */
+.net3d__canvas,
+.net3d__canvas canvas {
+  touch-action: none;
+}
+
 .net3d__canvas canvas {
   display: block;
-  touch-action: none;
 }
 
 .net3d__labels {
   position: absolute;
+  z-index: 1;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
@@ -79,6 +91,16 @@
   white-space: nowrap;
 }
 
+/* A label with a short form shows one of the two; the scene picks by the room there is. */
+.net3d__label-short,
+.net3d__label[data-form='short'] > .net3d__label-full {
+  display: none;
+}
+
+.net3d__label[data-form='short'] > .net3d__label-short {
+  display: inline;
+}
+
 .net3d__label--pipe {
   border-color: transparent;
   background: color-mix(in srgb, var(--color-surface) 70%, transparent);
@@ -99,6 +121,7 @@
 .net3d__scale,
 .net3d__note {
   position: absolute;
+  z-index: 2;
   left: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--color-border);
@@ -212,13 +235,97 @@
   font-size: var(--font-size-xs);
 }
 
-/* On a phone the DN labels crowd the node labels; the pipe thickness already shows the DN. */
-@media (max-width: 600px) {
-  .net3d__label--pipe:not(.net3d__label--selected) {
-    display: none;
-  }
+/*
+ * Small screens (class set from the view profile). The view fills the height it is given:
+ * toolbar, one-line facts and then the scene, which takes the rest. The legend and the gesture
+ * help open over the scene from a button, and nothing interactive sits at the bottom edge.
+ */
+.net3d--compact .net3d__toolbar {
+  gap: var(--space-2);
+}
 
-  .net3d__toolbar > .btn {
-    margin-left: 0;
+.net3d--compact .net3d__toggles {
+  order: 3;
+}
+
+.net3d--compact .net3d__summary {
+  order: -1;
+  font-size: var(--font-size-xs);
+}
+
+.net3d--compact .net3d__toolbar {
+  order: -2;
+}
+
+.net3d--compact .net3d__viewport {
+  min-height: min(14rem, 55dvh);
+}
+
+.net3d--compact .net3d__scale {
+  top: var(--space-2);
+  bottom: auto;
+}
+
+.net3d--compact .net3d__note {
+  top: calc(var(--space-2) + 2.25rem);
+  right: auto;
+  max-width: calc(100% - 2 * var(--space-2));
+}
+
+.net3d__legend-toggle {
+  position: absolute;
+  z-index: 4;
+  top: var(--space-2);
+  right: var(--space-2);
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.net3d__legend-toggle[aria-expanded='true'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.net3d__legend-panel {
+  position: absolute;
+  z-index: 3;
+  top: var(--space-2);
+  right: var(--space-2);
+  left: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: calc(100% - 2 * var(--space-2));
+  /* Room for the button that closes it, which stays in the corner. */
+  padding: var(--space-3) var(--space-3) var(--space-3);
+  padding-top: calc(2.75rem + var(--space-2));
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.net3d__legend-panel[hidden] {
+  display: none;
+}
+
+.net3d__legend-panel .net3d__legend {
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.net3d__legend-panel .net3d__hint {
+  font-size: var(--font-size-sm);
+}
+
+/* Fingers need 44 px targets. */
+@media (pointer: coarse) {
+  .net3d__toolbar button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 }

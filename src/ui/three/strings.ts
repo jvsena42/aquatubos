@@ -15,6 +15,8 @@ export const strings3d = {
   }),
   controls: { pt: 'Controles da vista 3D', en: '3D view controls' },
   exaggeration: { pt: 'Exagero vertical', en: 'Vertical exaggeration' },
+  /** Shown next to the 1× 5× 10× buttons on a small screen. */
+  exaggerationShort: { pt: 'Vertical', en: 'Vertical' },
   exaggerationOption: (factor: number): LocalizedText => ({
     pt: `Exagero vertical de ${factor}×`,
     en: `Vertical exaggeration ${factor}×`,
@@ -24,11 +26,20 @@ export const strings3d = {
       ? { pt: 'Alturas em escala real (1×)', en: 'Heights at true scale (1×)' }
       : { pt: `Alturas ampliadas ${factor}×`, en: `Heights exaggerated ${factor}×` },
   resetView: { pt: 'Recentrar vista', en: 'Reset view' },
+  resetShort: { pt: 'Recentrar', en: 'Reset' },
   hgl: { pt: 'Linha piezométrica', en: 'Hydraulic grade line' },
   labels: { pt: 'Rótulos', en: 'Labels' },
   hint: {
     pt: 'Arraste para girar. Role ou afaste dois dedos para aproximar. O botão direito ou dois dedos arrastando deslocam a vista. Clique em um tubo ou nó para selecionar.',
     en: 'Drag to rotate. Scroll or pinch to zoom. The right button or a two-finger drag pans the view. Click a pipe or node to select it.',
+  },
+  hintTouch: {
+    pt: 'Arraste com um dedo para girar. Afaste ou junte dois dedos para aproximar ou afastar e arraste com dois dedos para deslocar a vista. Toque em um tubo, nó ou reservatório para selecionar e ver o rótulo completo.',
+    en: 'Drag with one finger to rotate. Pinch with two fingers to zoom and drag with two fingers to pan the view. Tap a pipe, node or reservoir to select it and see its full label.',
+  },
+  staleShort: {
+    pt: 'Resultados desatualizados. Calcule novamente.',
+    en: 'Results are outdated. Calculate again.',
   },
   stale: {
     pt: 'Resultados desatualizados: as pressões e a linha piezométrica são do último cálculo. Calcule novamente.',
