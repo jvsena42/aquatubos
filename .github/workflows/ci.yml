@@ -32,7 +32,7 @@ jobs:
         run: npm run build
 
   e2e-mobile:
-    name: Mobile e2e (touch, no overflow)
+    name: Phone and tablet e2e (touch, layout, PWA)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -43,5 +43,9 @@ jobs:
       - run: npm ci
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - name: Phone projects (Pixel 7 and iPhone 14 viewports)
-        run: npx playwright test --project=pixel-7 --project=iphone-14
+      - name: Phone, tablet, layout and PWA projects
+        run: >-
+          npx playwright test
+          --project=pixel-7 --project=iphone-14
+          --project=ipad-portrait --project=ipad-landscape
+          --project=phone-layout --project=pwa
