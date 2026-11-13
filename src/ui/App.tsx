@@ -6,6 +6,7 @@ import './shell/shell.css';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTr } from '../i18n';
 import { useAppStore } from '../state/store';
+import { useDeviceAttributes } from './shell/breakpoints';
 import { Header } from './shell/Header';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
@@ -44,6 +45,7 @@ function focusScreenHeading(main: HTMLElement): () => void {
 }
 
 export function App() {
+  useDeviceAttributes();
   const tr = useTr();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
