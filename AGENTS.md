@@ -33,11 +33,13 @@ Node 22.12 or newer (CI uses the version in `.nvmrc`). Package manager: npm.
 | Recompute reference solutions                     | `npm run reference` (`WRITE=1` to update the files) |
 | Regenerate icons from the SVG logo                | `npm run icons`                                     |
 | Regenerate README screenshots                     | `npm run screenshots`                               |
+| Count visible words and controls                  | `npm run text-density`                              |
 
 The app is served under `/aquatubos/` in dev, preview and production.
 `npm run e2e` needs a Playwright browser: `npx playwright install chromium`.
-`npm run e2e` runs three projects: `chromium` (desktop, `e2e/stages.spec.ts`) and `pixel-7` and
-`iphone-14` (phone viewports with touch, `e2e/mobile.spec.ts`). One project:
+`npm run e2e` runs every Playwright project: `chromium` (desktop), `pixel-7` and `iphone-14`
+(phones), `ipad-portrait` and `ipad-landscape`, `phone-layout` (map labels and controls), `pwa`,
+and `iphone-14-webkit` (needs `npx playwright install webkit`). One project:
 `npx playwright test --project=pixel-7`.
 
 ## Folder layout
@@ -75,11 +77,18 @@ docs/              ARCHITECTURE.md, BRAND.md, screenshots
 - Styling is plain CSS next to the component with BEM-style class names. Colours, fonts, spacing
   and radii come from `src/styles/tokens.css`; never hard-code a colour. Status is never shown by
   colour alone: pair it with an icon or a label.
-- Phones are a first-class target. Every screen must work at 360 px wide with touch only: no
-  horizontal page scroll, tap targets of at least 44 px on coarse pointers, nothing that needs
-  hover, inputs of at least 16 px. Views inside a stage fill their container and scroll
-  internally (the stage screen does not scroll on phones). See "Phone layout" in
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#phone-layout).
+- Phones and tablets are first-class targets. Every screen must work at 360 px wide with
+  touch only: no horizontal page scroll, tap targets of at least 44 px on coarse pointers,
+  nothing that needs hover, inputs of at least 16 px. Views inside a stage fill their container
+  and scroll internally (the stage screen does not scroll on phones and tablets).
+- Breakpoints come from `src/ui/shell/breakpoints.ts` only: `useDevice()` in components,
+  `:root[data-device='phone' | 'tablet' | 'desktop']` and `:root[data-orientation]` in CSS. Do
+  not write width or height media queries for layout.
+- Keep the default UI short: numbers, labels of one to three words, status icons, the primary
+  action. Explanations go behind a `HelpButton` (`src/ui/shell/Help.tsx`), with the text in the
+  strings file. Nothing needed to finish a stage may be only inside help. One primary button
+  per screen; settings and secondary actions go in the header menu. See "Layout by device" and
+  "Short text and help" in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#layout-by-device).
 - Tests live next to the code as `*.test.ts(x)`. Engine tests show the hand calculation in a
   comment.
 - Comments and docs in plain prose.
@@ -139,8 +148,7 @@ These must not break. Each has tests; keep them.
    head loss, a positive derivative and the exponent `n`.
 3. Add tests with hand-computed values to `headloss.test.ts`, including the derivative against a
    finite difference.
-4. Add it to the formula selector (`FORMULAS` in `src/ui/stage/StageScreen.tsx`, labels in
-   `src/ui/stage/strings.ts`) and write out its steps in the calculation panel
+4. Add it to the formula selector (`FORMULAS` and its labels in `src/ui/stage/strings.ts`) and write out its steps in the calculation panel
    (`src/ui/panels/CalcPanel.tsx`).
 
 ## How to add a check

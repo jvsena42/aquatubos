@@ -23,19 +23,19 @@ flowchart LR
 
 ## Module map
 
-| Module      | Path                           | Responsibility                                                                                                                                                                                                                        | May import                           |
-| ----------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Engine      | `src/engine`                   | Head loss formulas, pump curve, GGA solver, Hardy Cross, demand helpers, checks, cost. Pure TypeScript, SI units, no DOM, no React.                                                                                                   | nothing outside `src/engine`         |
-| Scenarios   | `src/scenarios`                | Stage files (JSON), their TypeScript type, loader and structural validator.                                                                                                                                                           | engine types                         |
-| Game        | `src/game`                     | Scenario → SI network, stage evaluation (solve, check, cost, stars), system curve, reference solution search, table/CSV and profile data, house counts and service status, town generator (`game/town`).                              | engine, scenarios                    |
-| Worker      | `src/worker`                   | Web Worker that runs `evaluateStage`, and the promise-based client. Falls back to the calling thread where `Worker` does not exist (unit tests).                                                                                      | game, scenarios                      |
-| State       | `src/state/store.ts`           | One Zustand store: preferences, saved progress, the open stage, diameters, selection, last evaluation, `verify()`.                                                                                                                    | game, scenarios, worker, persistence |
-| Persistence | `src/persistence/db.ts`        | Dexie database `aquatubos`: `progress` (per stage: completed, stars, best cost, last design) and `preferences` (language, theme).                                                                                                     | game types                           |
-| UI          | `src/ui`                       | Title screen (`home`), stage map (`stages`), stage screen (`stage`), HUD (`hud`), town view (`town`), schematic (`network`), calculation and checks panels, results table, HGL profile, charts (`panels`, `charts`), glossary, shell. | everything except `three`            |
-| 3D          | `src/ui/three`                 | react-three-fiber scene. Loaded with `React.lazy`, so three.js is a separate chunk fetched when the 3D tab opens.                                                                                                                     | three, @react-three/fiber            |
-| i18n        | `src/i18n`                     | `useTr()` picks `pt` or `en` from `{ pt, en }` objects kept next to the components; `useFormat()` formats numbers per language.                                                                                                       | state                                |
-| Styles      | `src/styles`                   | `tokens.css` (design tokens, light and dark) and `global.css` (base elements and shared classes). See [BRAND.md](BRAND.md).                                                                                                           |                                      |
-| PWA         | `vite.config.ts`, `src/pwa.ts` | vite-plugin-pwa generates the manifest and a Workbox service worker that precaches the build, so the app works offline after the first visit.                                                                                         |                                      |
+| Module      | Path                        | Responsibility                                                                                                                                                                                                                        | May import                           |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Engine      | `src/engine`                | Head loss formulas, pump curve, GGA solver, Hardy Cross, demand helpers, checks, cost. Pure TypeScript, SI units, no DOM, no React.                                                                                                   | nothing outside `src/engine`         |
+| Scenarios   | `src/scenarios`             | Stage files (JSON), their TypeScript type, loader and structural validator.                                                                                                                                                           | engine types                         |
+| Game        | `src/game`                  | Scenario → SI network, stage evaluation (solve, check, cost, stars), system curve, reference solution search, table/CSV and profile data, house counts and service status, town generator (`game/town`).                              | engine, scenarios                    |
+| Worker      | `src/worker`                | Web Worker that runs `evaluateStage`, and the promise-based client. Falls back to the calling thread where `Worker` does not exist (unit tests).                                                                                      | game, scenarios                      |
+| State       | `src/state/store.ts`        | One Zustand store: preferences, saved progress, the open stage, diameters, selection, last evaluation, `verify()`.                                                                                                                    | game, scenarios, worker, persistence |
+| Persistence | `src/persistence/db.ts`     | Dexie database `aquatubos`: `progress` (per stage: completed, stars, best cost, last design) and `preferences` (language, theme).                                                                                                     | game types                           |
+| UI          | `src/ui`                    | Title screen (`home`), stage map (`stages`), stage screen (`stage`), HUD (`hud`), town view (`town`), schematic (`network`), calculation and checks panels, results table, HGL profile, charts (`panels`, `charts`), glossary, shell. | everything except `three`            |
+| 3D          | `src/ui/three`              | react-three-fiber scene. Loaded with `React.lazy`, so three.js is a separate chunk fetched when the 3D tab opens.                                                                                                                     | three, @react-three/fiber            |
+| i18n        | `src/i18n`                  | `useTr()` picks `pt` or `en` from `{ pt, en }` objects kept next to the components; `useFormat()` formats numbers per language.                                                                                                       | state                                |
+| Styles      | `src/styles`                | `tokens.css` (design tokens, light and dark) and `global.css` (base elements and shared classes). See [BRAND.md](BRAND.md).                                                                                                           |                                      |
+| PWA         | `vite.config.ts`, `src/pwa` | vite-plugin-pwa generates the manifest and a Workbox service worker that precaches the build, so the app works offline after the first visit; install flow and update prompt. See [PWA](#pwa).                                        |                                      |
 
 The dependency direction is one way: engine ← game ← worker/state ← UI. The engine never imports
 from the rest of the app, which is what lets it run in a worker and in Node tests unchanged.
@@ -159,27 +159,52 @@ placed by a collision-avoiding placer shared with the schematic (`src/ui/network
 which drops lower-priority text first on small screens. The illustration style is described in
 [BRAND.md](BRAND.md#illustration-style).
 
-## Phone layout
+## Layout by device
 
-Phones are a first-class target. The phone condition is `(max-width: 760px)`, or a short
-landscape screen (`max-height: 500px`); it is evaluated in JavaScript (`useMediaQuery`) for layout
-changes and repeated in the style sheets.
+Phones and tablets are first-class targets. `src/ui/shell/breakpoints.ts` is the only place
+with breakpoint numbers:
 
-- **Stage screen** (`src/ui/stage`): an app frame of `100dvh` that does not scroll. From top to
-  bottom: one-row header (logo, back, stage name, settings menu), a one-line HUD that expands on
-  tap plus a "Mais ações" menu (briefing, formula, reset), a horizontally scrollable tab bar with
-  the Cidade | Esquema switch, the view filling the rest, and a bottom sheet.
-- **Bottom sheet** (`BottomSheet.tsx`, state in a pure reducer): detents `peek`, `half` and
-  `full`. It holds the calculation panel and the checks, switched by a segmented control. The
-  handle is a button (cycles the detents) and can be dragged; selecting a pipe or node raises the
-  sheet to half; a failed check opens the checks; a pass leaves it closed with a notice so the
-  map animation is visible. "Calcular / Verificar" sits in a bar at the bottom of the sheet and is
-  never covered. In landscape the sheet becomes a panel on the right.
-- **Maps** (`src/ui/network/usePanZoom.ts`, `gestures.ts`, `hit.ts`): pointer events with
-  `touch-action: none`; one finger pans, two fingers pinch about their midpoint, a double tap
-  zooms. A tap is resolved to the nearest drawn element within reach (`resolveHit`), with 44 px
-  hit areas on coarse pointers. The town drops detail by zoom bucket (`town--detail-far|mid|near`).
-  The legend collapses behind a button.
+| Device    | Condition                                                                             |
+| --------- | ------------------------------------------------------------------------------------- |
+| `phone`   | width ≤ 760 px, or a phone held sideways (height ≤ 500 px, width ≤ 960 px, landscape) |
+| `tablet`  | width 761–1100 px                                                                     |
+| `desktop` | wider than 1100 px                                                                    |
+
+Components read it with `useDevice()` and friends. App mirrors it on `<html>` as `data-device`
+and `data-orientation`, and style sheets select on `:root[data-device='phone']` instead of
+repeating numbers in media queries (`pointer: coarse`, reduced motion and colour scheme stay as
+media queries).
+
+- **Header** (every screen and device): the logo and one "Menu" button. The menu holds Como
+  jogar, Glossário, language, theme, Instalar app (when possible) and Sobre; on phones and
+  tablets it also holds the stage actions (formula, reset). In a stage the header also carries
+  back, "Etapa N" with the title, and the briefing button.
+- **Stage screen** on phones and tablets (`src/ui/stage`): a frame of `100dvh` that does not
+  scroll: header with the HUD numbers, a thin scrollable tab bar with the Cidade | Esquema
+  switch, the view filling the rest, and the bottom sheet. Tablets in landscape and phones held
+  sideways use a side panel instead of the sheet. Desktop keeps a side column and may scroll.
+- **Bottom sheet** (`BottomSheet.tsx`, state in the pure reducer `sheetState.ts`): detents
+  `peek`, `half` (36 % of the viewport, `SHEET_HALF`, exposed to CSS as `--sheet-half-fraction`)
+  and `full`. It holds the calculation and the checks. The handle is a button (cycles the
+  detents) and can be dragged; selecting a pipe or node raises it to half; a failed check opens
+  the checks; a pass leaves it closed with a notice. While it is half open the view above it is
+  resized, so the map refits and the selection stays visible. "Calcular / Verificar" sits in a
+  bar at the bottom of the sheet and is never covered.
+- **Diameter picker**: on phones it is one scrollable row of 44 px keys under the map
+  (`#dn-bar`); the sheet shows the DN as text with an "Alterar" button that closes the sheet and
+  focuses the bar. On tablets and desktop the picker is in the calculation panel only.
+- **Maps** (`src/ui/network/usePanZoom.ts`, `gestures.ts`, `hit.ts`, `mapLayout.ts`): pointer
+  events with `touch-action: none`; one finger pans, two fingers pinch about their midpoint, a
+  double tap zooms. A tap is resolved to the nearest drawn element within reach (`resolveHit`),
+  with 44 px hit areas on coarse pointers. Zoom, fit and legend help are one strip of icon
+  buttons in a corner (`[data-overlay-control]`); the fit leaves that rectangle free and the
+  label placer treats it as blocked. The town drops detail by zoom bucket
+  (`town--detail-far|mid|near`).
+- **Labels** (`labels.ts`, `schematicLabels.ts`, `townLabels.ts`): a pipe label degrades from
+  "T2 · DN 75" to "T2 75" to "T2" and a node label from id plus pressure to the id; an id is
+  never dropped. An id without a free place moves a neighbour, then goes on a leader line
+  (`data-leader`). `e2e/layout.spec.ts` checks every stage at 360×640 and 390×844: every pipe
+  and node id visible, no overlapping labels, nothing under the controls.
 - **Tables**: sticky header and first column inside a horizontally scrolling frame with edge
   fades; on phones the results tab shows pipes or nodes, one table at a time.
 - **Charts**: tick count and height follow the container; values are read by tapping (a readout
@@ -189,7 +214,47 @@ changes and repeated in the style sheets.
 - **Safe areas**: `viewport-fit=cover` and `env(safe-area-inset-*)` paddings on the header, the
   sheet and the main content; inputs are at least 16 px so iOS does not zoom.
 
-The page never scrolls sideways; `e2e/mobile.spec.ts` asserts this on every screen.
+The page never scrolls sideways, and the stage screen never scrolls as a page on phones and
+tablets; `e2e/mobile.spec.ts` and `e2e/tablet.spec.ts` assert this.
+
+## Short text and help
+
+The default UI shows what the player needs to act: numbers, labels of one to three words, status
+icons and the primary action. Explanations live behind `HelpButton` (`src/ui/shell/Help.tsx`), a
+small "?" named "Ajuda: <topic>" that opens a popover on tablets and desktops and a dialog on
+phones. Its text stays in the `strings.ts` files. Nothing needed to finish a stage is only
+inside help.
+
+- HUD: icons and numbers; reference cost, budget, star rule and objectives are in help.
+- Calculation panel: a compact result block (Q, V, J, hf; demand, HGL, pressure); the
+  step-by-step substitution is under "Ver cálculo" (state kept in `localStorage`).
+- Checks: one line per issue (icon, short label, element, value); the engine's explanation is
+  in the help of that line.
+- Maps: short labels and an icon-only legend; the full legend is in help. The town legend always
+  shows the three house states. `?debug=high-static` in the address makes the town cycle the
+  three states for visual review (nothing links to it).
+- Tables and charts: short headers with units; column meanings, chart legends and instructions
+  are in help.
+- Glossary terms inside a `TermScope` are underlined only on first occurrence.
+
+`npm run text-density` counts the visible words and controls on the title screen, the stage map
+and stage 2, on a desktop and a phone viewport.
+
+## PWA
+
+vite-plugin-pwa generates the manifest and a Workbox service worker that precaches the build.
+Registration (`src/pwa/register.ts`) is in prompt mode: a new version waits until the player
+presses "Atualizar" in the notice, so a stage in progress is not reloaded.
+
+Installing (`src/pwa/install.ts`, `src/ui/shell/InstallApp.tsx`): `initPwaInstall()` runs before
+the first render and keeps the `beforeinstallprompt` event. `usePwaInstall()` gives the mode:
+`prompt` (Chromium: the menu item shows the native prompt), `ios` (iPhone and iPad, including
+iPadOS reporting as a Mac: a short sheet with the Share → Add to Home Screen steps) or `none`
+(already installed, running standalone, or no install route: the item is hidden). A one-time
+hint appears on the title screen and the stage map after the first completed stage; its
+dismissal is remembered. `e2e/pwa.spec.ts` checks the manifest, the icons, service worker
+control, offline use after the first visit, and the menu item with a synthetic prompt event
+(headless Chromium does not fire `beforeinstallprompt`).
 
 ## Hydraulic engine
 
@@ -369,11 +434,19 @@ gives 3 stars, within 25 % gives 2, otherwise 1.
   least one check with its initial diameters, passes all checks with its reference solution, and
   stores the right reference cost.
 - **Store, persistence and UI tests** with Testing Library and fake-indexeddb.
-- **End-to-end** (`e2e/`, Playwright) against the production build. The desktop project
-  (`stages.spec.ts`) plays the five stages from the title screen in the town view; it runs
-  locally. The phone projects (`mobile.spec.ts`, Pixel 7 and iPhone 14 viewports with touch, in
-  Chromium) play stage 1 by touch through the bottom sheet and assert that no screen overflows
-  sideways; they also run in CI.
+- **End-to-end** (`e2e/`, Playwright) against the production build, by project:
+  - `chromium` (`stages.spec.ts`): plays the five stages from the title screen in the town view
+    on a desktop viewport. Local only.
+  - `pixel-7`, `iphone-14` (`mobile.spec.ts`): play stage 1 by touch through the bottom sheet;
+    no horizontal overflow on any screen.
+  - `ipad-portrait`, `ipad-landscape` (`tablet.spec.ts`): play stage 1 by touch; no page scroll.
+  - `phone-layout` (`layout.spec.ts`): labels and overlay controls of every stage at 360×640 and
+    390×844.
+  - `pwa` (`pwa.spec.ts`): manifest, icons, service worker, offline, install item.
+  - `iphone-14-webkit`: the phone spec in real WebKit. Local only (`npx playwright install webkit`).
+
+  The device projects run in Chromium with the device's viewport, touch and user agent, and run
+  in CI.
 
 Coverage is measured for `src/engine` and `src/game`; the build fails under 80 % of lines in
 `src/engine`.
