@@ -156,7 +156,7 @@
 }
 
 .town__civic {
-  fill: var(--color-map-building);
+  fill: color-mix(in srgb, var(--color-map-roof-alt) 38%, var(--color-map-building));
   stroke: var(--color-map-building-edge);
   stroke-width: 1.5px;
   stroke-linejoin: round;
@@ -421,7 +421,6 @@ line.town__hit {
   stroke-width: 1px;
 }
 
-.town__pill--low .town__pill-box.town__pill-box,
 .town__pill--node.town__pill--low .town__pill-box {
   stroke: var(--color-pressure-low);
   stroke-width: 1.5px;
@@ -430,12 +429,6 @@ line.town__hit {
 .town__pill--node.town__pill--high .town__pill-box {
   stroke: var(--color-pressure-high);
   stroke-width: 1.5px;
-}
-
-.town__pill--pipe.town__pill--low .town__pill-box,
-.town__pill--pipe.town__pill--high .town__pill-box {
-  stroke: var(--color-border-strong);
-  stroke-width: 1px;
 }
 
 .town__pill--selected .town__pill-box {
@@ -466,11 +459,6 @@ line.town__hit {
 
 .town__pill--node.town__pill--high .town__pill-rest {
   fill: var(--color-pressure-high);
-  font-weight: var(--font-weight-semibold);
-}
-
-.town__pill--pipe.town__pill--high .town__pill-rest {
-  fill: var(--color-velocity-high);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -507,6 +495,20 @@ line.town__hit {
   stroke-linejoin: round;
 }
 
+.town__badge-stroke--tap {
+  stroke-width: 2.3px;
+}
+
+.town__badge-cut {
+  fill: none;
+  stroke: var(--town-badge);
+  stroke-width: 4.2px;
+}
+
+.town__badge-slash {
+  stroke-width: 1.5px;
+}
+
 .town__badge-stroke--heavy {
   stroke-width: 2.6px;
   stroke-linecap: butt;
@@ -537,12 +539,16 @@ line.town__hit {
 }
 
 /* Failure: the clusters without service get a ring; it pulses when motion is allowed. */
-.town[data-feedback='failure'] .town__cluster[data-status='low'] .town__hull {
+.town[data-feedback='failure']:not(.town--stale)
+  .town__cluster[data-status='low']:not(.town__el--selected, :focus-visible)
+  .town__hull {
   stroke: var(--color-pressure-low);
   stroke-opacity: 0.4;
 }
 
-.town[data-feedback='failure'] .town__cluster[data-status='high'] .town__hull {
+.town[data-feedback='failure']:not(.town--stale)
+  .town__cluster[data-status='high']:not(.town__el--selected, :focus-visible)
+  .town__hull {
   stroke: var(--color-pressure-high);
   stroke-opacity: 0.4;
 }
@@ -620,8 +626,12 @@ line.town__hit {
     animation-delay: var(--town-delay, 0s);
   }
 
-  .town[data-feedback='failure'] .town__cluster[data-status='low'] .town__hull,
-  .town[data-feedback='failure'] .town__cluster[data-status='high'] .town__hull {
+  .town[data-feedback='failure']:not(.town--stale)
+    .town__cluster[data-status='low']:not(.town__el--selected, :focus-visible)
+    .town__hull,
+  .town[data-feedback='failure']:not(.town--stale)
+    .town__cluster[data-status='high']:not(.town__el--selected, :focus-visible)
+    .town__hull {
     animation: town-pulse 0.4s ease-in-out 6 alternate;
   }
 }

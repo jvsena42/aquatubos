@@ -245,10 +245,12 @@ export function StatusBadge({ status }: { status: Exclude<ServiceStatus, 'unknow
       <g className="town__badge town__badge--low">
         <rect className="town__badge-shape" x={-8.5} y={-8.5} width={17} height={17} rx={4} />
         <path
-          className="town__badge-stroke"
-          d="M-5 -0.5H1A2.6 2.6 0 0 1 3.6 2.1V4M-2 -0.5V-3.6M-4.2 -3.8H0.2"
+          className="town__badge-stroke town__badge-stroke--tap"
+          d="M-5.6 -0.8H0.4A3 3 0 0 1 3.4 2.2V3.8"
         />
-        <path className="town__badge-slash" d="M-5 5.2L5.2 -5" />
+        <path className="town__badge-stroke" d="M-1.6 -0.8V-4.2M-4 -4.4H0.8" />
+        <path className="town__badge-cut" d="M-5.4 5.4L5.4 -5.4" />
+        <path className="town__badge-slash" d="M-5.4 5.4L5.4 -5.4" />
       </g>
     );
   }
