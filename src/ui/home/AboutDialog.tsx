@@ -1,7 +1,6 @@
 import { useTr } from '../../i18n';
-import { SCENARIOS } from '../../scenarios';
 import { Dialog } from '../shell/Dialog';
-import { aboutStrings, ORIGINAL_URL, REPO_URL } from './strings';
+import { aboutStrings, homeStrings, ORIGINAL_URL, REPO_URL } from './strings';
 
 function ExternalLink({ href, children }: { href: string; children: string }) {
   const tr = useTr();
@@ -13,33 +12,29 @@ function ExternalLink({ href, children }: { href: string; children: string }) {
   );
 }
 
-/** Credits: what the app is, where it comes from and what the calculations are based on. */
+/** Credits as a short list: what the app is, what it is based on and where the code is. */
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const tr = useTr();
   return (
     <Dialog open={open} onClose={onClose} title={tr(aboutStrings.title)}>
       <div className="about">
-        <p>{tr(aboutStrings.what(SCENARIOS.length))}</p>
+        <p>{tr(aboutStrings.what)}</p>
         <p className="about__note">{tr(aboutStrings.disclaimer)}</p>
-
-        <h3>{tr(aboutStrings.originHeading)}</h3>
-        <p>
-          {tr(aboutStrings.origin)}{' '}
-          <ExternalLink href={ORIGINAL_URL}>{tr(aboutStrings.originLink)}</ExternalLink>
-        </p>
-
-        <h3>{tr(aboutStrings.basisHeading)}</h3>
         <ul>
+          <li>{tr(homeStrings.lead)}</li>
           {aboutStrings.basis.map((item) => (
             <li key={item.en}>{tr(item)}</li>
           ))}
+          <li>{tr(homeStrings.saved)}</li>
+          <li>
+            {tr(aboutStrings.origin)}{' '}
+            <ExternalLink href={ORIGINAL_URL}>{tr(aboutStrings.originLink)}</ExternalLink>
+          </li>
+          <li>
+            {tr(aboutStrings.source)}{' '}
+            <ExternalLink href={REPO_URL}>{tr(aboutStrings.sourceLink)}</ExternalLink>
+          </li>
         </ul>
-
-        <h3>{tr(aboutStrings.sourceHeading)}</h3>
-        <p>
-          {tr(aboutStrings.source)}{' '}
-          <ExternalLink href={REPO_URL}>{tr(aboutStrings.sourceLink)}</ExternalLink>
-        </p>
       </div>
     </Dialog>
   );

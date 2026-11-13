@@ -36,12 +36,13 @@
   max-width: 46rem;
   margin: 0 auto;
   /* The sides keep clear of a notch. */
-  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-4)
+  padding: clamp(var(--space-4), 4dvh, var(--space-6))
+    max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-3)
     max(var(--space-4), env(safe-area-inset-left, 0px));
   text-align: center;
 }
 
-/* Name and pitch; actions and progress. Their children are laid out by .home__content, except
+/* Name and pitch; button and progress. Their children are laid out by .home__content, except
    on a phone in landscape, where the two groups are columns. */
 .home__intro,
 .home__menu {
@@ -53,8 +54,9 @@
   border-radius: var(--radius-md);
 }
 
+/* The logo follows the width and, on short screens, the height of the viewport. */
 .home-logo {
-  width: clamp(15rem, 34vw, 23rem);
+  width: clamp(13rem, min(34vw, 38dvh), 23rem);
   height: auto;
 }
 
@@ -62,25 +64,24 @@
   fill: var(--home-wordmark);
 }
 
+/* Tagline with its "?" on the same line. */
+.home__pitch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
 .home__tagline {
   font-size: clamp(var(--font-size-lg), 2.6vw, var(--font-size-2xl));
   font-weight: 650;
   line-height: var(--line-height-tight);
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-.home__lead {
-  max-width: 38rem;
-  color: var(--color-text-muted);
-}
-
-.home__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
+.home__help-line {
+  display: block;
 }
 
 .home__play {
@@ -88,6 +89,7 @@
   gap: 2px;
   min-width: 15rem;
   min-height: 3.5rem;
+  margin-top: var(--space-2);
   padding: var(--space-2) var(--space-6);
   border-radius: var(--radius-lg);
 }
@@ -105,64 +107,47 @@
   font-weight: 500;
 }
 
-.home__secondary {
-  min-height: 3.5rem;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-lg);
+/* The way to the map when the button opens a stage: a text link, not a second button. */
+.home__map-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
 }
 
-.home__links {
+.home__map-link:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Progress: one row of chips. */
+.home__chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
-.home__links .btn {
-  width: 100%;
-  min-height: 2.75rem;
-}
-
-.home__stats {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin: var(--space-2) 0 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-1);
-}
-
-.home__stat {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2) var(--space-5);
-}
-
-.home__stat + .home__stat {
-  border-left: 1px solid var(--color-border);
-}
-
-.home__stat dt {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 550;
-}
-
-.home__stat dd {
+.home__chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-1);
-  margin: 0;
-  font-size: var(--font-size-md);
+  min-height: 1.75rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .home__star {
@@ -170,17 +155,13 @@
   color: var(--color-warn);
 }
 
-.home__zero {
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
-/* Scene: fills what is left of the viewport, anchored to the bottom. */
+/* Scene: takes what is left of the viewport, anchored to the bottom and cut at the sides, so
+   the water tower in the middle, the houses next to it and the pipes always show. Its floor
+   follows the viewport height, so the screen fits without scrolling. */
 .home__scene {
   position: relative;
-  flex: 1 1 auto;
-  min-height: max(11rem, 23vw);
+  flex: 1 1 0;
+  min-height: clamp(6rem, 24dvh, 16rem);
   overflow: hidden;
 }
 
@@ -357,7 +338,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  min-height: 19rem;
+  min-height: 16rem;
   text-align: center;
 }
 
@@ -566,8 +547,12 @@
   font-size: var(--font-size-sm);
 }
 
-.about h3 {
-  margin-top: var(--space-3);
+.about ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-5);
 }
 
 .about__note {
@@ -596,162 +581,101 @@
   }
 }
 
-@media (max-width: 560px) {
-  .home__content {
-    padding-top: var(--space-5);
-    padding-bottom: var(--space-3);
-  }
-
-  .home__actions {
-    flex-direction: column;
-    align-self: stretch;
-  }
-
-  /* One row of three; they wrap when the labels do not fit. */
-  .home__links {
-    align-self: stretch;
-  }
-
-  .home__links > li {
-    flex: 1 1 auto;
-  }
-
-  .home__links .btn {
-    padding-right: var(--space-2);
-    padding-left: var(--space-2);
-  }
-
-  .home__play,
-  .home__secondary {
-    min-width: 0;
-  }
-
-  .home__secondary {
+/* Fingers: the map link is 44 px tall. */
+@media (pointer: coarse) {
+  .home__map-link {
     min-height: 2.75rem;
-  }
-
-  .home__stats {
-    align-self: stretch;
-  }
-
-  .home__stat {
-    padding: var(--space-2) var(--space-3);
-  }
-
-  /* Two counters side by side and the cost on its own line below them. */
-  .home__stat:nth-child(3) {
-    flex-basis: 100%;
-    border-top: 1px solid var(--color-border);
-    border-left: 0;
-  }
-
-  .howto__step {
-    min-height: 21rem;
-  }
-
-  /* Dots on their own line above the two buttons. */
-  .howto__nav {
-    flex-wrap: wrap;
-  }
-
-  .howto__dots {
-    flex-basis: 100%;
-    justify-content: center;
-    order: -1;
-  }
-
-  .howto__nav > .btn {
-    flex: 1;
-    min-width: 0;
   }
 }
 
-/* Phone in landscape: little height. Name and pitch on the left, actions on the right, so the
-   main button and the links show without scrolling; the scene follows below. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .home__content {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: center;
-    gap: var(--space-5);
-    max-width: 56rem;
-    padding-top: var(--space-3);
-    padding-bottom: var(--space-3);
-  }
+:root[data-device='phone'] .home__content {
+  gap: var(--space-2);
+}
 
-  .home__intro,
-  .home__menu {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-  }
+:root[data-device='phone'] .home__chip {
+  padding: 0 var(--space-2);
+}
 
-  .home-logo {
-    width: 13rem;
-  }
+:root[data-device='phone'] .howto__step {
+  min-height: 17rem;
+}
 
-  .home__tagline {
-    font-size: var(--font-size-lg);
-  }
+/* Dots on their own line above the two buttons. */
+:root[data-device='phone'] .howto__nav {
+  flex-wrap: wrap;
+}
 
-  .home__lead,
-  .home__zero {
-    font-size: var(--font-size-sm);
-  }
+:root[data-device='phone'] .howto__dots {
+  flex-basis: 100%;
+  justify-content: center;
+  order: -1;
+}
 
-  .home__actions {
-    align-self: stretch;
-    margin-top: 0;
-  }
+:root[data-device='phone'] .howto__nav > .btn {
+  flex: 1;
+  min-width: 0;
+}
 
-  .home__play,
-  .home__secondary {
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 3rem;
-  }
+/* Phone in landscape: little height. Name and tagline on the left, button and progress on the
+   right; the scene takes the rest below. */
+.home--landscape .home__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 56rem;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
 
-  .home__links {
-    flex-direction: row;
-  }
+/* The scene reaches up under the gap between the two columns, so the top of the water tower
+   shows on the shortest screens. */
+.home--landscape .home__content {
+  position: relative;
+  z-index: 1;
+}
 
-  .home__stats,
-  .home__zero {
-    margin-top: 0;
-  }
+.home--landscape .home__scene {
+  margin-top: calc(-1 * var(--space-5));
+}
 
-  .home__stats {
-    align-self: stretch;
-  }
+.home--landscape .home__intro,
+.home--landscape .home__menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
 
-  .home__stat {
-    padding: var(--space-1) var(--space-3);
-  }
+.home--landscape .home-logo {
+  width: 12rem;
+}
 
-  .home__stat:nth-child(3) {
-    flex-basis: 100%;
-    border-top: 1px solid var(--color-border);
-    border-left: 0;
-  }
+.home--landscape .home__tagline {
+  font-size: var(--font-size-md);
+}
 
-  /* Drawing beside the text, so a step fits the dialog without scrolling. */
-  .howto__step {
-    display: grid;
-    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-    align-content: center;
-    column-gap: var(--space-4);
-    min-height: 9.5rem;
-    text-align: left;
-  }
+.home--landscape .home__play {
+  min-height: 3rem;
+  margin-top: 0;
+}
 
-  .howto__art {
-    grid-row: 1 / span 3;
-    align-self: center;
-    margin-bottom: 0;
-  }
+/* Drawing beside the text, so a step fits the dialog without scrolling. */
+:root[data-device='phone'][data-orientation='landscape'] .howto__step {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  align-content: center;
+  column-gap: var(--space-4);
+  min-height: 9.5rem;
+  text-align: left;
+}
 
-  .howto__count {
-    align-self: end;
-  }
+:root[data-device='phone'][data-orientation='landscape'] .howto__art {
+  grid-row: 1 / span 3;
+  align-self: center;
+  margin-bottom: 0;
+}
+
+:root[data-device='phone'][data-orientation='landscape'] .howto__count {
+  align-self: end;
 }
