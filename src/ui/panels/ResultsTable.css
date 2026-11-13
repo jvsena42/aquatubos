@@ -114,15 +114,48 @@
   vertical-align: -0.15em;
 }
 
+/* Inside the help: the columns by name and what the marks mean. */
+.results__help {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.results__help > div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--space-2);
+}
+
+.results__help dt {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+}
+
+.results__help dd {
+  margin: 0;
+}
+
+.results__help-title {
+  display: block;
+}
+
 .results__legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
+  flex-direction: column;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+}
+
+/* The help popover is wide enough for the definitions and scrolls when it is long. */
+.results__helpbtn .help__popover {
+  width: min(28rem, 80vw);
+  max-width: none;
+  max-height: min(28rem, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .results__legend-item {

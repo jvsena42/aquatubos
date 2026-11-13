@@ -17,6 +17,29 @@ export const resultsStrings = {
     pt: 'Clique ou toque em uma linha para selecionar o trecho ou o nó na rede.',
     en: 'Click or tap a row to select the pipe or node in the network.',
   },
+  /** Topic of the help of the view, and the headings inside it. */
+  helpTopic: { pt: 'Tabela', en: 'Table' },
+  helpDirection: {
+    pt: 'Montante (Mont.) e jusante (Jus.) seguem o sentido real do escoamento.',
+    en: 'Upstream (Up) and downstream (Down) follow the actual flow direction.',
+  },
+  helpMarks: { pt: 'Marcas', en: 'Marks' },
+
+  /** Short column headers; the full names are the accessible names and are in the help. */
+  short: {
+    upstream: { pt: 'Mont.', en: 'Up' },
+    downstream: { pt: 'Jus.', en: 'Down' },
+    length: { pt: 'L', en: 'L' },
+    flow: { pt: 'Q', en: 'Q' },
+    velocity: { pt: 'V', en: 'V' },
+    unitHeadLoss: { pt: 'J', en: 'J' },
+    headLoss: { pt: 'hf', en: 'hf' },
+    hgl: { pt: 'CP', en: 'HGL' },
+    elevation: { pt: 'Cota', en: 'Elev.' },
+    pressure: { pt: 'Pressão', en: 'Pressure' },
+    demand: { pt: 'Demanda', en: 'Demand' },
+    staticPressure: { pt: 'Estática', en: 'Static' },
+  },
 
   pipe: { pt: 'Trecho', en: 'Pipe' },
   node: { pt: 'Nó', en: 'Node' },
@@ -24,6 +47,7 @@ export const resultsStrings = {
   downstream: { pt: 'Jusante', en: 'Downstream' },
   length: { pt: 'Extensão', en: 'Length' },
   flow: { pt: 'Vazão', en: 'Flow' },
+  dn: { pt: 'Diâmetro nominal', en: 'Nominal diameter' },
   velocity: { pt: 'Velocidade', en: 'Velocity' },
   unitHeadLoss: { pt: 'Perda unitária J', en: 'Unit loss J' },
   headLoss: { pt: 'Perda de carga', en: 'Head loss' },
@@ -59,7 +83,10 @@ export const resultsStrings = {
     pt: 'escoamento contrário ao sentido desenhado',
     en: 'flow against the drawn direction',
   },
-} satisfies Record<string, LocalizedText | ((...args: string[]) => LocalizedText)>;
+} satisfies Record<
+  string,
+  LocalizedText | Record<string, LocalizedText> | ((...args: string[]) => LocalizedText)
+>;
 
 export const flagSeverityLabels: Record<CheckSeverity, LocalizedText> = {
   error: { pt: 'Erro', en: 'Error' },
