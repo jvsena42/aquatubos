@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { Town } from '../../game/town';
+import { SMALL_TREE_RADIUS } from './detail';
 import { Building, circlePath, SHADOW, shadowPath, Tree } from './sprites';
 
 const r1 = (value: number) => Math.round(value * 10) / 10;
@@ -93,12 +94,12 @@ export const TownScenery = memo(function TownScenery({ town }: { town: Town }) {
         ))}
       </g>
 
-      <path className="town__shadow" d={shadows} />
+      <path className="town__shadow town__shadow--scenery" d={shadows} />
       {town.buildings.map((building, index) => (
         <Building key={index} building={building} />
       ))}
       {town.trees.map((tree, index) => (
-        <Tree key={index} tree={tree} />
+        <Tree key={index} tree={tree} small={tree.radius < SMALL_TREE_RADIUS} />
       ))}
       <path className="town__tree-light" d={highlights} />
     </g>

@@ -56,3 +56,33 @@
   min-width: 2.5rem;
   padding: var(--space-1) var(--space-2);
 }
+
+/* Phones: one row of keys at least 44 px tall, DN over its price per metre. */
+.dn-picker--prices .dn-picker__options {
+  display: flex;
+  overscroll-behavior-x: contain;
+}
+
+.dn-picker--prices .dn-picker__options > button {
+  flex: 1 0 2.5rem;
+  min-width: 2.5rem;
+  min-height: 2.875rem;
+  padding: var(--space-1) 0;
+  touch-action: manipulation;
+}
+
+.dn-picker--prices .dn-picker__price {
+  font-size: 0.6875rem;
+}
+
+@media (pointer: coarse), (max-width: 760px), (max-height: 500px) {
+  .dn-picker:not(.dn-picker--compact) .dn-picker__options > button {
+    min-height: 2.75rem;
+    touch-action: manipulation;
+  }
+
+  .dn-picker--compact:not(.dn-picker--prices) .dn-picker__options > button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}

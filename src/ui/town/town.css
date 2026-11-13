@@ -185,6 +185,26 @@
   opacity: 0.4;
 }
 
+/*
+ * Detail budget (detail.ts). Far away, what is too small to read is not painted: on a phone the
+ * fitted town has windows of 1.5 px. Fewer shapes keep pan and pinch smooth.
+ */
+.town--detail-far .town__window,
+.town--detail-far .town__roof-lines,
+.town--detail-far .town__shadow--scenery,
+.town--detail-far .town__shadow--houses,
+.town--detail-far .town__tree--small,
+.town--detail-far .town__tree-light,
+.town--detail-far .town__building-roof,
+.town--detail-far .town__paving-ring,
+.town--detail-far .town__civic-mark,
+.town--detail-far .town__awning,
+.town--detail-far .town__tank-waves,
+.town--detail-mid .town__tree-light,
+.town--detail-mid .town__building-roof {
+  display: none;
+}
+
 /* Houses: roof colour by variant, tinted by the service status of their node. */
 .town__house {
   --town-roof: var(--color-map-roof);
@@ -639,5 +659,12 @@ line.town__hit {
 @media (prefers-reduced-motion: reduce) {
   .town__flow {
     animation: none;
+  }
+}
+
+/* Phones: the drawing takes what the panel gives it, also when that is little (landscape). */
+@media (max-width: 760px), (max-height: 500px) {
+  .town__canvas {
+    min-height: 9rem;
   }
 }

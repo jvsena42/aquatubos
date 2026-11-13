@@ -8,8 +8,10 @@ import type { Diameters, Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
 import { rectsOverlap, textWidth, type Rect } from './labels';
+import { mockMatchMedia } from './mockMatchMedia';
 import { NetworkView } from './NetworkView';
 import { nodeStatuses, pipeStatuses } from './status';
+import { PHONE_QUERY } from './useMediaQuery';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
@@ -427,6 +429,171 @@ describe('NetworkView', () => {
         }
       },
     );
+  });
+
+  describe('touch, with a laid out drawing', () => {
+    let restoreRect: () => void;
+    let restoreMedia = () => {};
+    beforeEach(() => {
+      // The drawing takes the default 800 × 480 px at the top left of the page.
+      const original = SVGElement.prototype.getBoundingClientRect;
+      SVGElement.prototype.getBoundingClientRect = function () {
+        return this.classList.contains('netview__svg')
+          ? DOMRect.fromRect({ x: 0, y: 0, width: 800, height: 480 })
+          : original.call(this);
+      };
+      restoreRect = () => {
+        SVGElement.prototype.getBoundingClientRect = original;
+      };
+    });
+    afterEach(() => {
+      restoreRect();
+      restoreMedia();
+    });
+
+    const svgOf = () => screen.getByRole('group', { name: 'Desenho da rede' });
+    const centre = (type: string, id: string) => {
+      const dot = element(type, id).querySelector('.netview__node-dot, .netview__pipe-line')!;
+      if (dot.tagName === 'circle') {
+        return { x: Number(dot.getAttribute('cx')), y: Number(dot.getAttribute('cy')) };
+      }
+      return {
+        x: (Number(dot.getAttribute('x1')) + Number(dot.getAttribute('x2'))) / 2,
+        y: (Number(dot.getAttribute('y1')) + Number(dot.getAttribute('y2'))) / 2,
+      };
+    };
+    const touch = (id: number, x: number, y: number) => ({
+      pointerId: id,
+      pointerType: 'touch',
+      clientX: x,
+      clientY: y,
+      button: 0,
+    });
+    /** A tap as the browser reports it: press, release and a click at the same place. */
+    const tap = (x: number, y: number, target: Element = svgOf(), timeStamp?: number) => {
+      fireEvent.pointerDown(target, touch(1, x, y));
+      fireEvent.pointerUp(target, touch(1, x, y));
+      const click = new MouseEvent('click', { bubbles: true, clientX: x, clientY: y });
+      if (timeStamp !== undefined) Object.defineProperty(click, 'timeStamp', { value: timeStamp });
+      fireEvent(target, click);
+    };
+
+    it('selects the element nearest to the tap, whatever was painted under the finger', () => {
+      openStage('stage3');
+      render(<NetworkView />);
+      const t1 = centre('pipe', 'T1');
+      const a = centre('node', 'A');
+      // 18 px beside the pipe, on empty canvas: inside the 44 px target.
+      const horizontal = Math.abs(a.y - t1.y) < Math.abs(a.x - t1.x);
+      tap(t1.x + (horizontal ? 0 : 18), t1.y + (horizontal ? 18 : 0));
+      expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T1' });
+
+      // On the node, even when the event target is the hit area of a pipe that ends there.
+      tap(a.x + 3, a.y + 3, element('pipe', 'T1').querySelector('.netview__hit')!);
+      expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'A' });
+
+      // Far from everything: clears.
+      tap(790, 470);
+      expect(useAppStore.getState().selection).toBeNull();
+    });
+
+    it('treats a press that moves less than 8 px as a tap and more as a pan', () => {
+      openStage('stage3');
+      render(<NetworkView />);
+      const svg = svgOf();
+      const t1 = centre('pipe', 'T1');
+
+      fireEvent.pointerDown(svg, touch(1, t1.x, t1.y));
+      fireEvent.pointerMove(svg, touch(1, t1.x + 5, t1.y + 4));
+      fireEvent.pointerUp(svg, touch(1, t1.x + 5, t1.y + 4));
+      fireEvent.click(svg, { clientX: t1.x + 5, clientY: t1.y + 4 });
+      expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T1' });
+      expect(centre('pipe', 'T1')).toEqual(t1);
+
+      useAppStore.getState().select(null);
+      fireEvent.pointerDown(svg, touch(1, t1.x, t1.y));
+      fireEvent.pointerMove(svg, touch(1, t1.x + 9, t1.y));
+      fireEvent.pointerUp(svg, touch(1, t1.x + 9, t1.y));
+      fireEvent.click(svg, { clientX: t1.x + 9, clientY: t1.y });
+      expect(useAppStore.getState().selection).toBeNull();
+      expect(centre('pipe', 'T1').x).toBeCloseTo(t1.x + 9, 6);
+    });
+
+    it('zooms about the midpoint of a pinch and does not select when it ends', () => {
+      openStage('stage3');
+      render(<NetworkView />);
+      const svg = svgOf();
+      const a = centre('node', 'A');
+      const b = centre('node', 'B');
+      const gap = Math.hypot(b.x - a.x, b.y - a.y);
+
+      // One finger on each node; the finger on B moves away along the line to twice the gap.
+      fireEvent.pointerDown(svg, touch(1, a.x, a.y));
+      fireEvent.pointerDown(svg, touch(2, b.x, b.y));
+      const far = { x: a.x + 2 * (b.x - a.x), y: a.y + 2 * (b.y - a.y) };
+      fireEvent.pointerMove(svg, touch(2, far.x, far.y));
+
+      // The nodes stay under the fingers: twice as far apart, A where it was.
+      const a2 = centre('node', 'A');
+      const b2 = centre('node', 'B');
+      expect(Math.hypot(b2.x - a2.x, b2.y - a2.y)).toBeCloseTo(2 * gap, 4);
+      expect(a2.x).toBeCloseTo(a.x, 4);
+      expect(a2.y).toBeCloseTo(a.y, 4);
+      expect(b2.x).toBeCloseTo(far.x, 4);
+
+      fireEvent.pointerUp(svg, touch(2, far.x, far.y));
+      fireEvent.pointerUp(svg, touch(1, a.x, a.y));
+      fireEvent.click(svg, { clientX: a.x, clientY: a.y });
+      expect(useAppStore.getState().selection).toBeNull();
+    });
+
+    it('does not select when two fingers touch and lift without moving', () => {
+      openStage('stage3');
+      render(<NetworkView />);
+      const svg = svgOf();
+      const a = centre('node', 'A');
+      fireEvent.pointerDown(svg, touch(1, a.x, a.y));
+      fireEvent.pointerDown(svg, touch(2, a.x + 60, a.y));
+      fireEvent.pointerUp(svg, touch(2, a.x + 60, a.y));
+      fireEvent.pointerUp(svg, touch(1, a.x, a.y));
+      fireEvent.click(svg, { clientX: a.x, clientY: a.y });
+      expect(useAppStore.getState().selection).toBeNull();
+    });
+
+    it('zooms in about the place of a double tap and keeps the selection of the first', () => {
+      openStage('stage3');
+      render(<NetworkView />);
+      const a = centre('node', 'A');
+      const b = centre('node', 'B');
+      const gap = Math.hypot(b.x - a.x, b.y - a.y);
+
+      tap(a.x, a.y, svgOf(), 1000);
+      expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'A' });
+      tap(a.x, a.y, svgOf(), 1200);
+
+      const a2 = centre('node', 'A');
+      const b2 = centre('node', 'B');
+      expect(Math.hypot(b2.x - a2.x, b2.y - a2.y)).toBeCloseTo(1.8 * gap, 4);
+      expect(a2.x).toBeCloseTo(a.x, 4);
+      expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'A' });
+
+      // A third tap much later is a plain tap again.
+      tap(790, 470, svgOf(), 5000);
+      expect(useAppStore.getState().selection).toBeNull();
+      expect(centre('node', 'A').x).toBeCloseTo(a2.x, 6);
+    });
+
+    it('puts the legend behind a button over the drawing on a phone', async () => {
+      const user = userEvent.setup();
+      restoreMedia = mockMatchMedia([PHONE_QUERY]);
+      openStage('stage3');
+      render(<NetworkView />);
+      expect(screen.queryByRole('list', { name: 'Legenda' })).not.toBeInTheDocument();
+      const button = screen.getByRole('button', { name: 'Legenda' });
+      expect(button.closest('.netview__canvas')).not.toBeNull();
+      await user.click(button);
+      expect(screen.getByRole('list', { name: 'Legenda' })).toHaveTextContent('Pressão adequada');
+    });
   });
 
   it('switches to English', () => {

@@ -1,6 +1,7 @@
 import { useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { DnPicker } from './DnPicker';
+import { usePhone } from './useMediaQuery';
 import { useNum } from './format';
 import { networkStrings as text } from './strings';
 
@@ -58,20 +59,25 @@ export function ZoomControls({ onZoom, onFit }: ZoomControlsProps) {
 export function SelectionBar() {
   const tr = useTr();
   const num = useNum();
+  const phone = usePhone();
   const pipe = useAppStore((s) =>
     s.selection?.type === 'pipe'
       ? s.scenario?.pipes.find((p) => p.id === s.selection?.id)
       : undefined,
   );
   return (
-    <div className="netview__bar">
+    <div className={phone ? 'netview__bar netview__bar--phone' : 'netview__bar'}>
       {pipe ? (
         <>
           <span className="netview__bar-title">
             {tr(text.pipe(pipe.id))}
-            <span className="muted num"> · {num(pipe.length, 0)} m · DN</span>
+            <span className="muted num">
+              {' '}
+              · {num(pipe.length, 0)} m{!phone && ' · DN'}
+            </span>
+            {phone && <span className="muted netview__bar-unit">{tr(text.dnPriceUnit)}</span>}
           </span>
-          <DnPicker pipeId={pipe.id} compact />
+          <DnPicker pipeId={pipe.id} compact prices={phone} />
         </>
       ) : (
         <span className="muted">{tr(text.selectHint)}</span>

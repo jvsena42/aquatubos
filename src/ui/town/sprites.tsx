@@ -164,10 +164,17 @@ export function Building({ building }: { building: TownBuilding }) {
   }
 }
 
-export function Tree({ tree }: { tree: TownTree }) {
+/** A tree; `small` ones are left out when the town is drawn far away (see detail.ts). */
+export function Tree({ tree, small = false }: { tree: TownTree; small?: boolean }) {
   return (
     <circle
-      className={tree.variant === 1 ? 'town__tree town__tree--alt' : 'town__tree'}
+      className={[
+        'town__tree',
+        tree.variant === 1 && 'town__tree--alt',
+        small && 'town__tree--small',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       cx={tree.x}
       cy={tree.y}
       r={tree.radius}

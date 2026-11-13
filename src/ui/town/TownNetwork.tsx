@@ -8,6 +8,7 @@ import type { Selection } from '../../state/store';
 import { describePipe, describePump, describeReservoir, NO_FLOW } from '../network/describe';
 import { useNum } from '../network/format';
 import { strokeForDn } from '../network/geometry';
+import { MOUSE_TARGET } from '../network/hit';
 import type { LimitStatus } from '../network/status';
 import { HEAD_UNIT, networkStrings, pressureStatusLabels } from '../network/strings';
 import { House, PumpSprite, ReservoirSprite, shadowPath } from './sprites';
@@ -42,7 +43,7 @@ const ClusterHouses = memo(function ClusterHouses({ cluster }: { cluster: TownCl
   return (
     <>
       <path
-        className="town__shadow"
+        className="town__shadow town__shadow--houses"
         d={cluster.houses.map((house) => shadowPath(house)).join('')}
       />
       {cluster.houses.map((house, index) => (
@@ -66,6 +67,8 @@ interface TownNetworkProps {
   order: FillOrder;
   /** True while the success sequence plays. */
   celebrating: boolean;
+  /** Smallest size on screen (px) of the invisible hit areas: 44 for a finger. */
+  hitTarget?: number;
 }
 
 /**
@@ -84,6 +87,7 @@ export const TownNetwork = memo(function TownNetwork({
   scale,
   order,
   celebrating,
+  hitTarget = MOUSE_TARGET,
 }: TownNetworkProps) {
   const tr = useTr();
   const num = useNum();
@@ -160,7 +164,7 @@ export const TownNetwork = memo(function TownNetwork({
             <line
               className="town__hit"
               {...line}
-              strokeWidth={Math.max(street.width + 4, 26 * px)}
+              strokeWidth={Math.max(street.width + 4, hitTarget * px)}
             />
             <line className="town__glow" {...line} strokeWidth={street.width + 3} />
             <line className="town__pipe-casing" {...line} strokeWidth={width + 2.5 * px} />
@@ -217,7 +221,13 @@ export const TownNetwork = memo(function TownNetwork({
               `${describePump({ tr, num }, pump, result?.pumps[pump.id], stale)}, ${tr(text.pumpHouse)}`,
             )}
           >
-            <line className="town__hit" {...line} strokeWidth={Math.max(26, 26 * px)} />
+            <line className="town__hit" {...line} strokeWidth={Math.max(26, hitTarget * px)} />
+            <circle
+              className="town__hit"
+              cx={house.x}
+              cy={house.y}
+              r={Math.max(house.w / 2, (hitTarget / 2) * px)}
+            />
             <line className="town__pump-line" {...line} strokeWidth={3 * px} />
             <circle className="town__ring" cx={house.x} cy={house.y} r={house.w / 2 + 10} />
             <PumpSprite pump={house} />
@@ -268,7 +278,12 @@ export const TownNetwork = memo(function TownNetwork({
             ) : (
               <circle className="town__ring" cx={node.x} cy={node.y} r={30} />
             )}
-            <circle className="town__plaza-hit" cx={node.x} cy={node.y} r={Math.max(23, 14 * px)} />
+            <circle
+              className="town__plaza-hit"
+              cx={node.x}
+              cy={node.y}
+              r={Math.max(23, (hitTarget / 2) * px)}
+            />
             <circle
               className="town__node-dot"
               cx={node.x}
@@ -299,7 +314,7 @@ export const TownNetwork = memo(function TownNetwork({
               className="town__hit"
               cx={site.x}
               cy={site.y}
-              r={Math.max(site.radius, 18 * px)}
+              r={Math.max(site.radius, (hitTarget / 2) * px)}
             />
             <circle className="town__ring" cx={site.x} cy={site.y} r={site.radius + 5} />
             <ReservoirSprite reservoir={site} />

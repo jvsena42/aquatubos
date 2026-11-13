@@ -8,7 +8,10 @@ import type { Diameters, Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { makeIssue } from '../../test/fixtures';
 import { resetStore } from '../../test/store';
+import { distanceToSegment } from '../network/hit';
+import { mockMatchMedia } from '../network/mockMatchMedia';
 import { NetworkView } from '../network/NetworkView';
+import { COARSE_QUERY, PHONE_QUERY } from '../network/useMediaQuery';
 import { TownView } from './TownView';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
@@ -447,6 +450,186 @@ describe('TownView', () => {
       expect(moved.k).toBeCloseTo(parse(fitted).k * 1.5, 3);
       expect(moved.x + node.x * moved.k).toBeCloseTo(400, 0);
       expect(moved.y + node.y * moved.k).toBeCloseTo(240, 0);
+    });
+  });
+
+  describe('on a phone', () => {
+    let restore: (() => void)[] = [];
+    const parse = (transform: string) => {
+      const match = /translate\(([-\d.]+) ([-\d.]+)\) scale\(([\d.]+)\)/.exec(transform)!;
+      return { x: Number(match[1]), y: Number(match[2]), k: Number(match[3]) };
+    };
+    /** Plan (m) to screen (px) with the transform of the world group. */
+    const project = (p: { x: number; y: number }) => {
+      const t = parse(worldTransform());
+      return { x: t.x + p.x * t.k, y: t.y + p.y * t.k };
+    };
+    /** A 360 × 400 px canvas at the top left of the page. */
+    const layOut = () => {
+      const width = Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth');
+      const height = Object.getOwnPropertyDescriptor(Element.prototype, 'clientHeight');
+      Object.defineProperty(Element.prototype, 'clientWidth', {
+        configurable: true,
+        get: () => 360,
+      });
+      Object.defineProperty(Element.prototype, 'clientHeight', {
+        configurable: true,
+        get: () => 400,
+      });
+      const rect = SVGElement.prototype.getBoundingClientRect;
+      SVGElement.prototype.getBoundingClientRect = function () {
+        return this.classList.contains('town__svg')
+          ? DOMRect.fromRect({ x: 0, y: 0, width: 360, height: 400 })
+          : rect.call(this);
+      };
+      restore.push(() => {
+        Object.defineProperty(Element.prototype, 'clientWidth', width!);
+        Object.defineProperty(Element.prototype, 'clientHeight', height!);
+        SVGElement.prototype.getBoundingClientRect = rect;
+      });
+    };
+    const tap = (x: number, y: number, target: Element) => {
+      const init = { pointerId: 1, pointerType: 'touch', clientX: x, clientY: y, button: 0 };
+      fireEvent.pointerDown(target, init);
+      fireEvent.pointerUp(target, init);
+      fireEvent.click(target, { clientX: x, clientY: y });
+    };
+
+    beforeEach(() => {
+      restore = [mockMatchMedia([PHONE_QUERY, COARSE_QUERY])];
+    });
+    afterEach(() => {
+      for (const undo of [...restore].reverse()) undo();
+    });
+
+    it('gives pipes, nodes, the reservoir and the pump hit areas of 44 px on screen', () => {
+      layOut();
+      openStage('stage5');
+      render(<TownView />);
+      const { k } = parse(worldTransform());
+      const onScreen = (el: Element, attribute: string) => Number(el.getAttribute(attribute)) * k;
+      for (const pipe of document.querySelectorAll('[data-element="pipe"] line.town__hit')) {
+        expect(onScreen(pipe, 'stroke-width')).toBeGreaterThanOrEqual(44 - 1e-6);
+      }
+      for (const hit of document.querySelectorAll(
+        '.town__plaza-hit, [data-element="reservoir"] .town__hit, [data-element="pump"] circle.town__hit',
+      )) {
+        expect(2 * onScreen(hit, 'r')).toBeGreaterThanOrEqual(44 - 1e-6);
+      }
+      expect(document.querySelectorAll('[data-element="pump"] circle.town__hit')).toHaveLength(1);
+    });
+
+    it('keeps the smaller hit areas for a mouse', () => {
+      restore.push(mockMatchMedia([]));
+      layOut();
+      openStage('stage1');
+      render(<TownView />);
+      const { k } = parse(worldTransform());
+      const hit = element('pipe', 'T1').querySelector('line.town__hit')!;
+      expect(Number(hit.getAttribute('stroke-width')) * k).toBeLessThan(44);
+    });
+
+    it('selects the street nearest to the tap although houses lie under the finger', () => {
+      layOut();
+      const { scenario } = openStage('stage4');
+      render(<TownView />);
+      const svg = document.querySelector('.town__svg')!;
+      const at = (id: string) => project(scenario.nodes.find((n) => n.id === id)!);
+      const pipe = scenario.pipes.find((p) => p.id === 'T2')!;
+      const a = at(pipe.from);
+      const b = at(pipe.to);
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const length = Math.hypot(b.x - a.x, b.y - a.y);
+      const normal = { x: -(b.y - a.y) / length, y: (b.x - a.x) / length };
+
+      // 5 px beside the street, with the event on a house of the next node (painted on top).
+      tap(mid.x + 5 * normal.x, mid.y + 5 * normal.y, document.querySelector('.town__house')!);
+      expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T2' });
+
+      // On the junction: the node, even with the event on the hit area of the street.
+      tap(a.x + 2, a.y + 2, element('pipe', 'T2').querySelector('.town__hit')!);
+      expect(useAppStore.getState().selection).toEqual({ type: 'node', id: pipe.from });
+
+      // On the reservoir.
+      const r1 = project(scenario.reservoirs[0]!);
+      tap(r1.x, r1.y, svg);
+      expect(useAppStore.getState().selection).toEqual({
+        type: 'reservoir',
+        id: scenario.reservoirs[0]!.id,
+      });
+
+      // In a corner of the canvas, far from the town: clears.
+      tap(4, 396, svg);
+      expect(useAppStore.getState().selection).toBeNull();
+    });
+
+    it('selects a node by a tap on one of its houses away from the streets', () => {
+      layOut();
+      const { scenario } = openStage('stage1');
+      render(<TownView />);
+      const svg = document.querySelector('.town__svg')!;
+      const { k } = parse(worldTransform());
+      // The house farthest (on screen) from every street.
+      const segments = scenario.pipes.map((p) => {
+        const end = (id: string) =>
+          project([...scenario.nodes, ...scenario.reservoirs].find((n) => n.id === id)!);
+        return { a: end(p.from), b: end(p.to) };
+      });
+      let best: { node: string; x: number; y: number; distance: number } | null = null;
+      for (const cluster of document.querySelectorAll('.town__cluster')) {
+        for (const house of cluster.querySelectorAll('.town__house')) {
+          const match = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(house.getAttribute('transform')!)!;
+          const p = project({ x: Number(match[1]), y: Number(match[2]) });
+          const distance = Math.min(...segments.map((s) => distanceToSegment(p, s.a, s.b)));
+          if (!best || distance > best.distance) {
+            best = { node: cluster.getAttribute('data-id')!, ...p, distance };
+          }
+        }
+      }
+      expect(best!.distance).toBeGreaterThan(8 + 30 * k);
+      tap(best!.x, best!.y, svg);
+      expect(useAppStore.getState().selection).toEqual({ type: 'node', id: best!.node });
+    });
+
+    it('draws less when the town is far away and everything from close', async () => {
+      const user = userEvent.setup();
+      layOut();
+      openStage('stage4');
+      render(<TownView />);
+      // Fitted in 360 px the town is at about 0.3 px per metre.
+      expect(parse(worldTransform()).k).toBeLessThan(0.5);
+      expect(root()).toHaveClass('town--detail-far');
+      expect(document.querySelectorAll('.town__tree--small').length).toBeGreaterThan(0);
+      expect(
+        document.querySelectorAll('.town__tree:not(.town__tree--small)').length,
+      ).toBeGreaterThan(0);
+
+      const zoomIn = screen.getByRole('button', { name: 'Aproximar' });
+      await user.click(zoomIn);
+      await user.click(zoomIn);
+      expect(root()).toHaveClass('town--detail-mid');
+      expect(root()).not.toHaveClass('town--detail-far');
+      for (let i = 0; i < 3; i += 1) await user.click(zoomIn);
+      expect(root()).toHaveClass('town--detail-near');
+
+      await user.click(screen.getByRole('button', { name: 'Enquadrar a rede' }));
+      expect(root()).toHaveClass('town--detail-far');
+    });
+
+    it('opens the legend from a button over the map and shows the picker with prices', async () => {
+      const user = userEvent.setup();
+      solved('stage1');
+      render(<TownView />);
+      expect(screen.queryByText('Casas atendidas')).not.toBeInTheDocument();
+      const button = screen.getByRole('button', { name: 'Legenda' });
+      expect(button.closest('.town__canvas')).not.toBeNull();
+      await user.click(button);
+      expect(screen.getByRole('list', { name: 'Legenda' })).toHaveTextContent('Casas atendidas');
+
+      await user.click(element('pipe', 'T2').querySelector('.town__hit')!);
+      const picker = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
+      expect(picker.closest('.dn-picker')).toHaveClass('dn-picker--prices');
+      expect(within(picker).getAllByRole('button')).toHaveLength(7);
     });
   });
 

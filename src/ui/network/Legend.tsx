@@ -1,5 +1,5 @@
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { CheckSettings } from '../../engine/types';
 import { useTr } from '../../i18n';
 import { useNum } from './format';
@@ -14,6 +14,11 @@ interface LegendProps {
   nodeSwatch?: (status: LimitStatus) => ReactNode;
   /** Replaces the texts of the three pressure entries. */
   nodeText?: Partial<Record<'ok' | 'low' | 'high', string>>;
+  /**
+   * Phones: the entries stay behind a "Legenda" button and open over the drawing, so that the
+   * drawing keeps the height. Otherwise the list is shown inline.
+   */
+  collapsed?: boolean;
 }
 
 function NodeSwatch({ status }: { status: LimitStatus }) {
@@ -44,8 +49,35 @@ function PipeSwatch({ status }: { status: LimitStatus }) {
 }
 
 /** Explains the colours and marks of the drawing. Entries follow the checks of the stage. */
-export function Legend({ checks, evaluated, nodeSwatch, nodeText }: LegendProps) {
+export function Legend({
+  checks,
+  evaluated,
+  nodeSwatch,
+  nodeText,
+  collapsed = false,
+}: LegendProps) {
   const tr = useTr();
+  const listId = useId();
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  // Open over the drawing: a tap anywhere else or Escape closes it.
+  useEffect(() => {
+    if (!collapsed || !open) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [collapsed, open]);
+
   const num = useNum();
   const limits = NBR_CHECK_LIMITS;
   const minPressure = evaluated && checks.minDynamicPressure !== 'off';
@@ -56,8 +88,8 @@ export function Legend({ checks, evaluated, nodeSwatch, nodeText }: LegendProps)
   const swatch = (status: LimitStatus) =>
     nodeSwatch ? nodeSwatch(status) : <NodeSwatch status={status} />;
 
-  return (
-    <ul className="netview__legend" aria-label={tr(text.legend)}>
+  const list = (
+    <ul id={listId} className="netview__legend" aria-label={tr(text.legend)}>
       {(minPressure || maxStatic) && (
         <li>
           {swatch('ok')}
@@ -125,5 +157,24 @@ export function Legend({ checks, evaluated, nodeSwatch, nodeText }: LegendProps)
         {tr(text.legendWidth)}
       </li>
     </ul>
+  );
+
+  if (!collapsed) return list;
+  return (
+    <div className="netview__legend-box" ref={boxRef}>
+      {open && list}
+      <button
+        type="button"
+        className="btn btn--sm netview__legend-toggle"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <svg className="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 7h3M5 12h3M5 17h3M12 7h7M12 12h7M12 17h7" />
+        </svg>
+        {tr(text.legend)}
+      </button>
+    </div>
   );
 }

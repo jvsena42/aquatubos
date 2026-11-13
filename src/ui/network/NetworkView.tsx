@@ -18,10 +18,12 @@ import {
   type Point,
   type Side,
 } from './geometry';
+import { HIT_PRIORITY, NODE_CLAIM, resolveHit, trimSegment, type HitTarget } from './hit';
 import { placeLabels, textWidth, type LabelRequest, type Rect, type ThickSegment } from './labels';
 import { Legend } from './Legend';
 import { nodeStatuses, pipeStatuses } from './status';
 import { HEAD_UNIT, networkStrings as text, pressureStatusLabels } from './strings';
+import { usePhone } from './useMediaQuery';
 import { usePanZoom } from './usePanZoom';
 import { SelectionBar, ZoomControls } from './ViewControls';
 import './network.css';
@@ -113,7 +115,8 @@ export function NetworkView() {
   const select = useAppStore((s) => s.select);
 
   const helpId = useId();
-  const { canvasRef, svgRef, size, view, zoomBy, reset, consumeDrag, handlers } = usePanZoom();
+  const phone = usePhone();
+  const { canvasRef, svgRef, size, view, zoomBy, reset, consumeTap, handlers } = usePanZoom();
 
   const world = useMemo(() => (scenario ? worldPositions(scenario) : {}), [scenario]);
   const nearest = useMemo(() => nearestDistances(world), [world]);
@@ -121,7 +124,8 @@ export function NetworkView() {
     () =>
       fitToSize(Object.values(world), size, {
         x: size.width < 480 ? 36 : 72,
-        y: size.width < 480 ? 56 : 64,
+        // A short canvas (a phone lying down) cannot spare the margin that clears the controls.
+        y: size.height < 260 ? 26 : size.width < 480 ? 56 : 64,
       }),
     [world, size],
   );
@@ -156,8 +160,51 @@ export function NetworkView() {
     }
   };
 
+  /** What every element draws, for the tap resolution (see hit.ts). */
+  const hitTargets = (): HitTarget<NonNullable<Selection>>[] => [
+    ...scenario.pipes.map((pipe) => ({
+      data: { type: 'pipe' as const, id: pipe.id },
+      priority: HIT_PRIORITY.pipe,
+      shapes: [
+        {
+          kind: 'capsule' as const,
+          ...trimSegment(at(pipe.from), at(pipe.to), NODE_CLAIM),
+          half: strokeForDn(diameters[pipe.id] ?? pipe.initialDN) / 2,
+        },
+      ],
+    })),
+    ...scenario.pumps.map((pump) => {
+      const a = at(pump.from);
+      const b = at(pump.to);
+      return {
+        data: { type: 'pump' as const, id: pump.id },
+        priority: HIT_PRIORITY.pump,
+        shapes: [
+          { kind: 'disc' as const, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, r: 13 },
+          { kind: 'capsule' as const, ...trimSegment(a, b, NODE_CLAIM), half: 2 },
+        ],
+      };
+    }),
+    ...scenario.nodes.map((node) => ({
+      data: { type: 'node' as const, id: node.id },
+      priority: HIT_PRIORITY.node,
+      shapes: [{ kind: 'disc' as const, ...at(node.id), r: NODE_RADIUS + 2 }],
+    })),
+    ...scenario.reservoirs.map((reservoir) => ({
+      data: { type: 'reservoir' as const, id: reservoir.id },
+      priority: HIT_PRIORITY.reservoir,
+      shapes: [{ kind: 'disc' as const, ...at(reservoir.id), r: 18 }],
+    })),
+  ];
+
   const onClick = (event: MouseEvent<SVGSVGElement>) => {
-    if (consumeDrag()) return;
+    const tap = consumeTap(event);
+    if (!tap) return;
+    if (tap.point) {
+      select(resolveHit(tap.point, hitTargets(), tap.reach));
+      return;
+    }
+    // Without layout (tests) there is no geometry to measure: the element under the pointer.
     const element = (event.target as Element).closest('[data-element]');
     const type = element?.getAttribute('data-element') as ElementType | undefined;
     const id = element?.getAttribute('data-id');
@@ -333,6 +380,7 @@ export function NetworkView() {
                 onKeyDown={onKeyDown('pump', pump.id)}
               >
                 <line className="netview__hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+                <circle className="netview__hit" cx={mid.x} cy={mid.y} r={22} />
                 <line className="netview__pump-line" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
                 <circle className="netview__ring" cx={mid.x} cy={mid.y} r={17} />
                 <circle className="netview__pump-body" cx={mid.x} cy={mid.y} r={12} />
@@ -515,7 +563,7 @@ export function NetworkView() {
                 aria-pressed={selected}
                 onKeyDown={onKeyDown('node', node.id)}
               >
-                <circle className="netview__hit" cx={p.x} cy={p.y} r={20} />
+                <circle className="netview__hit" cx={p.x} cy={p.y} r={22} />
                 <circle className="netview__ring" cx={p.x} cy={p.y} r={radius + 5} />
                 <circle className="netview__node-dot" cx={p.x} cy={p.y} r={radius} />
                 {failing && <StatusGlyph at={p} status={status} />}
@@ -539,11 +587,12 @@ export function NetworkView() {
         )}
 
         <ZoomControls onZoom={zoomBy} onFit={reset} />
+        {phone && <Legend checks={scenario.checks} evaluated={showResults} collapsed />}
       </div>
 
       <SelectionBar />
 
-      <Legend checks={scenario.checks} evaluated={showResults} />
+      {!phone && <Legend checks={scenario.checks} evaluated={showResults} />}
     </div>
   );
 }
