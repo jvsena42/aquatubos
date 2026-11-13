@@ -1,0 +1,633 @@
+.town {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 0;
+}
+
+.town__canvas {
+  position: relative;
+  flex: 1;
+  min-height: 16rem;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--town-band, var(--color-map-ground));
+}
+
+.town__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.town__svg:active {
+  cursor: grabbing;
+}
+
+.town__svg [data-element],
+.town__hull-hits polygon {
+  cursor: pointer;
+  outline: none;
+}
+
+/* Scenery. Outlines are one screen pixel at any zoom. */
+.town__scenery {
+  pointer-events: none;
+}
+
+.town__band {
+  fill: var(--town-band);
+  stroke: none;
+}
+
+.town__band--1,
+.town__canvas--base-1 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 16%, var(--color-map-ground));
+}
+
+.town__band--2,
+.town__canvas--base-2 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 30%, var(--color-map-ground));
+}
+
+.town__band--3,
+.town__canvas--base-3 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 44%, var(--color-map-ground));
+}
+
+.town__band--4,
+.town__canvas--base-4 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 58%, var(--color-map-ground));
+}
+
+.town__band--5,
+.town__canvas--base-5 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 72%, var(--color-map-ground));
+}
+
+.town__band--6,
+.town__canvas--base-6 {
+  --town-band: color-mix(in srgb, var(--color-map-contour) 86%, var(--color-map-ground));
+}
+
+.town__grass {
+  fill: var(--color-map-grass);
+  stroke: var(--color-map-tree);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__path {
+  fill: none;
+  stroke: var(--color-map-building);
+  stroke-width: 7px;
+}
+
+.town__paving {
+  fill: var(--color-map-building);
+  stroke: var(--color-map-street-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__paving-ring {
+  fill: none;
+  stroke: var(--color-map-street-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__pond {
+  fill: var(--color-map-water);
+  stroke: var(--color-water);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__street-edges {
+  fill: var(--color-map-street-edge);
+  stroke: var(--color-map-street-edge);
+  stroke-linecap: round;
+}
+
+.town__street-fills {
+  fill: var(--color-map-street);
+  stroke: var(--color-map-street);
+  stroke-linecap: round;
+}
+
+.town__street-edges circle,
+.town__street-fills circle {
+  stroke: none;
+}
+
+.town__shadow {
+  fill: var(--color-map-shadow);
+  stroke: none;
+  pointer-events: none;
+}
+
+.town__building-body {
+  fill: var(--color-map-building);
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__building--alt .town__building-body {
+  fill: color-mix(in srgb, var(--color-map-street) 55%, var(--color-map-building));
+}
+
+.town__building-roof {
+  fill: none;
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.45;
+}
+
+.town__civic {
+  fill: var(--color-map-building);
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__civic-mark {
+  fill: var(--color-map-roof-alt);
+}
+
+.town__awning {
+  fill: none;
+  stroke: var(--color-map-roof);
+}
+
+.town__tree {
+  fill: var(--color-map-tree);
+}
+
+.town__tree--alt {
+  fill: color-mix(in srgb, var(--color-map-grass) 45%, var(--color-map-tree));
+}
+
+.town__tree-light {
+  fill: var(--color-map-grass);
+  opacity: 0.4;
+}
+
+/* Houses: roof colour by variant, tinted by the service status of their node. */
+.town__house {
+  --town-roof: var(--color-map-roof);
+}
+
+.town__house--alt {
+  --town-roof: var(--color-map-roof-alt);
+}
+
+.town__house--extra {
+  --town-roof: color-mix(in srgb, var(--color-map-building) 55%, var(--color-map-roof));
+}
+
+.town__roof {
+  fill: var(--town-roof);
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__roof-shade {
+  fill: var(--color-map-shadow);
+}
+
+.town__roof-lines {
+  fill: none;
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.55;
+}
+
+.town__window {
+  fill: var(--color-map-window);
+  stroke: var(--color-map-building-edge);
+  stroke-width: 0.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__cluster[data-status='ok'] .town__window {
+  fill: var(--color-map-window-lit);
+}
+
+.town__cluster[data-status='low'] .town__roof {
+  fill: color-mix(in srgb, var(--color-pressure-low) 62%, var(--town-roof));
+}
+
+.town__cluster[data-status='high'] .town__roof {
+  fill: color-mix(in srgb, var(--color-pressure-high) 62%, var(--town-roof));
+}
+
+/* Hit areas: wider than what is drawn, invisible. */
+.town__hit,
+.town__plaza-hit,
+.town__hull-hits polygon {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+
+line.town__hit {
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.town__hull-hits polygon {
+  stroke-width: 12px;
+  stroke-linejoin: round;
+}
+
+/* Pipes: colour by velocity class (netview__pipe--status sets --netview-pipe). */
+.town__pipe {
+  --netview-pipe: var(--color-pipe);
+}
+
+.town__glow {
+  stroke: transparent;
+  stroke-linecap: round;
+}
+
+.town__el--selected .town__glow {
+  stroke: var(--color-primary);
+  opacity: 0.38;
+}
+
+.town__svg [data-element]:focus-visible .town__glow {
+  stroke: var(--color-focus);
+  opacity: 0.75;
+}
+
+.town__pipe-casing {
+  stroke: var(--color-map-street);
+  stroke-linecap: round;
+}
+
+.town__pipe-line {
+  stroke: var(--netview-pipe);
+  stroke-linecap: round;
+}
+
+.town__flow {
+  stroke: var(--color-map-street);
+  stroke-linecap: round;
+  opacity: 0.95;
+  pointer-events: none;
+  animation: town-flow 0.6s linear infinite;
+}
+
+@keyframes town-flow {
+  from {
+    stroke-dashoffset: var(--town-dash);
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.town__arrow {
+  fill: var(--netview-pipe, var(--color-pipe));
+  stroke: var(--color-map-street);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+.town__pump-line {
+  stroke: var(--color-pipe);
+  stroke-linecap: round;
+}
+
+/* Nodes and their houses. */
+.town__hull {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 14px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.town__el--selected .town__hull {
+  fill: var(--color-primary);
+  fill-opacity: 0.14;
+  stroke: var(--color-primary);
+  stroke-opacity: 0.3;
+}
+
+.town__svg [data-element]:focus-visible .town__hull {
+  fill: var(--color-focus);
+  fill-opacity: 0.12;
+  stroke: var(--color-focus);
+  stroke-opacity: 0.65;
+}
+
+.town__node-dot {
+  fill: var(--color-surface);
+  stroke: var(--color-pipe);
+  pointer-events: none;
+}
+
+.town__ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.town__el--selected .town__ring {
+  fill: var(--color-primary);
+  fill-opacity: 0.14;
+  stroke: var(--color-primary);
+}
+
+.town__svg [data-element]:focus-visible .town__ring {
+  stroke: var(--color-focus);
+}
+
+/* Reservoir and pump house. */
+.town__tank {
+  fill: var(--color-map-building);
+  stroke: var(--color-reservoir);
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__tank-water {
+  fill: var(--color-map-water);
+  stroke: var(--color-water);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__tank-waves {
+  fill: none;
+  stroke: var(--color-water);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__tank-cap {
+  fill: var(--color-reservoir);
+}
+
+.town__tower-legs {
+  fill: none;
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__pump-body {
+  fill: var(--color-surface);
+  stroke: var(--color-reservoir);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+}
+
+.town__pump-mark {
+  fill: var(--color-reservoir);
+}
+
+/* Screen-space layer: arrows, status chips and labels. */
+.town__overlay {
+  pointer-events: none;
+}
+
+.town__pill-box {
+  fill: var(--color-surface);
+  fill-opacity: 0.94;
+  stroke: var(--color-border-strong);
+  stroke-width: 1px;
+}
+
+.town__pill--low .town__pill-box.town__pill-box,
+.town__pill--node.town__pill--low .town__pill-box {
+  stroke: var(--color-pressure-low);
+  stroke-width: 1.5px;
+}
+
+.town__pill--node.town__pill--high .town__pill-box {
+  stroke: var(--color-pressure-high);
+  stroke-width: 1.5px;
+}
+
+.town__pill--pipe.town__pill--low .town__pill-box,
+.town__pill--pipe.town__pill--high .town__pill-box {
+  stroke: var(--color-border-strong);
+  stroke-width: 1px;
+}
+
+.town__pill--selected .town__pill-box {
+  stroke: var(--color-primary);
+  stroke-width: 2px;
+}
+
+.town__pill-text {
+  fill: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.town__pill-id {
+  font-weight: var(--font-weight-semibold);
+}
+
+.town__pill--selected .town__pill-id {
+  fill: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+}
+
+.town__pill--node.town__pill--low .town__pill-rest {
+  fill: var(--color-pressure-low);
+  font-weight: var(--font-weight-semibold);
+}
+
+.town__pill--node.town__pill--high .town__pill-rest {
+  fill: var(--color-pressure-high);
+  font-weight: var(--font-weight-semibold);
+}
+
+.town__pill--pipe.town__pill--high .town__pill-rest {
+  fill: var(--color-velocity-high);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Status badges: shape, glyph and colour. */
+.town__badge--ok {
+  --town-badge: var(--color-pressure-ok);
+}
+
+.town__badge--low {
+  --town-badge: var(--color-pressure-low);
+}
+
+.town__badge--high {
+  --town-badge: var(--color-pressure-high);
+}
+
+.town__badge-shape {
+  fill: var(--town-badge);
+  stroke: var(--color-surface);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+.town__badge-fill {
+  fill: var(--color-surface);
+}
+
+.town__badge-stroke,
+.town__badge-slash {
+  fill: none;
+  stroke: var(--color-surface);
+  stroke-width: 1.7px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.town__badge-stroke--heavy {
+  stroke-width: 2.6px;
+  stroke-linecap: butt;
+}
+
+/* Results of a previous calculation: kept, but dimmed and without motion. */
+.town--stale .town__pipe-line,
+.town--stale .town__arrow,
+.town--stale .town__badge,
+.town--stale .town__pill-rest {
+  opacity: 0.45;
+}
+
+.town--stale .town__flow {
+  display: none;
+}
+
+.town--stale .town__cluster[data-status='ok'] .town__window {
+  fill: var(--color-map-window);
+}
+
+.town--stale .town__cluster[data-status='low'] .town__roof {
+  fill: color-mix(in srgb, var(--color-pressure-low) 22%, var(--town-roof));
+}
+
+.town--stale .town__cluster[data-status='high'] .town__roof {
+  fill: color-mix(in srgb, var(--color-pressure-high) 22%, var(--town-roof));
+}
+
+/* Failure: the clusters without service get a ring; it pulses when motion is allowed. */
+.town[data-feedback='failure'] .town__cluster[data-status='low'] .town__hull {
+  stroke: var(--color-pressure-low);
+  stroke-opacity: 0.4;
+}
+
+.town[data-feedback='failure'] .town__cluster[data-status='high'] .town__hull {
+  stroke: var(--color-pressure-high);
+  stroke-opacity: 0.4;
+}
+
+/* Success: water fills the pipes from the source, then the houses light up in turn. */
+.town__fill {
+  fill: none;
+  stroke: var(--color-water);
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  pointer-events: none;
+}
+
+@keyframes town-fill {
+  from {
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes town-fill-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes town-window-on {
+  from {
+    fill: var(--color-map-window);
+  }
+
+  to {
+    fill: var(--color-map-window-lit);
+  }
+}
+
+@keyframes town-chip-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes town-pulse {
+  from {
+    stroke-opacity: 0.15;
+  }
+
+  to {
+    stroke-opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .town[data-feedback='success'] .town__fill {
+    animation:
+      town-fill var(--town-fill-time, 0.3s) linear var(--town-fill-delay, 0s) both,
+      town-fill-out 0.4s ease-out 1.75s forwards;
+  }
+
+  .town[data-feedback='success'] .town__cluster .town__window {
+    animation: town-window-on 0.25s ease-out both;
+    animation-delay: var(--town-delay, 0s);
+  }
+
+  .town[data-feedback='success'] .town__pill--node {
+    animation: town-chip-in 0.25s ease-out both;
+    animation-delay: var(--town-delay, 0s);
+  }
+
+  .town[data-feedback='failure'] .town__cluster[data-status='low'] .town__hull,
+  .town[data-feedback='failure'] .town__cluster[data-status='high'] .town__hull {
+    animation: town-pulse 0.4s ease-in-out 6 alternate;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .town__flow {
+    animation: none;
+  }
+}

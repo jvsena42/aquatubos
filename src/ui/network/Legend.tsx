@@ -1,4 +1,5 @@
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
+import type { ReactNode } from 'react';
 import type { CheckSettings } from '../../engine/types';
 import { useTr } from '../../i18n';
 import { useNum } from './format';
@@ -9,6 +10,10 @@ interface LegendProps {
   checks: CheckSettings;
   /** False before the first solve: only the neutral entries make sense. */
   evaluated: boolean;
+  /** Replaces the node symbols (the town view shows its status badges). */
+  nodeSwatch?: (status: LimitStatus) => ReactNode;
+  /** Replaces the texts of the three pressure entries. */
+  nodeText?: Partial<Record<'ok' | 'low' | 'high', string>>;
 }
 
 function NodeSwatch({ status }: { status: LimitStatus }) {
@@ -39,7 +44,7 @@ function PipeSwatch({ status }: { status: LimitStatus }) {
 }
 
 /** Explains the colours and marks of the drawing. Entries follow the checks of the stage. */
-export function Legend({ checks, evaluated }: LegendProps) {
+export function Legend({ checks, evaluated, nodeSwatch, nodeText }: LegendProps) {
   const tr = useTr();
   const num = useNum();
   const limits = NBR_CHECK_LIMITS;
@@ -48,25 +53,27 @@ export function Legend({ checks, evaluated }: LegendProps) {
   const minVelocity = evaluated && checks.minVelocity !== 'off';
   const maxVelocity = evaluated && checks.maxVelocity !== 'off';
   const velocity = minVelocity || maxVelocity;
+  const swatch = (status: LimitStatus) =>
+    nodeSwatch ? nodeSwatch(status) : <NodeSwatch status={status} />;
 
   return (
     <ul className="netview__legend" aria-label={tr(text.legend)}>
       {(minPressure || maxStatic) && (
         <li>
-          <NodeSwatch status="ok" />
-          {tr(text.legendPressureOk)}
+          {swatch('ok')}
+          {nodeText?.ok ?? tr(text.legendPressureOk)}
         </li>
       )}
       {minPressure && (
         <li>
-          <NodeSwatch status="low" />
-          {tr(text.legendPressureLow(num(limits.minDynamicPressure, 0)))}
+          {swatch('low')}
+          {nodeText?.low ?? tr(text.legendPressureLow(num(limits.minDynamicPressure, 0)))}
         </li>
       )}
       {maxStatic && (
         <li>
-          <NodeSwatch status="high" />
-          {tr(text.legendPressureHigh(num(limits.maxStaticPressure, 0)))}
+          {swatch('high')}
+          {nodeText?.high ?? tr(text.legendPressureHigh(num(limits.maxStaticPressure, 0)))}
         </li>
       )}
       {minVelocity && (

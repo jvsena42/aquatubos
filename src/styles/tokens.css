@@ -69,6 +69,7 @@
   --color-map-window: #9fb0c3;
   --color-map-window-lit: #f5cf45;
   --color-map-locked: #b6bfc9;
+  --color-map-shadow: rgb(15 27 42 / 0.16);
 
   /* Typography. Family names match @fontsource-variable/inter and -jetbrains-mono. */
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -171,6 +172,7 @@
     --color-map-window: #50647a;
     --color-map-window-lit: #f5cf45;
     --color-map-locked: #44566a;
+    --color-map-shadow: rgb(0 0 0 / 0.32);
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
     --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
@@ -240,6 +242,7 @@
   --color-map-window: #50647a;
   --color-map-window-lit: #f5cf45;
   --color-map-locked: #44566a;
+  --color-map-shadow: rgb(0 0 0 / 0.32);
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-2: 0 4px 12px rgb(0 0 0 / 0.5);
   --shadow-3: 0 12px 32px rgb(0 0 0 / 0.6);
