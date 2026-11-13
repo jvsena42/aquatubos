@@ -276,12 +276,6 @@ describe('stage screen on a phone', () => {
   describe('diameter of the selected pipe', () => {
     it('is text in the sheet; "Alterar" closes the sheet and goes to the bar under the map', async () => {
       const user = await openStage(1);
-      // The bar belongs to the map views; a stand-in with the agreed id.
-      const bar = document.createElement('div');
-      bar.id = 'dn-bar';
-      bar.innerHTML = '<button aria-pressed="true">50</button><button>75</button>';
-      document.body.append(bar);
-
       act(() => useAppStore.getState().select({ type: 'pipe', id: 'T1' }));
       const sheet = screen.getByRole('region', { name: 'Cálculo e verificações' });
       expect(sheet).toHaveAttribute('data-detent', 'half');
@@ -293,8 +287,10 @@ describe('stage screen on a phone', () => {
         within(sheet).getByRole('button', { name: 'Alterar o diâmetro do trecho T1' }),
       );
       expect(sheet).toHaveAttribute('data-detent', 'peek');
-      expect(bar.querySelector('[aria-pressed="true"]')).toHaveFocus();
-      document.body.removeChild(bar);
+      // The picker is the bar under the map: its pressed key takes the focus.
+      const pressed = document.querySelector('#dn-bar [aria-pressed="true"]');
+      expect(pressed).not.toBeNull();
+      expect(pressed).toHaveFocus();
     });
   });
 
