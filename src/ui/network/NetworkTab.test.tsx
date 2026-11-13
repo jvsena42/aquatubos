@@ -5,7 +5,7 @@ import { loadPreferences } from '../../persistence/db';
 import { getScenario } from '../../scenarios';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
-import { NetworkTab } from './NetworkTab';
+import { NetworkModeToggle, NetworkTab } from './NetworkTab';
 
 describe('NetworkTab', () => {
   beforeEach(() => {
@@ -48,5 +48,23 @@ describe('NetworkTab', () => {
     render(<NetworkTab />);
     expect(screen.getByRole('group', { name: 'Network view mode' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Town' })).toBeInTheDocument();
+  });
+
+  it('leaves the switch out when the caller shows it elsewhere', () => {
+    render(<NetworkTab toggle={false} />);
+    expect(screen.queryByRole('button', { name: 'Esquema' })).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Mapa da cidade' })).toBeInTheDocument();
+  });
+
+  it('keeps the names of the options on the compact switch, which shows icons', async () => {
+    const user = userEvent.setup();
+    render(<NetworkModeToggle compact />);
+    const schematic = screen.getByRole('button', { name: 'Esquema' });
+    expect(schematic).not.toHaveTextContent('Esquema');
+    expect(schematic.querySelector('svg')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Cidade' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(schematic);
+    expect(schematic).toHaveAttribute('aria-pressed', 'true');
+    expect(useAppStore.getState().networkView).toBe('schematic');
   });
 });
