@@ -22,14 +22,23 @@ export function Header() {
   const setTheme = useAppStore((s) => s.setTheme);
   const stageOpen = useAppStore((s) => s.scenario !== null);
   const closeStage = useAppStore((s) => s.closeStage);
+  const goHome = useAppStore((s) => s.goHome);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   return (
     <header className="header">
-      <div className="header__brand">
+      <button
+        type="button"
+        className="header__brand"
+        aria-label={tr(shellStrings.homeLabel)}
+        onClick={() => {
+          if (stageOpen) closeStage();
+          goHome();
+        }}
+      >
         <Logo />
         <span className="header__name">{tr(shellStrings.appName)}</span>
-      </div>
+      </button>
 
       {stageOpen && (
         <button

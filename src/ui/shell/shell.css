@@ -54,10 +54,23 @@
   background: var(--color-surface);
 }
 
+/* Logo and name: a button that goes to the title screen. */
 .header__brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin: 0 calc(-1 * var(--space-1));
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.header__brand:hover {
+  background: var(--color-surface-2);
 }
 
 .header__name {

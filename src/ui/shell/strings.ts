@@ -3,6 +3,7 @@ import type { ThemeSetting } from '../../persistence/db';
 
 export const shellStrings = {
   appName: { pt: 'Aquatubos', en: 'Aquatubos' },
+  homeLabel: { pt: 'Aquatubos, tela inicial', en: 'Aquatubos, title screen' },
   loading: { pt: 'Carregando…', en: 'Loading…' },
   skipToContent: { pt: 'Ir para o conteúdo', en: 'Skip to content' },
   backToStages: { pt: 'Etapas', en: 'Stages' },
