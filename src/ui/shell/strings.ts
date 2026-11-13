@@ -11,6 +11,7 @@ export const shellStrings = {
   glossary: { pt: 'Glossário', en: 'Glossary' },
   language: { pt: 'Idioma', en: 'Language' },
   theme: { pt: 'Tema', en: 'Theme' },
+  settings: { pt: 'Configurações', en: 'Settings' },
   close: { pt: 'Fechar', en: 'Close' },
   stars: (value: number): LocalizedText => ({
     pt: `${value} de 3 estrelas`,
