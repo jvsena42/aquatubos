@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { initialDiameters } from '../../game/buildNetwork';
 import { evaluateStage } from '../../game/evaluate';
@@ -194,6 +194,105 @@ describe('ResultsTable', () => {
     expect(
       within(pipeTable()).getByRole('rowheader', { name: 'T5' }).closest('tr'),
     ).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the header row and the first column sticky inside a scrolling frame', () => {
+    open('stage2');
+    render(<ResultsTable />);
+
+    for (const [table, name] of [
+      [pipeTable(), 'Trechos'],
+      [nodeTable(), 'Nós'],
+    ] as const) {
+      const scroller = screen.getByRole('region', { name });
+      expect(scroller).toHaveClass('hscroll__scroller');
+      expect(scroller.parentElement).toHaveClass('hscroll', 'results__wrap');
+      expect(scroller).toContainElement(table);
+      // The corner cell and every row header carry the class the sticky rules use.
+      const first = [...table.querySelectorAll('tr')].map((row) => row.querySelector('th'));
+      expect(first[0]).toHaveClass('sticky-col', 'results__corner');
+      for (const cell of first.filter((th) => th?.getAttribute('scope') === 'row')) {
+        expect(cell).toHaveClass('sticky-col');
+      }
+      expect(table.querySelectorAll('tbody .sticky-col')).toHaveLength(
+        table.querySelectorAll('tbody tr').length,
+      );
+      // Numeric cells keep the tabular, right-aligned style.
+      for (const cell of table.querySelectorAll('tbody td')) expect(cell).toHaveClass('num');
+    }
+  });
+
+  it('puts the unit of a header on its own line', () => {
+    open('stage2');
+    render(<ResultsTable />);
+    const header = within(pipeTable()).getByRole('columnheader', { name: 'Velocidade (m/s)' });
+    expect(header.querySelector('.results__unit')).toHaveTextContent('(m/s)');
+  });
+
+  it('fades the side of the pipe table that has hidden columns', () => {
+    open('stage2');
+    render(<ResultsTable />);
+    const scroller = screen.getByRole('region', { name: 'Trechos' });
+    const frame = scroller.parentElement!;
+    expect(frame).toHaveAttribute('data-fade-end', 'false');
+
+    const metrics = (values: Record<string, number>) => {
+      for (const [name, value] of Object.entries(values)) {
+        Object.defineProperty(scroller, name, { configurable: true, value });
+      }
+    };
+    metrics({ clientWidth: 308, scrollWidth: 983, scrollLeft: 0 });
+    fireEvent.scroll(scroller);
+    expect(frame).toHaveAttribute('data-fade-start', 'false');
+    expect(frame).toHaveAttribute('data-fade-end', 'true');
+    metrics({ scrollLeft: 675 });
+    fireEvent.scroll(scroller);
+    expect(frame).toHaveAttribute('data-fade-start', 'true');
+    expect(frame).toHaveAttribute('data-fade-end', 'false');
+  });
+
+  it('keeps the export button outside the scrolling frame', () => {
+    open('stage2');
+    render(<ResultsTable />);
+    const button = screen.getByRole('button', { name: 'Exportar CSV' });
+    expect(button.closest('.hscroll')).toBeNull();
+    expect(button.closest('.results__bar')).not.toBeNull();
+  });
+
+  it('switches the table shown on phones', async () => {
+    const user = userEvent.setup();
+    open('stage2');
+    const { container } = render(<ResultsTable />);
+    const view = container.querySelector('.results')!;
+    const group = within(screen.getByRole('group', { name: 'Tabela mostrada' }));
+    const pipesButton = group.getByRole('button', { name: 'Trechos' });
+    const nodesButton = group.getByRole('button', { name: 'Nós' });
+    expect(view).toHaveClass('results--pipes');
+    expect(pipesButton).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(nodesButton);
+    expect(view).toHaveClass('results--nodes');
+    expect(view).not.toHaveClass('results--pipes');
+    expect(nodesButton).toHaveAttribute('aria-pressed', 'true');
+    expect(pipesButton).toHaveAttribute('aria-pressed', 'false');
+    // The export button belongs to the bar, which stays whichever table is shown.
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeInTheDocument();
+  });
+
+  it('says in words what the marks of the selected row mean', async () => {
+    const user = userEvent.setup();
+    const scenario = getScenario('stage2')!;
+    open('stage2', initialDiameters(scenario));
+    render(<ResultsTable />);
+    expect(document.querySelector('.results__notes')).toBeNull();
+
+    await user.click(within(pipeTable()).getByRole('button', { name: 'T3' }));
+    const notes = document.querySelector('.results__notes')!;
+    expect(notes).toHaveAttribute('role', 'status');
+    expect(notes).toHaveTextContent(/^T3/);
+    expect(notes).toHaveTextContent(
+      /Pressão disponível \(Jusante\) .* mca: abaixo do mínimo de 10,00 mca/,
+    );
   });
 
   it('keeps the old values with a note when the design changed', () => {

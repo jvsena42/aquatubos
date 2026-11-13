@@ -12,10 +12,81 @@
   max-width: 100rem;
   margin: 0 auto;
   padding: var(--space-4);
+  padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
 }
 
 .app__main:focus {
   outline: none;
+}
+
+/* The title screen fills the viewport edge to edge. */
+.app__main--bleed {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+}
+
+.app__main--bleed > .screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/*
+ * Phones with a stage open: the app is a fixed frame as tall as the visible viewport and the
+ * page itself does not scroll; only the inside of panels does (see stage.css).
+ */
+.app--shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+html:has(.app--shell) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.app__main--shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app__main--shell > .screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Headings that receive focus on a screen change stay clear of the sticky header. */
+.app__main h1 {
+  scroll-margin-top: 6rem;
+}
+
+/* Each screen (title, stage map, stage) fades in when it is shown. */
+.screen {
+  animation: screen-in 180ms ease-out backwards;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    animation: none;
+  }
 }
 
 .app__loading {
@@ -29,6 +100,9 @@
   top: var(--space-2);
   left: var(--space-2);
   z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--color-surface);
@@ -50,14 +124,232 @@
   align-items: center;
   gap: var(--space-2) var(--space-4);
   padding: var(--space-2) var(--space-4);
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  padding-right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  padding-left: max(var(--space-4), env(safe-area-inset-left, 0px));
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
 
+/*
+ * Installed on iOS the page runs under the status bar, whose text is always white: a strip in
+ * the colour of the theme-color meta keeps the clock readable. It has no height in a browser.
+ */
+.header {
+  --header-status: var(--color-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .header {
+    --header-status: var(--color-bg);
+  }
+}
+
+:root[data-theme='dark'] .header {
+  --header-status: var(--color-bg);
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--header-status);
+}
+
+/* Phones: one row with the logo, back, the stage name and the settings menu. */
+.header--compact {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  padding-top: calc(var(--space-1) + env(safe-area-inset-top, 0px));
+  padding-right: max(var(--space-2), env(safe-area-inset-right, 0px));
+  padding-left: max(var(--space-2), env(safe-area-inset-left, 0px));
+}
+
+.header--compact .header__brand {
+  flex-shrink: 0;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+}
+
+.header--compact .header__name {
+  padding-right: var(--space-2);
+}
+
+.header__back {
+  flex-shrink: 0;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.header__context {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 var(--space-1);
+  line-height: 1.2;
+}
+
+.header__context-kicker {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header__context-title {
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header__menu {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Menu button and its popup (Menu.tsx) */
+.menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu__button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+.menu__button[aria-expanded='true'] {
+  background: var(--color-surface-2);
+}
+
+.menu__list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 14rem;
+  max-width: calc(100vw - 2 * var(--space-3));
+  max-height: calc(100vh - 4.5rem);
+  max-height: calc(100dvh - 4.5rem - env(safe-area-inset-top, 0px));
+  padding: var(--space-1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-3);
+  animation: menu-in 120ms ease-out;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.menu__item {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover,
+.menu__item:focus-visible {
+  background: var(--color-surface-2);
+}
+
+.menu__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.menu__icon {
+  display: inline-flex;
+  width: 1.25rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+}
+
+.menu__item[aria-checked='true'] {
+  font-weight: 650;
+}
+
+.menu__item[aria-checked='true'] .menu__icon {
+  color: var(--color-primary);
+}
+
+.menu__group {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+}
+
+.menu__group:not(:first-child) {
+  margin-top: var(--space-1);
+  padding-top: var(--space-1);
+  border-top: 1px solid var(--color-border);
+}
+
+.menu__group:not(:last-child) {
+  margin-bottom: var(--space-1);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.menu__group + .menu__group {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.menu__heading {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Logo and name: a button that goes to the title screen. */
 .header__brand {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  margin: 0 calc(-1 * var(--space-1));
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.header__brand:hover {
+  background: var(--color-surface-2);
 }
 
 .header__name {
@@ -83,7 +375,13 @@
 /* Dialog */
 .dialog {
   width: min(42rem, calc(100vw - 2 * var(--space-4)));
-  max-height: min(44rem, calc(100dvh - 2 * var(--space-4)));
+  max-height: min(44rem, calc(100vh - 2 * var(--space-4)));
+  max-height: min(
+    44rem,
+    calc(
+      100dvh - 2 * var(--space-4) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    )
+  );
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -121,6 +419,7 @@
   min-height: 0;
   padding: var(--space-4);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .dialog__footer {
@@ -132,12 +431,41 @@
   border-top: 1px solid var(--color-border);
 }
 
-/* Tabs */
+/* Tabs: one row that scrolls sideways when it does not fit, fading at the edge with more. */
 .tabs {
+  --tabs-fade: 2rem;
+
   display: flex;
   gap: var(--space-1);
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
   border-bottom: 1px solid var(--color-border);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* The mask only uses the alpha of its colours. */
+.tabs[data-more-end] {
+  mask-image: linear-gradient(to left, transparent, black var(--tabs-fade));
+}
+
+.tabs[data-more-start] {
+  mask-image: linear-gradient(to right, transparent, black var(--tabs-fade));
+}
+
+.tabs[data-more-start][data-more-end] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black var(--tabs-fade),
+    black calc(100% - var(--tabs-fade)),
+    transparent
+  );
 }
 
 .tabs__tab {
@@ -188,10 +516,16 @@
 /* PWA notice */
 .pwa-notice {
   position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
+  right: max(var(--space-4), env(safe-area-inset-right, 0px));
+  bottom: max(var(--space-4), env(safe-area-inset-bottom, 0px));
   z-index: 50;
   max-width: calc(100vw - 2 * var(--space-4));
+}
+
+/* In the phone stage frame the bottom edge holds the Calcular button: the notice goes on top. */
+.app--shell .pwa-notice {
+  top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  bottom: auto;
 }
 
 .pwa-notice__box {
@@ -206,21 +540,32 @@
   font-size: var(--font-size-sm);
 }
 
+@media (pointer: coarse) {
+  .tabs__tab {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}
+
 @media (max-width: 480px) {
-  .header {
+  .app__main {
+    padding: var(--space-3);
+    padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
+    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
+    padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
+  }
+
+  .app__main--bleed,
+  .app__main--shell {
+    padding: 0;
+  }
+
+  .dialog__header,
+  .dialog__footer {
     padding: var(--space-2) var(--space-3);
   }
 
-  .header__tool-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
-  .app__main {
+  .dialog__body {
     padding: var(--space-3);
   }
 }

@@ -51,6 +51,13 @@ rect.netview__hit {
   stroke: none;
 }
 
+/* A finger needs 44 px. The nearest element to the tap is chosen in the handler (hit.ts). */
+@media (pointer: coarse) {
+  .netview__hit {
+    stroke-width: 44px;
+  }
+}
+
 /* Pipes: colour by velocity class, width by DN (set inline). */
 .netview__pipe {
   --netview-pipe: var(--color-pipe);
@@ -271,7 +278,23 @@ rect.netview__hit {
   gap: var(--space-1);
 }
 
-.netview__zoom .icon {
+.netview__zoom .btn,
+.netview__legend-toggle {
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse), (max-width: 760px), (max-height: 500px) {
+  .netview__zoom .btn.btn--icon {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  .netview__hint {
+    max-width: calc(100% - 10.75rem);
+  }
+}
+
+.netview__zoom .icon,
+.netview__legend-toggle .icon {
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -315,6 +338,7 @@ rect.netview__hit {
 }
 
 .netview__swatch {
+  flex: none;
   width: 1.25rem;
   height: 1.25rem;
 }
@@ -323,8 +347,108 @@ rect.netview__hit {
   width: 1.75rem;
 }
 
+/* Phones: the legend opens from a button over the drawing, which keeps its height. */
+.netview__legend-box {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: calc(100% - 2 * var(--space-2));
+  max-height: calc(100% - 2 * var(--space-2));
+  pointer-events: none;
+}
+
+.netview__legend-box > * {
+  pointer-events: auto;
+}
+
+.netview__legend-toggle {
+  flex: none;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+}
+
+.netview__legend-box .netview__legend {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-3);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.netview__legend-box .netview__legend li {
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+/*
+ * Phones: the seven diameters as one row of 44 px keys with the price under each DN. Upright,
+ * the name and length of the pipe go on a line above the keys; lying down, beside them.
+ */
+.netview__bar--phone {
+  flex-wrap: nowrap;
+  min-height: 3rem;
+}
+
+.netview__bar--phone .netview__bar-title {
+  display: flex;
+  flex: none;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.netview__bar--phone .dn-picker {
+  flex: 1;
+}
+
+.netview__bar-unit {
+  margin-left: auto;
+  padding-left: var(--space-2);
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 760px) {
+  .netview__bar--phone {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 5rem;
+  }
+
+  .netview__bar--phone .netview__bar-title {
+    flex: none;
+  }
+
+  .netview__bar--phone .dn-picker {
+    flex: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .netview__flow {
     animation: none;
+  }
+}
+
+/* Phones: the drawing takes what the panel gives it, also when that is little (landscape). */
+@media (max-width: 760px), (max-height: 500px) {
+  .netview__canvas {
+    min-height: 8rem;
   }
 }

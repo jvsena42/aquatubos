@@ -4,9 +4,13 @@ import type { StageProgress } from '../game/types';
 export type Lang = 'pt' | 'en';
 export type ThemeSetting = 'system' | 'light' | 'dark';
 
+/** Drawing used in the network tab: illustrated town or engineering schematic. */
+export type NetworkViewMode = 'town' | 'schematic';
+
 export interface Preferences {
   lang: Lang;
   theme: ThemeSetting;
+  networkView: NetworkViewMode;
 }
 
 interface PreferenceRow {
@@ -49,6 +53,7 @@ export async function clearProgress(): Promise<void> {
 
 const LANGS: readonly string[] = ['pt', 'en'] satisfies Lang[];
 const THEMES: readonly string[] = ['system', 'light', 'dark'] satisfies ThemeSetting[];
+const NETWORK_VIEWS: readonly string[] = ['town', 'schematic'] satisfies NetworkViewMode[];
 
 /** Saved preferences. Unknown or invalid stored values are left out. */
 export async function loadPreferences(): Promise<Partial<Preferences>> {
@@ -59,6 +64,9 @@ export async function loadPreferences(): Promise<Partial<Preferences>> {
     if (row.key === 'theme' && THEMES.includes(row.value)) {
       preferences.theme = row.value as ThemeSetting;
     }
+    if (row.key === 'networkView' && NETWORK_VIEWS.includes(row.value)) {
+      preferences.networkView = row.value as NetworkViewMode;
+    }
   }
   return preferences;
 }
@@ -68,5 +76,8 @@ export async function savePreferences(preferences: Partial<Preferences>): Promis
   const rows: PreferenceRow[] = [];
   if (preferences.lang !== undefined) rows.push({ key: 'lang', value: preferences.lang });
   if (preferences.theme !== undefined) rows.push({ key: 'theme', value: preferences.theme });
+  if (preferences.networkView !== undefined) {
+    rows.push({ key: 'networkView', value: preferences.networkView });
+  }
   if (rows.length > 0) await db().preferences.bulkPut(rows);
 }

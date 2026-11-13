@@ -17,7 +17,17 @@ export default defineConfig({
     trace: 'retain-on-failure',
     serviceWorkers: 'block',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', testIgnore: '**/mobile.spec.ts', use: { ...devices['Desktop Chrome'] } },
+    // Phone projects run in Chromium with the device's viewport, pixel ratio, touch and user
+    // agent, so no other browser engine has to be installed.
+    { name: 'pixel-7', testMatch: '**/mobile.spec.ts', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'iphone-14',
+      testMatch: '**/mobile.spec.ts',
+      use: { ...devices['iPhone 14'], defaultBrowserType: 'chromium' },
+    },
+  ],
   webServer: {
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: BASE_URL,

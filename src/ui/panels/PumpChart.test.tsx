@@ -1,4 +1,5 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { initialDiameters } from '../../game/buildNetwork';
 import { evaluateStage } from '../../game/evaluate';
 import { getScenario } from '../../scenarios';
@@ -125,6 +126,150 @@ describe('PumpChart', () => {
         .getAllByRole('cell')
         .map((cell) => cell.textContent),
     ).toEqual([pt(tenth.flow * 1000), pt(tenth.pumpHead), pt(tenth.systemHead)]);
+  });
+
+  describe('reader of the curves', () => {
+    function reader() {
+      const slider = screen.getByRole('slider', { name: 'Vazão de leitura das curvas' });
+      // The reader covers the plot area: 300 px here, whatever the size of the chart.
+      slider.getBoundingClientRect = () => new DOMRect(50, 0, 300, 200);
+      return slider;
+    }
+
+    it('starts with a hint in a persistent readout', () => {
+      open('stage5');
+      render(<PumpChart />);
+      const readout = screen.getByRole('status');
+      expect(readout).toHaveClass('chart__readout', 'pump__readout');
+      expect(readout).toHaveTextContent(/Toque no gráfico/);
+      expect(document.querySelector('.pump__read')).toBeNull();
+    });
+
+    it('shows both curves at the flow that was tapped', () => {
+      const { evaluation } = open('stage5');
+      const { points } = evaluation.pumpChart!;
+      render(<PumpChart />);
+      const slider = reader();
+
+      // The right edge of the plot is the last sample of the curves.
+      fireEvent.click(slider, { clientX: 350 });
+      const last = points[points.length - 1]!;
+      const text = `Vazão ${pt(last.flow * 1000)} L/s · Bomba ${pt(last.pumpHead)} m · Sistema ${pt(
+        last.systemHead,
+      )} m`;
+      expect(screen.getByRole('status')).toHaveTextContent(text);
+      expect(slider).toHaveAttribute('aria-valuetext', text);
+      expect(document.querySelector('.pump__read line')).not.toBeNull();
+
+      // The left edge is zero flow: the shutoff head of the pump.
+      fireEvent.pointerDown(slider, { clientX: 50 });
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `Vazão 0,00 L/s · Bomba ${pt(points[0]!.pumpHead)} m`,
+      );
+    });
+
+    it('reads the operating point when the tap lands on it', () => {
+      const { evaluation } = open('stage5');
+      const chart = evaluation.pumpChart!;
+      render(<PumpChart />);
+      const slider = reader();
+      const maxFlow = chart.points[chart.points.length - 1]!.flow;
+
+      fireEvent.click(slider, { clientX: 50 + (chart.operating.flow / maxFlow) * 300 + 3 });
+      expect(screen.getByRole('status')).toHaveTextContent(
+        `Vazão 12,00 L/s · Bomba ${pt(chart.operating.head)} m · Sistema ${pt(
+          chart.requiredHead,
+        )} m · Ponto de operação`,
+      );
+    });
+
+    it('moves with the keyboard, starting at the operating point', async () => {
+      const user = userEvent.setup();
+      const { evaluation } = open('stage5');
+      const { points } = evaluation.pumpChart!;
+      render(<PumpChart />);
+      const slider = reader();
+      const readout = screen.getByRole('status');
+
+      slider.focus();
+      expect(slider).toHaveFocus();
+      await user.keyboard('{ArrowRight}');
+      expect(readout).toHaveTextContent(/^Vazão 12,00 L\/s .* Ponto de operação$/);
+
+      await user.keyboard('{ArrowRight}');
+      const next = points.find((point) => point.flow * 1000 > 12)!;
+      expect(readout).toHaveTextContent(`Vazão ${pt(next.flow * 1000)} L/s`);
+      await user.keyboard('{ArrowLeft}{ArrowLeft}');
+      const before = [...points].reverse().find((point) => point.flow * 1000 < 12)!;
+      expect(readout).toHaveTextContent(`Vazão ${pt(before.flow * 1000)} L/s`);
+
+      await user.keyboard('{Home}');
+      expect(readout).toHaveTextContent(/^Vazão 0,00 L\/s/);
+      await user.keyboard('{End}');
+      expect(readout).toHaveTextContent(`Vazão ${pt(points[points.length - 1]!.flow * 1000)} L/s`);
+      expect(slider).toHaveAttribute(
+        'aria-valuenow',
+        String(Number((points[points.length - 1]!.flow * 1000).toFixed(2))),
+      );
+    });
+  });
+
+  describe('at the width of the container', () => {
+    const drawAt = (width: number) => {
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          private readonly callback: (entries: { contentRect: { width: number } }[]) => void;
+          constructor(callback: (entries: { contentRect: { width: number } }[]) => void) {
+            this.callback = callback;
+          }
+          observe() {
+            this.callback([{ contentRect: { width } }]);
+          }
+          disconnect() {}
+        },
+      );
+      open('stage5');
+      const view = render(<PumpChart />);
+      const svg = screen.getByRole('img');
+      const ticks = [...svg.querySelectorAll('.chart__tick')];
+      const result = {
+        viewBox: svg.getAttribute('viewBox')!.split(' ').map(Number),
+        xTicks: ticks
+          .filter((tick) => tick.getAttribute('text-anchor') === 'middle')
+          .map((tick) => ({ x: Number(tick.getAttribute('x')), text: tick.textContent ?? '' })),
+        yTicks: ticks
+          .filter((tick) => tick.getAttribute('text-anchor') === 'end')
+          .map((tick) => Number(tick.getAttribute('y'))),
+      };
+      view.unmount();
+      return result;
+    };
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('draws at that width and with fewer ticks on a narrow chart', () => {
+      const narrow = drawAt(280);
+      const wide = drawAt(900);
+      expect(narrow.viewBox[2]).toBe(280);
+      expect(wide.viewBox[2]).toBe(900);
+      expect(narrow.viewBox[3]).toBeLessThan(wide.viewBox[3]!);
+      expect(narrow.xTicks.length).toBeLessThan(wide.xTicks.length);
+      expect(narrow.xTicks.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('never lets the tick labels touch', () => {
+      for (const width of [280, 310, 358, 398, 786]) {
+        const { xTicks, yTicks } = drawAt(width);
+        for (let i = 1; i < xTicks.length; i++) {
+          const half = (xTicks[i]!.text.length + xTicks[i - 1]!.text.length) * 3.35;
+          expect(xTicks[i]!.x - xTicks[i - 1]!.x).toBeGreaterThan(half + 4);
+        }
+        for (let i = 1; i < yTicks.length; i++) {
+          expect(Math.abs(yTicks[i]! - yTicks[i - 1]!)).toBeGreaterThanOrEqual(16);
+        }
+      }
+    });
   });
 
   it('keeps the old chart with a note when the design changed', () => {

@@ -1,6 +1,6 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { loadPreferences } from '../persistence/db';
+import { loadPreferences, savePreferences } from '../persistence/db';
 import { useAppStore } from '../state/store';
 import { makeEvaluation, makeProgress } from '../test/fixtures';
 import { resetStore } from '../test/store';
@@ -26,6 +26,8 @@ async function renderApp() {
 describe('App', () => {
   beforeEach(() => {
     resetStore(false);
+    // These tests start on the stage map; the title screen has its own tests.
+    useAppStore.setState({ screen: 'map' });
     document.documentElement.removeAttribute('data-theme');
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
   });
@@ -93,9 +95,117 @@ describe('App', () => {
   });
 });
 
+describe('App from the title screen', () => {
+  beforeEach(async () => {
+    // Earlier tests leave their language and theme saved.
+    await savePreferences({ lang: 'pt', theme: 'system' });
+    resetStore(false);
+    vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
+  });
+
+  const heading = (name: string | RegExp) => screen.getByRole('heading', { level: 1, name });
+
+  it('opens on the title screen and leaves the focus alone', async () => {
+    render(<App />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Aquatubos' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Jogar' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Etapas' })).not.toBeInTheDocument();
+    expect(document.body).toHaveFocus();
+    expect(screen.getByRole('main')).toHaveClass('app__main--bleed');
+  });
+
+  it('goes from the title screen to the map, a stage and back, focusing each heading', async () => {
+    const user = await renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Jogar' }));
+    expect(heading('Etapas')).toHaveFocus();
+    expect(screen.getByRole('main')).not.toHaveClass('app__main--bleed');
+
+    await user.click(screen.getByRole('button', { name: /^Etapa 1: / }));
+    const briefing = await screen.findByRole('dialog', { name: 'Etapa 1: Título 1' });
+    await user.click(within(briefing).getByRole('button', { name: 'Continuar' }));
+    expect(heading(/Título 1/)).toHaveAttribute('tabindex', '-1');
+
+    await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
+    expect(heading('Etapas')).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Início' }));
+    expect(heading('Aquatubos')).toHaveFocus();
+    expect(useAppStore.getState().screen).toBe('home');
+  });
+
+  it('focuses the stage heading when a stage opens again', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('button', { name: 'Jogar' }));
+    await user.click(screen.getByRole('button', { name: /^Etapa 1: / }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
+
+    // The stage screen is already loaded, so its heading is there as soon as the stage opens.
+    await user.click(screen.getByRole('button', { name: /^Etapa 1: / }));
+    expect(heading(/Título 1/)).toHaveFocus();
+  });
+
+  it('continues a saved stage straight from the title screen', async () => {
+    const user = await renderApp();
+    act(() =>
+      useAppStore.setState({
+        progress: { 'stage-1': makeProgress('stage-1'), 'stage-2': makeProgress('stage-2') },
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Continuar: Etapa 3: Título 3' }));
+    expect(await screen.findByRole('dialog', { name: 'Etapa 3: Título 3' })).toBeInTheDocument();
+    expect(useAppStore.getState().scenario?.id).toBe('stage-3');
+
+    // Leaving a stage always goes to the map.
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
+    expect(heading('Etapas')).toHaveFocus();
+  });
+
+  it('goes to the title screen from the header logo, on the map and in a stage', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('button', { name: 'Jogar' }));
+    await user.click(screen.getByRole('button', { name: 'Aquatubos, tela inicial' }));
+    expect(heading('Aquatubos')).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Jogar' }));
+    await user.click(screen.getByRole('button', { name: /^Etapa 1: / }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Aquatubos, tela inicial' }));
+    expect(heading('Aquatubos')).toHaveFocus();
+    expect(useAppStore.getState().scenario).toBeNull();
+    expect(useAppStore.getState().screen).toBe('home');
+  });
+
+  it('keeps language and theme reachable on the title screen', async () => {
+    const user = await renderApp();
+    await user.click(screen.getByRole('button', { name: 'English' }));
+    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.getByText("Design the town's water network")).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dark' }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    await savePreferences({ lang: 'pt', theme: 'system' });
+  });
+
+  it('restarts the enter animation on each screen', async () => {
+    const user = await renderApp();
+    const first = document.querySelector('.screen');
+    expect(first).toContainElement(heading('Aquatubos'));
+    await user.click(screen.getByRole('button', { name: 'Jogar' }));
+    const second = document.querySelector('.screen');
+    expect(second).not.toBe(first);
+    expect(second).toContainElement(heading('Etapas'));
+  });
+});
+
 describe('StageScreen', () => {
   beforeEach(() => {
     resetStore(false);
+    // These tests start on the stage map; the title screen has its own tests.
+    useAppStore.setState({ screen: 'map' });
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
   });
 
@@ -137,7 +247,7 @@ describe('StageScreen', () => {
     const user = await openStage(1);
     const network = screen.getByRole('tab', { name: 'Rede' });
     expect(network).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('group', { name: 'Desenho da rede' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Modo de visualização da rede' })).toBeInTheDocument();
 
     network.focus();
     await user.keyboard('{ArrowRight}');

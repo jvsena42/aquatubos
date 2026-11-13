@@ -81,6 +81,8 @@ export const networkStrings = {
     en: `DN ${dn}, ${price} per metre`,
   }),
   perMetre: { pt: '/m', en: '/m' },
+  /** Caption of the compact picker on phones: the number under each DN is its price. */
+  dnPriceUnit: { pt: 'DN e preço em R$/m', en: 'DN and price in R$/m' },
   fixedPipe: {
     pt: 'O diâmetro deste trecho é fixo nesta etapa e não pode ser alterado.',
     en: 'The diameter of this pipe is fixed in this stage and cannot be changed.',

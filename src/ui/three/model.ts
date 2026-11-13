@@ -1,6 +1,7 @@
 import type { StageEvaluation } from '../../game/types';
 import type { Diameters, Scenario } from '../../scenarios/types';
 import {
+  DETAIL,
   gridIndices,
   gridLineIndices,
   gridPositions,
@@ -12,7 +13,9 @@ import {
   sceneLayout,
   segmentTransform,
   toWorld,
+  type Detail,
   type Layout,
+  type Quality,
   type SegmentTransform,
   type Vec3,
 } from './geometry';
@@ -70,6 +73,8 @@ export interface PumpModel {
 export interface SceneModel {
   layout: Layout;
   exaggeration: number;
+  /** Segment counts the scene builds its meshes with. */
+  detail: Detail;
   terrain: SurfaceModel;
   hgl: SurfaceModel | null;
   pipes: PipeModel[];
@@ -80,24 +85,23 @@ export interface SceneModel {
   bounds: { center: Vec3; halfSize: Vec3 };
 }
 
-/** Grid lines are drawn every this many cells. */
-const LINE_STEP = 2;
-
 export function buildSceneModel(
   scenario: Scenario,
   diameters: Diameters,
   evaluation: StageEvaluation | null,
   exaggeration: number,
+  quality: Quality = 'high',
 ): SceneModel {
+  const detail = DETAIL[quality];
   const layout = sceneLayout(scenario);
   const { extent } = layout;
   const relief = layout.topElevation - layout.baseElevation;
 
-  const terrainGrid = interpolateGrid(layout, groundPoints(scenario));
+  const terrainGrid = interpolateGrid(layout, groundPoints(scenario), detail.gridCells);
   const nx = terrainGrid.xs.length;
   const ny = terrainGrid.ys.length;
   const indices = gridIndices(nx, ny);
-  const lineIndices = gridLineIndices(nx, ny, LINE_STEP);
+  const lineIndices = gridLineIndices(nx, ny, detail.lineStep);
   const terrain: SurfaceModel = {
     positions: gridPositions(layout, terrainGrid, exaggeration),
     indices,
@@ -112,7 +116,7 @@ export function buildSceneModel(
     ? {
         positions: gridPositions(
           layout,
-          interpolateGrid(layout, heads),
+          interpolateGrid(layout, heads, detail.gridCells),
           exaggeration,
           floorElevation,
         ),
@@ -125,7 +129,7 @@ export function buildSceneModel(
   for (const pipe of scenario.pipes) {
     const dn = diameters[pipe.id] ?? pipe.initialDN;
     const radius = pipeRadius(dn, extent);
-    const path = pipePath(scenario, layout, pipe, exaggeration, radius);
+    const path = pipePath(scenario, layout, pipe, exaggeration, radius, detail.pathSegments);
     if (path)
       pipes.push({ id: pipe.id, dn, radius, path, status: velocityStatus(evaluation, pipe.id) });
   }
@@ -166,9 +170,11 @@ export function buildSceneModel(
   const pumps: PumpModel[] = [];
   for (const pump of scenario.pumps) {
     const radius = extent * 0.006;
-    const path = pipePath(scenario, layout, pump, exaggeration, radius, 16);
-    const before = path?.[7];
-    const after = path?.[9];
+    const path = pipePath(scenario, layout, pump, exaggeration, radius, detail.pathSegments);
+    // The marker sits on the middle point and follows the pieces on either side of it.
+    const middle = detail.pathSegments / 2;
+    const before = path?.[middle - 1];
+    const after = path?.[middle + 1];
     if (path && before && after) {
       pumps.push({ id: pump.id, path, radius, marker: segmentTransform(before, after) });
     }
@@ -180,6 +186,7 @@ export function buildSceneModel(
   return {
     layout,
     exaggeration,
+    detail,
     terrain,
     hgl,
     pipes,

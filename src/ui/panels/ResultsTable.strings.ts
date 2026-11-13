@@ -12,9 +12,10 @@ export const resultsStrings = {
     en: 'Elevations and pressures by node.',
   },
   exportCsv: { pt: 'Exportar CSV', en: 'Export CSV' },
+  shownTable: { pt: 'Tabela mostrada', en: 'Table shown' },
   selectHint: {
-    pt: 'Clique em uma linha para selecionar o trecho ou o nó na rede.',
-    en: 'Click a row to select the pipe or node in the network.',
+    pt: 'Clique ou toque em uma linha para selecionar o trecho ou o nó na rede.',
+    en: 'Click or tap a row to select the pipe or node in the network.',
   },
 
   pipe: { pt: 'Trecho', en: 'Pipe' },

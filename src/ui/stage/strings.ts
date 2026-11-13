@@ -17,6 +17,22 @@ export const stageStrings = {
   calcPanel: { pt: 'Cálculo', en: 'Calculation' },
   checksPanel: { pt: 'Verificações', en: 'Checks' },
   sidePanel: { pt: 'Cálculo e verificações', en: 'Calculation and checks' },
+  // Phone layout
+  moreActions: { pt: 'Mais ações', en: 'More actions' },
+  reverify: { pt: 'Recalcular', en: 'Recalculate' },
+  sheetSection: { pt: 'Seção do painel', en: 'Panel section' },
+  sheetExpand: { pt: 'Painel de cálculo: expandir', en: 'Calculation panel: expand' },
+  sheetExpandFull: {
+    pt: 'Painel de cálculo: expandir tudo',
+    en: 'Calculation panel: expand fully',
+  },
+  sheetCollapse: { pt: 'Painel de cálculo: recolher', en: 'Calculation panel: collapse' },
+  sheetClose: { pt: 'Recolher painel', en: 'Collapse panel' },
+  issueCount: (count: number): LocalizedText => ({
+    pt: count === 0 ? 'Sem pendências' : count === 1 ? '1 pendência' : `${count} pendências`,
+    en: count === 0 ? 'No issues' : count === 1 ? '1 issue' : `${count} issues`,
+  }),
+  passedNotice: { pt: 'Etapa aprovada', en: 'Stage passed' },
   loading3d: { pt: 'Carregando a visualização 3D…', en: 'Loading the 3D view…' },
 } as const;
 

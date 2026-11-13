@@ -208,7 +208,7 @@ export interface PipeColumn {
 const same = (text: string): LocalizedText => ({ pt: text, en: text });
 const METRE = same('m');
 /** Pressure head unit: metres of water column. */
-export const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'm H2O' };
+export const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'mca' };
 
 /** Columns of the pipe table, in display order. The table and the CSV share them. */
 export const PIPE_COLUMNS: readonly PipeColumn[] = [

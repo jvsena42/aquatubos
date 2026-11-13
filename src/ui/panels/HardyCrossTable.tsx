@@ -6,6 +6,7 @@ import { m3sToLps } from '../../engine/units';
 import { useFormat, useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { ResultBody, ResultHint } from '../charts/ResultState';
+import { ScrollTable } from '../charts/ScrollTable';
 import { Term } from '../glossary/Term';
 import { IconCheck, IconWarning } from '../shell/icons';
 import { formulaLabels } from '../stage/strings';
@@ -39,7 +40,7 @@ function LoopTable({ step, iteration, shared }: LoopTableProps) {
   const select = useAppStore((state) => state.select);
 
   return (
-    <div className="table-wrap hc__wrap">
+    <ScrollTable className="hc__wrap" label={tr(s.loopCaption(step.loopId, iteration))}>
       <table className="table hc__table">
         <caption>
           <span className="hc__loop">{tr(s.loop(step.loopId))}</span>
@@ -47,7 +48,9 @@ function LoopTable({ step, iteration, shared }: LoopTableProps) {
         </caption>
         <thead>
           <tr>
-            <th scope="col">{tr(s.pipe)}</th>
+            <th scope="col" className="sticky-col">
+              {tr(s.pipe)}
+            </th>
             <th scope="col" className="hc__sign">
               {tr(s.direction)}
             </th>
@@ -74,7 +77,7 @@ function LoopTable({ step, iteration, shared }: LoopTableProps) {
                 aria-selected={selection?.type === 'pipe' && selection.id === row.pipeId}
                 onClick={() => select({ type: 'pipe', id: row.pipeId })}
               >
-                <th scope="row">
+                <th scope="row" className="sticky-col">
                   <span className="num">{row.pipeId}</span>
                   {others.length > 0 && (
                     <span className="hc__shared">{tr(s.alsoIn(others.join(', ')))}</span>
@@ -95,29 +98,36 @@ function LoopTable({ step, iteration, shared }: LoopTableProps) {
           })}
         </tbody>
         <tfoot>
+          {/* The label stays in the sticky first column; the value sits under its column. */}
           <tr>
-            <th scope="row" colSpan={3}>
+            <th scope="row" className="sticky-col">
               Σh <span className="hc__unit">(m)</span>
             </th>
-            <td className="num">{fmt(step.sumHeadLoss, 4)}</td>
+            <td className="num" colSpan={3}>
+              {fmt(step.sumHeadLoss, 4)}
+            </td>
             <td colSpan={2} />
           </tr>
           <tr>
-            <th scope="row" colSpan={4}>
+            <th scope="row" className="sticky-col">
               Σ n·|h|/|Q| <span className="hc__unit">(m/(L/s))</span>
             </th>
-            <td className="num">{fmt(perLps(step.sumNHeadLossOverFlow), 4)}</td>
+            <td className="num" colSpan={4}>
+              {fmt(perLps(step.sumNHeadLossOverFlow), 4)}
+            </td>
             <td />
           </tr>
           <tr className="hc__delta">
-            <th scope="row" colSpan={5}>
+            <th scope="row" className="sticky-col">
               ΔQ <span className="hc__unit">(L/s)</span>
             </th>
-            <td className="num">{fmt(m3sToLps(step.deltaQ), 4)}</td>
+            <td className="num" colSpan={5}>
+              {fmt(m3sToLps(step.deltaQ), 4)}
+            </td>
           </tr>
         </tfoot>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -347,12 +357,14 @@ export function HardyCrossTable() {
 
       <section className="hc__compare">
         <h3>{tr(s.compareTitle)}</h3>
-        <div className="table-wrap hc__wrap">
+        <ScrollTable className="hc__wrap hc__wrap--compare" label={tr(s.compareTitle)}>
           <table className="table hc__table">
             <caption className="visually-hidden">{tr(s.compareTitle)}</caption>
             <thead>
               <tr>
-                <th scope="col">{tr(s.pipe)}</th>
+                <th scope="col" className="sticky-col">
+                  {tr(s.pipe)}
+                </th>
                 <th scope="col" className="num">
                   {tr(s.initial)} <span className="hc__unit">(L/s)</span>
                 </th>
@@ -370,7 +382,7 @@ export function HardyCrossTable() {
             <tbody>
               {comparison.map((row) => (
                 <tr key={row.id} className={row.inLoop ? undefined : 'hc__outside'}>
-                  <th scope="row">
+                  <th scope="row" className="sticky-col">
                     <span className="num">{row.id}</span>
                   </th>
                   <td className="num">{fmt(row.initial, 3)}</td>
@@ -381,7 +393,7 @@ export function HardyCrossTable() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <p className="hc__agree">{tr(s.maxDifference(small(maxDifference)))}</p>
         <p className="muted hc__note">{tr(s.compareNote)}</p>
       </section>

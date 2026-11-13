@@ -97,7 +97,7 @@ function localized(build: (lang: Lang) => string): LocalizedText {
 }
 
 /** Pressure head unit: metres of water column. */
-const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'm H2O' };
+const HEAD_UNIT: LocalizedText = { pt: 'mca', en: 'mca' };
 
 /** " (ABNT NBR 12218:2017)" when the limit in use is the one of the standard. */
 function standardNote(check: keyof CheckLimits, limits: CheckLimits): string {

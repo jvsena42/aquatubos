@@ -145,5 +145,11 @@
     },
     "cost": 47150,
     "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
+  },
+  "town": {
+    "landmarks": [
+      { "type": "church", "x": 150, "y": 105 },
+      { "type": "school", "x": 700, "y": 335 }
+    ]
   }
 }

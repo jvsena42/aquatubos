@@ -29,6 +29,15 @@ export const pumpStrings = {
     en: `${value} m short`,
   }),
 
+  readerLabel: { pt: 'Vazão de leitura das curvas', en: 'Flow at which the curves are read' },
+  readerHint: {
+    pt: 'Toque no gráfico ou passe o cursor sobre ele para ler as duas curvas em uma vazão. Com o teclado, use as setas.',
+    en: 'Tap the chart or move the pointer over it to read both curves at a flow. With the keyboard, use the arrow keys.',
+  },
+  readFlow: { pt: 'Vazão', en: 'Flow' },
+  readPump: { pt: 'Bomba', en: 'Pump' },
+  readSystem: { pt: 'Sistema', en: 'System' },
+
   statusOk: { pt: 'A bomba atende', en: 'The pump is sufficient' },
   statusFail: { pt: 'A bomba não atende', en: 'The pump is not sufficient' },
   verdictOk: (flow: string, head: string, required: string, margin: string): LocalizedText => ({

@@ -195,7 +195,7 @@ describe('runChecks', () => {
         'Aumente o diâmetro dos trechos a montante para reduzir a perda de carga.',
     );
     expect(issue.explanation.en).toBe(
-      'Node N3: dynamic pressure of 7.42 m H2O, below the minimum of 10 m H2O ' +
+      'Node N3: dynamic pressure of 7.42 mca, below the minimum of 10 mca ' +
         '(ABNT NBR 12218:2017). Increase the diameter of the upstream pipes to reduce the head loss.',
     );
   });
@@ -219,16 +219,14 @@ describe('runChecks', () => {
       'Mesmo sem escoamento a pressão seria de apenas 6,00 mca',
     );
     expect(issue.explanation.pt).toContain('reservatório mais alto ou bomba');
-    expect(issue.explanation.en).toContain(
-      'Even with no flow the pressure would be only 6.00 m H2O',
-    );
+    expect(issue.explanation.en).toContain('Even with no flow the pressure would be only 6.00 mca');
     expect(issue.explanation.pt).not.toContain('Aumente o diâmetro');
   });
 
   it('formats negative pressures', () => {
     const report = runChecks(network, makeResult(network, { N1: 49, N2: 48, N3: 28.5 }, goodFlows));
     expect(report.issues[0]!.explanation.pt).toContain('pressão dinâmica de -1,50 mca');
-    expect(report.issues[0]!.explanation.en).toContain('dynamic pressure of -1.50 m H2O');
+    expect(report.issues[0]!.explanation.en).toContain('dynamic pressure of -1.50 mca');
   });
 
   it('reports high static pressure', () => {
@@ -253,7 +251,7 @@ describe('runChecks', () => {
     );
     expect(issue.explanation.pt).toContain('válvula redutora de pressão');
     expect(issue.explanation.en).toContain(
-      'Node N1: static pressure of 44.50 m H2O, above the maximum of 40 m H2O',
+      'Node N1: static pressure of 44.50 mca, above the maximum of 40 mca',
     );
     expect(issue.explanation.en).toContain('pressure reducing valve');
   });
@@ -460,7 +458,7 @@ describe('runChecks', () => {
       'maxVelocity:T3:1',
     ]);
     expect(report.issues[0]!.explanation.pt).toContain('abaixo do mínimo de 15,5 mca. Aumente');
-    expect(report.issues[0]!.explanation.en).toContain('below the minimum of 15.5 m H2O. Increase');
+    expect(report.issues[0]!.explanation.en).toContain('below the minimum of 15.5 mca. Increase');
     expect(report.issues[0]!.explanation.pt).not.toContain(NBR_12218.reference);
   });
 

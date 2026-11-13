@@ -283,5 +283,12 @@
     },
     "cost": 137400,
     "method": "Branch and bound over all commercial diameters with cost pruning (cheapest passing design)."
+  },
+  "town": {
+    "landmarks": [
+      { "type": "school", "x": 420, "y": 205 },
+      { "type": "square", "x": 700, "y": 300 },
+      { "type": "market", "x": 1000, "y": 205 }
+    ]
   }
 }

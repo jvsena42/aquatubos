@@ -121,3 +121,87 @@ export function IconClose() {
     </Icon>
   );
 }
+
+export function IconMore() {
+  return (
+    <Icon filled>
+      <circle cx="12" cy="5" r="1.25" />
+      <circle cx="12" cy="12" r="1.25" />
+      <circle cx="12" cy="19" r="1.25" />
+    </Icon>
+  );
+}
+
+export function IconSettings() {
+  return (
+    <Icon>
+      <path d="M4 7h9m5 0h2M4 17h2m5 0h9" />
+      <circle cx="15.5" cy="7" r="2.5" />
+      <circle cx="8.5" cy="17" r="2.5" />
+    </Icon>
+  );
+}
+
+export function IconChevronUp() {
+  return (
+    <Icon>
+      <path d="m6 15 6-6 6 6" />
+    </Icon>
+  );
+}
+
+export function IconChevronDown() {
+  return (
+    <Icon>
+      <path d="m6 9 6 6 6-6" />
+    </Icon>
+  );
+}
+
+export function IconRadioOn() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.5" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function IconRadioOff() {
+  return (
+    <Icon>
+      <circle cx="12" cy="12" r="8.5" />
+    </Icon>
+  );
+}
+
+export function IconReset() {
+  return (
+    <Icon>
+      <path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5" />
+      <path d="M4.5 4.5v4h4" />
+    </Icon>
+  );
+}
+
+export function IconTown() {
+  return (
+    <Icon>
+      <path d="M3.5 11.5 9 6.5l5.5 5" />
+      <path d="M5 10.5v8.5h8v-8.5" />
+      <path d="M13 13h6.5v6H13M16.5 13V9.5" />
+    </Icon>
+  );
+}
+
+export function IconSchematic() {
+  return (
+    <Icon>
+      <path d="M7 6.5h10M6 8v8M8 17.5h9M18 8v8" />
+      <circle cx="6" cy="6.5" r="2" />
+      <circle cx="18" cy="6.5" r="2" />
+      <circle cx="6" cy="17.5" r="2" />
+      <circle cx="18" cy="17.5" r="2" />
+    </Icon>
+  );
+}

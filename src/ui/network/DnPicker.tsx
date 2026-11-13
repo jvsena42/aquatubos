@@ -9,10 +9,15 @@ interface DnPickerProps {
   pipeId: string;
   /** Only the DN numbers; the price stays in the accessible name and in the tooltip. */
   compact?: boolean;
+  /**
+   * With `compact`: also the price per metre as a bare number under each DN (phones, where
+   * there is no tooltip). The unit is written once next to the picker.
+   */
+  prices?: boolean;
 }
 
 /** Commercial diameters of one pipe as a segmented control. Writes to the store. */
-export function DnPicker({ pipeId, compact = false }: DnPickerProps) {
+export function DnPicker({ pipeId, compact = false, prices = false }: DnPickerProps) {
   const tr = useTr();
   const fmt = useFormat();
   const pipe = useAppStore((s) => s.scenario?.pipes.find((p) => p.id === pipeId));
@@ -24,7 +29,15 @@ export function DnPicker({ pipeId, compact = false }: DnPickerProps) {
   const selected = current ?? pipe.initialDN;
 
   return (
-    <div className={compact ? 'dn-picker dn-picker--compact' : 'dn-picker'}>
+    <div
+      className={[
+        'dn-picker',
+        compact && 'dn-picker--compact',
+        compact && prices && 'dn-picker--prices',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <div
         className="segmented dn-picker__options"
         role="group"
@@ -48,6 +61,11 @@ export function DnPicker({ pipeId, compact = false }: DnPickerProps) {
                 <span className="dn-picker__price">
                   {money(fmt(catalogEntry(dn).pricePerMeter, 0))}
                   {tr(networkStrings.perMetre)}
+                </span>
+              )}
+              {compact && prices && (
+                <span className="num dn-picker__price" aria-hidden="true">
+                  {fmt(catalogEntry(dn).pricePerMeter, 0)}
                 </span>
               )}
             </button>

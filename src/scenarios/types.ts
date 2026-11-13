@@ -25,6 +25,11 @@ export interface ScenarioReservoir {
   elevation: number;
   /** Water surface level = total head, m. */
   waterLevel: number;
+  /**
+   * How the town view draws it. Default: `elevated` (water tower) when the water level is more
+   * than 8 m above the ground, otherwise `ground`.
+   */
+  kind?: 'elevated' | 'ground';
 }
 
 export interface ScenarioPipe {
@@ -100,6 +105,28 @@ export interface Scenario {
   /** Node ids from the source to the critical node, used by the HGL profile by default. */
   profilePath: string[];
   reference: ScenarioReference;
+  /** Optional overrides for the generated town scenery. */
+  town?: ScenarioTown;
+}
+
+export type TownLandmarkType = 'school' | 'church' | 'market' | 'square';
+
+/**
+ * Overrides for the town view. The scenery is generated from the network geometry, seeded by
+ * the stage id, so every field is optional. Coordinates are plan coordinates in metres, in the
+ * same system as the nodes.
+ */
+export interface ScenarioTown {
+  /** Seed for the generator. Default: the stage id. */
+  seed?: string;
+  /** Centre and radius of the park. Default: the largest free block. */
+  park?: { x: number; y: number; radius?: number };
+  /** Buildings placed at fixed positions. */
+  landmarks?: { type: TownLandmarkType; x: number; y: number }[];
+  /** Extra scenery houses (not tied to a demand node). */
+  extraHouses?: { x: number; y: number }[];
+  /** False to draw the town without filler houses and trees. Default: true. */
+  scenery?: boolean;
 }
 
 /** DN in mm by pipe id. */

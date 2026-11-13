@@ -129,14 +129,20 @@ export function sideAnchor(point: Point, side: Side, distance: number): LabelAnc
 }
 
 /**
- * Anchor of a pipe label: beside the middle of the pipe, `distance` px away along the normal,
- * so the text does not sit on the line. The label goes above the pipe; for a vertical pipe it
- * goes on the side that faces `inward` (the middle of the drawing), away from the edges.
+ * Anchors of a pipe label, in order of preference: beside the pipe `distance` px away along the
+ * normal, so the text does not sit on the line. First above the middle of the pipe (for a
+ * vertical pipe, on the side that faces `inward`, the middle of the drawing), then the other
+ * side, then both sides nearer to each end.
  */
-export function pipeLabelAnchor(a: Point, b: Point, distance: number, inward: Point): LabelAnchor {
+export function pipeLabelAnchors(
+  a: Point,
+  b: Point,
+  distance: number,
+  inward: Point,
+): LabelAnchor[] {
   const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   const length = Math.hypot(b.x - a.x, b.y - a.y);
-  if (length === 0) return sideAnchor(mid, 'n', distance);
+  if (length === 0) return [sideAnchor(mid, 'n', distance), sideAnchor(mid, 's', distance)];
   let nx = -(b.y - a.y) / length;
   let ny = (b.x - a.x) / length;
   const vertical = Math.abs(ny) < 0.3;
@@ -145,10 +151,28 @@ export function pipeLabelAnchor(a: Point, b: Point, distance: number, inward: Po
     nx = -nx;
     ny = -ny;
   }
-  const x = mid.x + nx * distance;
-  const y = mid.y + ny * distance;
-  if (Math.abs(nx) < 0.3) return { x, y, anchor: 'middle', block: 'above' };
-  return { x, y, anchor: nx > 0 ? 'start' : 'end', block: vertical ? 'centered' : 'above' };
+  const anchorAt = (t: number, side: 1 | -1): LabelAnchor => {
+    const sx = nx * side;
+    const sy = ny * side;
+    const x = a.x + (b.x - a.x) * t + sx * distance;
+    const y = a.y + (b.y - a.y) * t + sy * distance;
+    const block = vertical ? 'centered' : sy <= 0 ? 'above' : 'below';
+    if (Math.abs(sx) < 0.3) return { x, y, anchor: 'middle', block };
+    return { x, y, anchor: sx > 0 ? 'start' : 'end', block };
+  };
+  return [
+    anchorAt(0.5, 1),
+    anchorAt(0.5, -1),
+    anchorAt(0.32, 1),
+    anchorAt(0.68, 1),
+    anchorAt(0.32, -1),
+    anchorAt(0.68, -1),
+  ];
+}
+
+/** Preferred anchor of a pipe label; see `pipeLabelAnchors`. */
+export function pipeLabelAnchor(a: Point, b: Point, distance: number, inward: Point): LabelAnchor {
+  return pipeLabelAnchors(a, b, distance, inward)[0]!;
 }
 
 /** Stroke width in px for a DN in mm: DN 50 → 4 px, DN 300 → 11 px. */

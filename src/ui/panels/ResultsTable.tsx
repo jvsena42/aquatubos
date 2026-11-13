@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useFormat, useTr } from '../../i18n';
 import {
   csvFileName,
@@ -10,6 +10,7 @@ import {
 } from '../../game/resultsTable';
 import { useAppStore } from '../../state/store';
 import { ResultBody, ResultHint } from '../charts/ResultState';
+import { ScrollTable } from '../charts/ScrollTable';
 import { Term } from '../glossary/Term';
 import { IconError, IconWarning } from '../shell/icons';
 import { flagSeverityLabels, resultsStrings as s } from './ResultsTable.strings';
@@ -78,6 +79,8 @@ export function ResultsTable() {
   const evaluation = useAppStore((state) => state.evaluation);
   const selection = useAppStore((state) => state.selection);
   const select = useAppStore((state) => state.select);
+  // On phones one table is shown at a time, so each one can fill the view.
+  const [shown, setShown] = useState<'pipes' | 'nodes'>('pipes');
 
   if (!scenario) return null;
   const pipes = evaluation ? pipeTableRows(scenario, evaluation) : [];
@@ -93,25 +96,96 @@ export function ResultsTable() {
   const hasWarning = flags.some((flag) => flag?.severity === 'warning');
   const hasReversed = pipes.some((row) => row.reversed);
 
+  // What the marks of the selected row mean, in words: on a touch screen there is no hover.
+  const flagNote = (name: string, value: string, unit: string, flag: LimitFlag | null) => {
+    if (!flag) return [];
+    const limit = `${fmt(flag.limit, 2)} ${unit}`;
+    const reason = tr(flag.kind === 'low' ? s.belowLimit(limit) : s.aboveLimit(limit));
+    return [`${name} ${value} ${unit}: ${reason}`];
+  };
+  const selectedPipe = selection?.type === 'pipe' && pipes.find((row) => row.id === selection.id);
+  const selectedNode =
+    (selection?.type === 'node' || selection?.type === 'reservoir') &&
+    nodes.find((row) => row.id === selection.id);
+  const notes = selectedPipe
+    ? [
+        ...flagNote(
+          tr(s.velocity),
+          fmt(selectedPipe.velocity, 2),
+          'm/s',
+          selectedPipe.velocityFlag,
+        ),
+        ...flagNote(
+          `${tr(s.pressure)} (${tr(s.upstream)})`,
+          fmt(selectedPipe.pressureUp, 2),
+          mca,
+          selectedPipe.pressureUpFlag,
+        ),
+        ...flagNote(
+          `${tr(s.pressure)} (${tr(s.downstream)})`,
+          fmt(selectedPipe.pressureDown, 2),
+          mca,
+          selectedPipe.pressureDownFlag,
+        ),
+        ...(selectedPipe.reversed
+          ? [tr(s.reversed(selectedPipe.upstream, selectedPipe.downstream))]
+          : []),
+      ]
+    : selectedNode
+      ? [
+          ...flagNote(
+            tr(s.dynamicPressure),
+            fmt(selectedNode.pressure, 2),
+            mca,
+            selectedNode.pressureFlag,
+          ),
+          ...(selectedNode.staticPressure === null
+            ? []
+            : flagNote(
+                tr(s.staticPressure),
+                fmt(selectedNode.staticPressure, 2),
+                mca,
+                selectedNode.staticFlag,
+              )),
+        ]
+      : [];
+  const notesId = selectedPipe ? selectedPipe.id : selectedNode ? selectedNode.id : '';
+
   return (
-    <ResultBody className="results">
-      <section className="results__section">
+    <ResultBody className={`results results--${shown}`}>
+      <section className="results__section results__section--pipes">
         <div className="results__bar">
           <h3>{tr(s.pipesTitle)}</h3>
+          <div className="segmented results__switch" role="group" aria-label={tr(s.shownTable)}>
+            <button
+              type="button"
+              aria-pressed={shown === 'pipes'}
+              onClick={() => setShown('pipes')}
+            >
+              {tr(s.pipesTitle)}
+            </button>
+            <button
+              type="button"
+              aria-pressed={shown === 'nodes'}
+              onClick={() => setShown('nodes')}
+            >
+              {tr(s.nodesTitle)}
+            </button>
+          </div>
           <button
             type="button"
-            className="btn btn--sm"
+            className="btn btn--sm results__export"
             onClick={() => downloadText(csvFileName(scenario.id), pipeTableCsv(pipes, lang))}
           >
             {tr(s.exportCsv)}
           </button>
         </div>
-        <div className="table-wrap results__wrap">
+        <ScrollTable className="results__wrap" label={tr(s.pipesTitle)}>
           <table className="table results__table">
             <caption className="visually-hidden">{tr(s.pipesCaption)}</caption>
             <thead>
               <tr>
-                <th scope="col" rowSpan={2} className="results__corner">
+                <th scope="col" rowSpan={2} className="results__corner sticky-col">
                   {tr(s.pipe)}
                 </th>
                 <th scope="colgroup" colSpan={2}>
@@ -187,7 +261,7 @@ export function ResultsTable() {
                   aria-selected={selection?.type === 'pipe' && selection.id === row.id}
                   onClick={() => select({ type: 'pipe', id: row.id })}
                 >
-                  <th scope="row" className="results__id">
+                  <th scope="row" className="results__id sticky-col">
                     <button type="button" className="results__rowbtn num">
                       {row.id}
                     </button>
@@ -225,19 +299,19 @@ export function ResultsTable() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </section>
 
-      <section className="results__section">
+      <section className="results__section results__section--nodes">
         <div className="results__bar">
           <h3>{tr(s.nodesTitle)}</h3>
         </div>
-        <div className="table-wrap results__wrap">
+        <ScrollTable className="results__wrap" label={tr(s.nodesTitle)}>
           <table className="table results__table">
             <caption className="visually-hidden">{tr(s.nodesCaption)}</caption>
             <thead>
               <tr>
-                <th scope="col" className="results__corner">
+                <th scope="col" className="results__corner sticky-col">
                   {tr(s.node)}
                 </th>
                 <th scope="col" className="num">
@@ -273,7 +347,7 @@ export function ResultsTable() {
                   }
                   onClick={() => select({ type: row.kind, id: row.id })}
                 >
-                  <th scope="row" className="results__id">
+                  <th scope="row" className="results__id sticky-col">
                     <button type="button" className="results__rowbtn num">
                       {row.id}
                     </button>
@@ -294,8 +368,17 @@ export function ResultsTable() {
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </section>
+
+      {notes.length > 0 && (
+        <p className="results__notes" role="status">
+          <strong className="num">{notesId}</strong>
+          {notes.map((note) => (
+            <span key={note}>{note}</span>
+          ))}
+        </p>
+      )}
 
       <ul className="results__legend">
         {hasError && (

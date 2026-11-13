@@ -43,6 +43,9 @@ test('plays the five stages with the reference diameters', async ({ page }) => {
   });
 
   await page.goto('./');
+  // The app opens on the title screen.
+  await expect(page.getByRole('heading', { level: 1, name: 'Aquatubos' })).toBeVisible();
+  await page.getByRole('button', { name: 'Jogar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Etapas' })).toBeVisible();
   // Only stage 1 is unlocked at first.
   await expect(page.getByRole('button', { name: /^Etapa 2: .*Bloqueada/ })).toBeDisabled();
@@ -54,9 +57,15 @@ test('plays the five stages with the reference diameters', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(stage.title.pt);
     await closeBriefing(page);
 
-    // The initial design fails.
+    // The initial design fails. The network tab opens on the town view.
     await expect(page.getByText('Reprovado').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cidade', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     await expect(page.locator('[data-element="pipe"]')).toHaveCount(stage.pipes.length);
+    const houses = page.getByText(/Casas atendidas/).first();
+    await expect(houses).toBeVisible();
 
     for (const pipe of stage.pipes) {
       const dn = stage.reference.diameters[pipe.id];
@@ -92,18 +101,41 @@ test('plays the five stages with the reference diameters', async ({ page }) => {
     }
   }
 
-  // Progress survives a reload.
+  // The schematic is one click away and shows the same pipes.
+  await page.getByRole('button', { name: 'Esquema', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Desenho da rede' })).toBeVisible();
+  await expect(page.locator('[data-element="pipe"]')).toHaveCount(stages[4]!.pipes.length);
+  await page.getByRole('button', { name: 'Cidade', exact: true }).click();
+
+  // Progress survives a reload: the title screen offers the map with everything completed.
   await page.reload();
+  await expect(page.getByRole('group', { name: 'Seu progresso' })).toContainText('15');
+  await page.getByRole('button', { name: /^Mapa de etapas/ }).click();
   await expect(page.getByRole('heading', { name: 'Etapas' })).toBeVisible();
   await expect(page.getByText('Concluída')).toHaveCount(stages.length);
   expect(errors).toEqual([]);
 });
 
+test('opens how to play, about and the glossary from the title screen', async ({ page }) => {
+  await page.goto('./');
+  const main = page.locator('main');
+  for (const [button, dialog] of [
+    ['Como jogar', 'Como jogar'],
+    ['Sobre', 'Sobre o Aquatubos'],
+    ['Glossário', 'Glossário'],
+  ] as const) {
+    await main.getByRole('button', { name: button, exact: true }).click();
+    await expect(page.getByRole('dialog', { name: dialog })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toBeHidden();
+  }
+});
+
 test('switches language and theme', async ({ page }) => {
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Etapas' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Jogar', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'English' }).click();
-  await expect(page.getByRole('heading', { name: 'Stages' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.getByRole('button', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

@@ -1,0 +1,757 @@
+/*
+ * Title screen. Component-scoped custom properties (built from tokens):
+ *   --home-sky       colour of the sky near the horizon
+ *   --home-cloud     colour of the clouds
+ *   --home-wordmark  colour of the wordmark, as in logo-full.svg and logo-full-dark.svg
+ */
+.home {
+  --home-sky: var(--color-water-fill);
+  --home-wordmark: var(--color-brand);
+  --home-cloud: var(--color-surface);
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  background: linear-gradient(to bottom, var(--color-bg) 35%, var(--home-sky));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .home {
+    --home-wordmark: var(--color-text);
+    --home-cloud: var(--color-border);
+  }
+}
+
+:root[data-theme='dark'] .home {
+  --home-wordmark: var(--color-text);
+  --home-cloud: var(--color-border);
+}
+
+.home__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  /* The sides keep clear of a notch. */
+  padding: var(--space-6) max(var(--space-4), env(safe-area-inset-right, 0px)) var(--space-4)
+    max(var(--space-4), env(safe-area-inset-left, 0px));
+  text-align: center;
+}
+
+/* Name and pitch; actions and progress. Their children are laid out by .home__content, except
+   on a phone in landscape, where the two groups are columns. */
+.home__intro,
+.home__menu {
+  display: contents;
+}
+
+.home__title {
+  display: flex;
+  border-radius: var(--radius-md);
+}
+
+.home-logo {
+  width: clamp(15rem, 34vw, 23rem);
+  height: auto;
+}
+
+.home-logo__word {
+  fill: var(--home-wordmark);
+}
+
+.home__tagline {
+  font-size: clamp(var(--font-size-lg), 2.6vw, var(--font-size-2xl));
+  font-weight: 650;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
+}
+
+.home__lead {
+  max-width: 38rem;
+  color: var(--color-text-muted);
+}
+
+.home__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.home__play {
+  flex-direction: column;
+  gap: 2px;
+  min-width: 15rem;
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-6);
+  border-radius: var(--radius-lg);
+}
+
+.home__play-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: 650;
+}
+
+.home__play-stage {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.home__secondary {
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.home__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home__links .btn {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.home__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: var(--space-2) 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
+}
+
+.home__stat {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-5);
+}
+
+.home__stat + .home__stat {
+  border-left: 1px solid var(--color-border);
+}
+
+.home__stat dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: 550;
+}
+
+.home__stat dd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 650;
+}
+
+.home__star {
+  display: inline-flex;
+  color: var(--color-warn);
+}
+
+.home__zero {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* Scene: fills what is left of the viewport, anchored to the bottom. */
+.home__scene {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: max(11rem, 23vw);
+  overflow: hidden;
+}
+
+.home-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.home-scene * {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hs-body,
+.hs-roof,
+.hs-tree,
+.hs-door,
+.hs-hill {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2;
+}
+
+.hs-body {
+  fill: var(--color-map-building);
+}
+
+.hs-roof {
+  fill: var(--color-map-roof);
+}
+
+.hs-roof--alt,
+.hs-door {
+  fill: var(--color-map-roof-alt);
+}
+
+.hs-tree {
+  fill: var(--color-map-tree);
+}
+
+.hs-hill {
+  fill: var(--color-map-grass);
+  stroke: var(--color-map-contour);
+}
+
+.hs-cloud {
+  fill: var(--home-cloud);
+  opacity: 0.8;
+  animation: hs-drift 50s ease-in-out infinite alternate;
+}
+
+.hs-cloud--slow {
+  animation-duration: 70s;
+  animation-direction: alternate-reverse;
+}
+
+.hs-line {
+  fill: none;
+  stroke: var(--color-map-building-edge);
+  stroke-width: 3;
+}
+
+.hs-tank {
+  fill: var(--color-map-water);
+}
+
+.hs-window {
+  fill: var(--color-map-window);
+}
+
+/* Lit is the resting state; the animation only delays it. */
+.hs-lit {
+  fill: var(--color-map-window-lit);
+  stroke: var(--color-map-building-edge);
+  stroke-width: 1.5;
+  animation: hs-light 700ms ease-out backwards;
+}
+
+.hs-soil {
+  fill: var(--color-terrain-fill);
+}
+
+.hs-strata {
+  fill: none;
+  stroke: var(--color-terrain);
+  stroke-width: 2;
+  opacity: 0.35;
+}
+
+.hs-pebble {
+  fill: var(--color-terrain);
+  opacity: 0.3;
+}
+
+.hs-street {
+  fill: var(--color-map-street);
+  stroke: var(--color-map-street-edge);
+  stroke-width: 2;
+}
+
+.hs-pipe,
+.hs-water,
+.hs-flow {
+  fill: none;
+  stroke-linecap: butt;
+}
+
+.hs-pipe {
+  stroke: var(--color-pipe);
+  stroke-width: 13;
+}
+
+.hs-water {
+  stroke: var(--color-water);
+  stroke-width: 8;
+}
+
+.hs-flow {
+  stroke: var(--color-water-fill);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 9 19;
+  animation: hs-flow 1.4s linear infinite;
+}
+
+.hs-flow--service {
+  animation-duration: 2s;
+}
+
+.hs-node {
+  fill: var(--color-brand-accent);
+  stroke: var(--color-pipe);
+  stroke-width: 2.5;
+}
+
+@keyframes hs-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes hs-light {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes hs-drift {
+  to {
+    transform: translateX(70px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-flow,
+  .hs-lit,
+  .hs-cloud {
+    animation: none;
+  }
+}
+
+/* How to play */
+/* The bottom padding of the dialog body is taken over by .howto__nav. */
+.howto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: calc(-1 * var(--space-4));
+}
+
+.howto__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 19rem;
+  text-align: center;
+}
+
+.howto__art {
+  width: min(100%, 20rem);
+  height: auto;
+  margin-bottom: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-map-ground);
+}
+
+.howto__art * {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.howto__count {
+  font-size: var(--font-size-xs);
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.howto__title {
+  font-size: var(--font-size-lg);
+}
+
+.howto__text {
+  max-width: 32rem;
+}
+
+/* The buttons stay at the bottom of the dialog when a step is taller than it and scrolls. The
+   paddings cover the gap above and the padding of the dialog below. */
+.howto__nav {
+  position: sticky;
+  bottom: calc(-1 * var(--space-4));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: calc(-1 * var(--space-2));
+  padding: var(--space-2) 0 var(--space-4);
+  background: var(--color-surface);
+}
+
+.howto__nav > .btn {
+  min-width: 7rem;
+  min-height: 2.75rem;
+}
+
+.howto__dots {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The dot is small but its button is 28 px wide and tall. */
+.howto__dot {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  cursor: pointer;
+}
+
+.howto__dot::before {
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 2px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  content: '';
+}
+
+.howto__dot[aria-current]::before {
+  width: 1.25rem;
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.ht-pipe,
+.ht-water,
+.ht-line,
+.ht-arrow,
+.ht-ok,
+.ht-on-button {
+  fill: none;
+}
+
+.ht-pipe {
+  stroke: var(--color-pipe);
+  stroke-width: 13;
+}
+
+.ht-water {
+  stroke: var(--color-water);
+  stroke-width: 8;
+}
+
+.ht-arrow {
+  stroke: var(--color-water-fill);
+  stroke-width: 3;
+}
+
+.ht-node {
+  fill: var(--color-brand-accent);
+  stroke: var(--color-pipe);
+  stroke-width: 2.5;
+}
+
+.ht-chip {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.ht-chip--on {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+
+.ht-bore {
+  fill: var(--color-water-fill);
+  stroke: var(--color-pipe);
+  stroke-width: 2.5;
+}
+
+.ht-bore--on {
+  fill: var(--color-water);
+}
+
+.ht-button {
+  fill: var(--color-primary);
+}
+
+.ht-on-button {
+  stroke: var(--color-primary-contrast);
+  stroke-width: 3;
+}
+
+.ht-line {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 3;
+}
+
+.ht-body,
+.ht-roof,
+.ht-lit {
+  stroke: var(--color-map-building-edge);
+  stroke-width: 2;
+}
+
+.ht-body {
+  fill: var(--color-map-building);
+}
+
+.ht-roof {
+  fill: var(--color-map-roof);
+}
+
+.ht-roof--alt {
+  fill: var(--color-map-roof-alt);
+}
+
+.ht-lit {
+  fill: var(--color-map-window-lit);
+  stroke-width: 1.5;
+}
+
+.ht-ok {
+  stroke: var(--color-ok);
+  stroke-width: 3;
+}
+
+.ht-star {
+  fill: var(--color-map-window-lit);
+  stroke: var(--color-warn);
+  stroke-width: 2;
+}
+
+.ht-text {
+  fill: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
+.ht-star--off {
+  fill: none;
+  stroke: var(--color-border-strong);
+}
+
+/* About */
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.about h3 {
+  margin-top: var(--space-3);
+}
+
+.about__note {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-weight: 550;
+}
+
+/* Fingers: the step dots and the links of the credits are 44 px tall. */
+@media (pointer: coarse) {
+  .howto__dots {
+    gap: 0;
+  }
+
+  .howto__dot {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .about a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .home__content {
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-3);
+  }
+
+  .home__actions {
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  /* One row of three; they wrap when the labels do not fit. */
+  .home__links {
+    align-self: stretch;
+  }
+
+  .home__links > li {
+    flex: 1 1 auto;
+  }
+
+  .home__links .btn {
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
+  }
+
+  .home__play,
+  .home__secondary {
+    min-width: 0;
+  }
+
+  .home__secondary {
+    min-height: 2.75rem;
+  }
+
+  .home__stats {
+    align-self: stretch;
+  }
+
+  .home__stat {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  /* Two counters side by side and the cost on its own line below them. */
+  .home__stat:nth-child(3) {
+    flex-basis: 100%;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+
+  .howto__step {
+    min-height: 21rem;
+  }
+
+  /* Dots on their own line above the two buttons. */
+  .howto__nav {
+    flex-wrap: wrap;
+  }
+
+  .howto__dots {
+    flex-basis: 100%;
+    justify-content: center;
+    order: -1;
+  }
+
+  .howto__nav > .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* Phone in landscape: little height. Name and pitch on the left, actions on the right, so the
+   main button and the links show without scrolling; the scene follows below. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .home__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-5);
+    max-width: 56rem;
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .home__intro,
+  .home__menu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .home-logo {
+    width: 13rem;
+  }
+
+  .home__tagline {
+    font-size: var(--font-size-lg);
+  }
+
+  .home__lead,
+  .home__zero {
+    font-size: var(--font-size-sm);
+  }
+
+  .home__actions {
+    align-self: stretch;
+    margin-top: 0;
+  }
+
+  .home__play,
+  .home__secondary {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 3rem;
+  }
+
+  .home__links {
+    flex-direction: row;
+  }
+
+  .home__stats,
+  .home__zero {
+    margin-top: 0;
+  }
+
+  .home__stats {
+    align-self: stretch;
+  }
+
+  .home__stat {
+    padding: var(--space-1) var(--space-3);
+  }
+
+  .home__stat:nth-child(3) {
+    flex-basis: 100%;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+
+  /* Drawing beside the text, so a step fits the dialog without scrolling. */
+  .howto__step {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    align-content: center;
+    column-gap: var(--space-4);
+    min-height: 9.5rem;
+    text-align: left;
+  }
+
+  .howto__art {
+    grid-row: 1 / span 3;
+    align-self: center;
+    margin-bottom: 0;
+  }
+
+  .howto__count {
+    align-self: end;
+  }
+}

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { initialDiameters } from '../../game/buildNetwork';
 import { evaluateStage } from '../../game/evaluate';
@@ -139,6 +139,130 @@ describe('HglProfile', () => {
     screen.getByRole('button', { name: /^Nó N4/ }).focus();
     await user.keyboard('{Enter}');
     expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'N4' });
+  });
+
+  it('keeps the values of a tapped node in the readout until another one is chosen', async () => {
+    const user = userEvent.setup();
+    const { evaluation } = open('stage2');
+    render(<HglProfile />);
+    const readout = screen.getByRole('status');
+    expect(readout).toHaveClass('chart__readout', 'profile__readout');
+    expect(readout).toHaveTextContent(/toque em um nó/);
+
+    // A tap is a click with no hover before it and no blur after it.
+    fireEvent.click(screen.getByRole('button', { name: /^Nó N2/ }));
+    const n2 = `Nó N2 · Distância 500 m · Cota do terreno 118,00 m · Cota piezométrica ${pt(
+      evaluation.result.nodes.N2!.head,
+    )} m · Pressão ${pt(evaluation.result.nodes.N2!.pressure)} mca`;
+    expect(readout).toHaveTextContent(n2);
+    expect(readout.querySelector('.chart__readout-title')).toHaveTextContent('Nó N2');
+    expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'N2' });
+
+    // It stays when the focus goes elsewhere.
+    await user.click(screen.getByRole('combobox', { name: 'Perfil até o nó' }));
+    expect(readout).toHaveTextContent(n2);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Nó N4/ }));
+    expect(readout).toHaveTextContent(/^Nó N4 · Distância 720 m/);
+  });
+
+  it('shows the values of a node reached with the keyboard', async () => {
+    const user = userEvent.setup();
+    open('stage2');
+    render(<HglProfile />);
+    act(() => screen.getByRole('button', { name: /^Nó N1/ }).focus());
+    expect(screen.getByRole('status')).toHaveTextContent(/^Nó N1 · Distância 250 m/);
+    await user.tab();
+    expect(screen.getByRole('status')).toHaveTextContent(/^Nó N2 · Distância 500 m/);
+  });
+
+  it('chooses the node closest to a tap on the plot', () => {
+    open('stage2');
+    render(<HglProfile />);
+    const svg = screen.getByRole('group', { name: 'Perfil longitudinal de R1 a N4' });
+    // The chart is drawn 720 px wide; here it is shown at half that size.
+    svg.getBoundingClientRect = () => new DOMRect(10, 0, 360, 200);
+    const plot = svg.querySelector('.profile__plot')!;
+    const n1 = svg.querySelectorAll('.profile__node')[1]!.querySelector('.profile__marker')!;
+    const at = Number(n1.getAttribute('cx'));
+
+    fireEvent.click(plot, { clientX: 10 + (at + 20) / 2 });
+    expect(screen.getByRole('status')).toHaveTextContent(/^Nó N1 /);
+    expect(useAppStore.getState().selection).toEqual({ type: 'node', id: 'N1' });
+
+    fireEvent.click(plot, { clientX: 10 + 360 });
+    expect(screen.getByRole('status')).toHaveTextContent(/^Nó N4 /);
+  });
+
+  it('gives every node a touch target of 44 px', () => {
+    open('stage2');
+    render(<HglProfile />);
+    const hits = [...document.querySelectorAll('.profile__hit')];
+    expect(hits).toHaveLength(4);
+    for (const hit of hits) expect(Number(hit.getAttribute('r')) * 2).toBeGreaterThanOrEqual(44);
+  });
+
+  describe('at the width of the container', () => {
+    const drawAt = (width: number) => {
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          private readonly callback: (entries: { contentRect: { width: number } }[]) => void;
+          constructor(callback: (entries: { contentRect: { width: number } }[]) => void) {
+            this.callback = callback;
+          }
+          observe() {
+            this.callback([{ contentRect: { width } }]);
+          }
+          disconnect() {}
+        },
+      );
+      open('stage4');
+      const view = render(<HglProfile />);
+      const svg = document.querySelector<SVGSVGElement>('svg.chart__svg')!;
+      const ticks = [...svg.querySelectorAll('.chart__tick')];
+      const result = {
+        viewBox: svg.getAttribute('viewBox')!.split(' ').map(Number),
+        // Labels under the horizontal axis are centred on their tick.
+        xTicks: ticks
+          .filter((tick) => tick.getAttribute('text-anchor') === 'middle')
+          .map((tick) => ({ x: Number(tick.getAttribute('x')), text: tick.textContent ?? '' })),
+        yTicks: ticks
+          .filter((tick) => tick.getAttribute('text-anchor') === 'end')
+          .map((tick) => Number(tick.getAttribute('y'))),
+      };
+      view.unmount();
+      return result;
+    };
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('draws at that width and with fewer ticks on a phone', () => {
+      const phone = drawAt(310);
+      const wide = drawAt(900);
+      expect(phone.viewBox[2]).toBe(310);
+      expect(wide.viewBox[2]).toBe(900);
+      expect(phone.viewBox[3]).toBeLessThan(wide.viewBox[3]!);
+      expect(phone.xTicks.length + phone.yTicks.length).toBeLessThan(
+        wide.xTicks.length + wide.yTicks.length,
+      );
+      expect(phone.xTicks.length).toBeGreaterThanOrEqual(2);
+      expect(phone.yTicks.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('never lets the tick labels touch', () => {
+      for (const width of [280, 310, 358, 398, 786]) {
+        const { xTicks, yTicks } = drawAt(width);
+        for (let i = 1; i < xTicks.length; i++) {
+          // 6.7 px per character at 11 px, centred on the tick.
+          const half = (xTicks[i]!.text.length + xTicks[i - 1]!.text.length) * 3.35;
+          expect(xTicks[i]!.x - xTicks[i - 1]!.x).toBeGreaterThan(half + 4);
+        }
+        for (let i = 1; i < yTicks.length; i++) {
+          expect(Math.abs(yTicks[i]! - yTicks[i - 1]!)).toBeGreaterThanOrEqual(16);
+        }
+      }
+    });
   });
 
   it('marks the nodes below the minimum pressure', () => {

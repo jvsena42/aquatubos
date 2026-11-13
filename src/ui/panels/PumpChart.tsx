@@ -1,12 +1,20 @@
-import { useId } from 'react';
+import { useId, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
 import { m3sToLps } from '../../engine/units';
 import { HEAD_UNIT } from '../../game/resultsTable';
 import { useFormat, useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
 import { ResultBody, ResultHint } from '../charts/ResultState';
-import { linearScale, niceAxis, polyline } from '../charts/scale';
-import { useChartWidth } from '../charts/useChartWidth';
+import {
+  linearScale,
+  nearestIndex,
+  niceAxis,
+  polyline,
+  thinTicks,
+  tickLabelWidth,
+  tickTarget,
+} from '../charts/scale';
+import { useChartSize } from '../charts/useChartWidth';
 import { Term } from '../glossary/Term';
 import { IconCheck, IconError } from '../shell/icons';
 import { pumpStrings as s } from './PumpChart.strings';
@@ -14,6 +22,27 @@ import './PumpChart.css';
 
 /** A margin smaller than this (m) counts as zero, like the checks do. */
 const MARGIN_TOLERANCE = 1e-6;
+/** A tap this close to the operating point (px) reads the operating point itself. */
+const SNAP_DISTANCE = 14;
+
+/** Stops moved by each key of the reader. */
+const KEY_STEPS: Record<string, number> = {
+  ArrowRight: 1,
+  ArrowUp: 1,
+  ArrowLeft: -1,
+  ArrowDown: -1,
+  PageUp: 5,
+  PageDown: -5,
+};
+
+/** A flow at which the two curves can be read. */
+interface Stop {
+  /** L/s */
+  flow: number;
+  pumpHead: number;
+  systemHead: number;
+  operating: boolean;
+}
 
 /**
  * Pump curve against the system curve, with the operating point of the solved network, the
@@ -26,7 +55,9 @@ export function PumpChart() {
   const evaluation = useAppStore((state) => state.evaluation);
   const summaryId = useId();
   const clipId = useId();
-  const [frameRef, width] = useChartWidth();
+  const [frameRef, { width, height }] = useChartSize();
+  // Index of the flow chosen in the chart by tap, pointer or keyboard; the readout shows it.
+  const [cursor, setCursor] = useState<number | null>(null);
 
   if (!scenario) return null;
   if (!evaluation) return <ResultHint />;
@@ -49,7 +80,6 @@ export function PumpChart() {
 
   // Geometry
   const narrow = width < 520;
-  const height = narrow ? 320 : 400;
   const pad = { top: 28, right: narrow ? 14 : 24, bottom: 46, left: 46 };
   const plot = { x0: pad.left, x1: width - pad.right, y0: pad.top, y1: height - pad.bottom };
 
@@ -58,10 +88,18 @@ export function PumpChart() {
   // shutoff head so the pump curve stays readable.
   const shutoff = curve.a;
   const top = Math.max(shutoff, Math.min(Math.max(requiredHead, operating.head), 3 * shutoff));
-  const xAxis = niceAxis(0, maxFlow, narrow ? 5 : 8);
-  const yAxis = niceAxis(0, top * 1.08, narrow ? 5 : 7);
+  // Fewer ticks on a narrow or short chart, so the labels never touch.
+  const xLabel = tickLabelWidth(fmt(maxFlow, 1).length) + 14;
+  const xAxis = niceAxis(0, maxFlow, tickTarget(plot.x1 - plot.x0, xLabel, 8));
+  const yAxis = niceAxis(0, top * 1.08, tickTarget(plot.y1 - plot.y0, 30, 7));
   const x = linearScale([0, maxFlow], [plot.x0, plot.x1]);
   const y = linearScale([0, yAxis.max], [plot.y1, plot.y0]);
+  const xTicks = thinTicks(
+    xAxis.ticks.filter((tick) => tick <= maxFlow),
+    x,
+    xLabel,
+  );
+  const yTicks = thinTicks(yAxis.ticks, y, 16);
 
   const pumpLine = points.map((p) => [x(m3sToLps(p.flow)), y(p.pumpHead)] as const);
   const systemLine = points.map((p) => [x(m3sToLps(p.flow)), y(p.systemHead)] as const);
@@ -72,6 +110,58 @@ export function PumpChart() {
   const reqY = requiredOffScale ? plot.y0 : y(requiredHead);
   const labelOnLeft = opX > (plot.x0 + plot.x1) * 0.6;
   const marginLabel = ok ? tr(s.marginLabel(`+${marginText}`)) : tr(s.shortfallLabel(marginText));
+
+  // Flows that can be read: the samples of the curves and the operating point.
+  const stops: Stop[] = [
+    ...points.map((p) => ({
+      flow: m3sToLps(p.flow),
+      pumpHead: p.pumpHead,
+      systemHead: p.systemHead,
+      operating: false,
+    })),
+    {
+      flow: m3sToLps(operating.flow),
+      pumpHead: operating.head,
+      systemHead: requiredHead,
+      operating: true,
+    },
+  ].sort((a, b) => a.flow - b.flow);
+  const operatingIndex = stops.findIndex((stop) => stop.operating);
+  const stop = cursor === null ? undefined : stops[Math.min(cursor, stops.length - 1)];
+  const stopText = stop
+    ? [
+        `${tr(s.readFlow)} ${fmt(stop.flow, 2)} L/s`,
+        `${tr(s.readPump)} ${fmt(stop.pumpHead, 2)} m`,
+        `${tr(s.readSystem)} ${fmt(stop.systemHead, 2)} m`,
+        ...(stop.operating ? [tr(s.legendOperating)] : []),
+      ]
+    : null;
+
+  const readAt = (event: MouseEvent<HTMLDivElement>) => {
+    const frame = event.currentTarget.getBoundingClientRect();
+    if (!(frame.width > 0)) return;
+    const at = plot.x0 + ((event.clientX - frame.left) / frame.width) * (plot.x1 - plot.x0);
+    setCursor(
+      Math.abs(at - opX) <= SNAP_DISTANCE
+        ? operatingIndex
+        : nearestIndex(
+            stops.map((item) => x(item.flow)),
+            at,
+          ),
+    );
+  };
+  const readWithKeys = (event: KeyboardEvent<HTMLDivElement>) => {
+    const last = stops.length - 1;
+    let to: number;
+    if (event.key === 'Home') to = 0;
+    else if (event.key === 'End') to = last;
+    else if (event.key in KEY_STEPS) {
+      // The first key press starts the reading at the operating point.
+      to = cursor === null ? operatingIndex : cursor + KEY_STEPS[event.key]!;
+    } else return;
+    event.preventDefault();
+    setCursor(Math.max(0, Math.min(last, to)));
+  };
 
   return (
     <ResultBody className="pump">
@@ -97,7 +187,7 @@ export function PumpChart() {
             </clipPath>
           </defs>
 
-          {yAxis.ticks.map((tick) => (
+          {yTicks.map((tick) => (
             <g key={tick}>
               <line className="chart__grid" x1={plot.x0} x2={plot.x1} y1={y(tick)} y2={y(tick)} />
               <text
@@ -111,22 +201,20 @@ export function PumpChart() {
               </text>
             </g>
           ))}
-          {xAxis.ticks
-            .filter((tick) => tick <= maxFlow)
-            .map((tick) => (
-              <g key={tick}>
-                <line
-                  className="chart__axis"
-                  x1={x(tick)}
-                  x2={x(tick)}
-                  y1={plot.y1}
-                  y2={plot.y1 + 4}
-                />
-                <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
-                  {fmt(tick, xAxis.digits)}
-                </text>
-              </g>
-            ))}
+          {xTicks.map((tick) => (
+            <g key={tick}>
+              <line
+                className="chart__axis"
+                x1={x(tick)}
+                x2={x(tick)}
+                y1={plot.y1}
+                y2={plot.y1 + 4}
+              />
+              <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
+                {fmt(tick, xAxis.digits)}
+              </text>
+            </g>
+          ))}
           <text className="chart__axis-title" x={4} y={12}>
             {tr(s.axisY)}
           </text>
@@ -187,8 +275,48 @@ export function PumpChart() {
           >
             {marginLabel}
           </text>
+
+          {stop && (
+            <g className="pump__read">
+              <line x1={x(stop.flow)} x2={x(stop.flow)} y1={plot.y0} y2={plot.y1} />
+              {stop.systemHead <= yAxis.max && (
+                <circle
+                  className="pump__read-system"
+                  cx={x(stop.flow)}
+                  cy={y(stop.systemHead)}
+                  r={5}
+                />
+              )}
+              <circle className="pump__read-pump" cx={x(stop.flow)} cy={y(stop.pumpHead)} r={5} />
+            </g>
+          )}
         </svg>
+        {/* Reads the curves at a flow: tap, drag or move the pointer, or use the arrow keys. */}
+        <div
+          className="pump__reader"
+          role="slider"
+          tabIndex={0}
+          aria-label={tr(s.readerLabel)}
+          aria-valuemin={0}
+          aria-valuemax={Number(maxFlow.toFixed(2))}
+          aria-valuenow={Number((stop?.flow ?? m3sToLps(operating.flow)).toFixed(2))}
+          aria-valuetext={stopText ? stopText.join(' · ') : tr(s.readerHint)}
+          style={{
+            left: `${(plot.x0 / width) * 100}%`,
+            top: `${(plot.y0 / height) * 100}%`,
+            width: `${((plot.x1 - plot.x0) / width) * 100}%`,
+            height: `${((plot.y1 - plot.y0) / height) * 100}%`,
+          }}
+          onClick={readAt}
+          onPointerDown={readAt}
+          onPointerMove={readAt}
+          onKeyDown={readWithKeys}
+        />
       </div>
+
+      <p className="chart__readout pump__readout" role="status">
+        {stopText ? stopText.join(' · ') : <span className="muted">{tr(s.readerHint)}</span>}
+      </p>
 
       <ul className="chart__legend" aria-hidden="true">
         <li>

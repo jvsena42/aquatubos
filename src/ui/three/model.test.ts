@@ -2,7 +2,7 @@ import { initialDiameters } from '../../game/buildNetwork';
 import { evaluateStage } from '../../game/evaluate';
 import { getScenario } from '../../scenarios';
 import type { Scenario } from '../../scenarios/types';
-import { pipeRadius, toWorld } from './geometry';
+import { DETAIL, pipeRadius, toWorld } from './geometry';
 import { buildSceneModel } from './model';
 
 function stage(id: string): Scenario {
@@ -118,3 +118,68 @@ describe('buildSceneModel', () => {
     expect(center.y - halfSize.y).toBeCloseTo(0, 9);
   });
 });
+
+describe.each(['stage1', 'stage2', 'stage3', 'stage4', 'stage5'])(
+  'buildSceneModel in low quality: %s',
+  (id) => {
+    const scenario = stage(id);
+    const diameters = scenario.reference.diameters;
+    const evaluation = evaluateStage(scenario, diameters);
+    const high = buildSceneModel(scenario, diameters, evaluation, 5);
+    const low = buildSceneModel(scenario, diameters, evaluation, 5, 'low');
+
+    it('uses the high budget by default and carries the budget it was built with', () => {
+      expect(high.detail).toBe(DETAIL.high);
+      expect(low.detail).toBe(DETAIL.low);
+    });
+
+    it('has fewer vertices, triangles and path points', () => {
+      expect(low.terrain.positions.length).toBeLessThan(high.terrain.positions.length);
+      expect(low.terrain.indices.length).toBeLessThan(high.terrain.indices.length);
+      expect(low.terrain.lineIndices.length).toBeLessThan(high.terrain.lineIndices.length);
+      expect(low.hgl!.positions.length).toBeLessThan(high.hgl!.positions.length);
+      for (const pipe of low.pipes) expect(pipe.path).toHaveLength(DETAIL.low.pathSegments + 1);
+      for (const pipe of high.pipes) expect(pipe.path).toHaveLength(DETAIL.high.pathSegments + 1);
+    });
+
+    it('is still a valid mesh: finite positions and indices inside the grid', () => {
+      for (const surface of [low.terrain, low.hgl!]) {
+        const vertices = surface.positions.length / 3;
+        expect(Number.isInteger(vertices)).toBe(true);
+        expect(surface.positions.every((v) => Number.isFinite(v))).toBe(true);
+        expect(surface.indices.length % 3).toBe(0);
+        expect(surface.indices.length).toBeGreaterThan(0);
+        expect(Math.max(...surface.indices)).toBeLessThan(vertices);
+        expect(Math.max(...surface.lineIndices)).toBeLessThan(vertices);
+      }
+      expect(low.hgl!.positions).toHaveLength(low.terrain.positions.length);
+      for (const pipe of low.pipes) {
+        for (const p of pipe.path) expect([p.x, p.y, p.z].every(Number.isFinite)).toBe(true);
+      }
+    });
+
+    it('puts nodes, reservoirs, pipe ends and the frame in the same places', () => {
+      expect(low.nodes).toEqual(high.nodes);
+      expect(low.reservoirs).toEqual(high.reservoirs);
+      expect(low.bounds).toEqual(high.bounds);
+      expect(low.pipes.map((p) => [p.id, p.dn, p.radius, p.status])).toEqual(
+        high.pipes.map((p) => [p.id, p.dn, p.radius, p.status]),
+      );
+      low.pipes.forEach((pipe, i) => {
+        expect(pipe.path[0]).toEqual(high.pipes[i]!.path[0]);
+        expect(pipe.path.at(-1)).toEqual(high.pipes[i]!.path.at(-1));
+      });
+    });
+
+    it('keeps the pump marker at the middle of its link', () => {
+      expect(low.pumps).toHaveLength(high.pumps.length);
+      low.pumps.forEach((pump, i) => {
+        const other = high.pumps[i]!;
+        expect(pump.marker.length).toBeGreaterThan(0);
+        expect(pump.marker.position.x).toBeCloseTo(other.marker.position.x, 6);
+        expect(pump.marker.position.z).toBeCloseTo(other.marker.position.z, 6);
+        expect(pump.path).toHaveLength(DETAIL.low.pathSegments + 1);
+      });
+    });
+  },
+);

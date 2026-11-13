@@ -49,3 +49,62 @@ export function niceAxis(min: number, max: number, target = 6): Axis {
 export function polyline(points: readonly (readonly [number, number])[]): string {
   return points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
 }
+
+/**
+ * Number of tick intervals that fit an axis `length` px long when each label needs `spacing`
+ * px, between 2 and `max`. Narrow charts get fewer ticks so the labels never touch.
+ */
+export function tickTarget(length: number, spacing: number, max: number): number {
+  if (!(length > 0) || !(spacing > 0)) return 2;
+  return Math.max(2, Math.min(max, Math.floor(length / spacing)));
+}
+
+/**
+ * Drops ticks until neighbours are at least `minGap` px apart: keeps every k-th tick, starting
+ * from the first, with the smallest k that fits. `position` maps a tick to its pixel.
+ */
+export function thinTicks(
+  ticks: readonly number[],
+  position: (tick: number) => number,
+  minGap: number,
+): number[] {
+  for (let every = 1; every < ticks.length; every++) {
+    const kept = ticks.filter((_, index) => index % every === 0);
+    const fits = kept.every(
+      (tick, index) =>
+        index === 0 || Math.abs(position(tick) - position(kept[index - 1]!)) >= minGap,
+    );
+    if (fits) return kept;
+  }
+  return ticks.slice(0, 1);
+}
+
+/** Approximate width in px of a tick label of `characters` monospace characters at 11 px. */
+export function tickLabelWidth(characters: number): number {
+  return characters * 6.7;
+}
+
+/**
+ * Height in px of a chart drawn `width` px wide in a viewport `viewportHeight` px tall. Wide
+ * charts keep 400 px. Narrow ones follow the width, and the chart always leaves room in the
+ * viewport, so a phone in landscape shows the whole of it.
+ */
+export function chartHeight(width: number, viewportHeight: number): number {
+  const most = width < 520 ? 320 : 400;
+  const room = Number.isFinite(viewportHeight) && viewportHeight > 0 ? viewportHeight - 150 : most;
+  return Math.round(Math.max(220, Math.min(most, width * 0.78, room)));
+}
+
+/** Index of the value closest to `target`, or -1 for an empty list. */
+export function nearestIndex(values: readonly number[], target: number): number {
+  let best = -1;
+  let distance = Infinity;
+  values.forEach((value, index) => {
+    const d = Math.abs(value - target);
+    if (d < distance) {
+      distance = d;
+      best = index;
+    }
+  });
+  return best;
+}

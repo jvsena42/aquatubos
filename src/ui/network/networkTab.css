@@ -1,0 +1,27 @@
+.network-tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.network-tab__toggle {
+  align-self: flex-start;
+}
+
+/* Phone tab row: two icon buttons of full touch size, next to the tabs. */
+.network-tab__toggle--compact {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.network-tab__toggle--compact > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.5rem;
+  padding: 0;
+  font-size: var(--font-size-md);
+}

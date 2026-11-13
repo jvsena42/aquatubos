@@ -3,6 +3,7 @@ import type { ThemeSetting } from '../../persistence/db';
 
 export const shellStrings = {
   appName: { pt: 'Aquatubos', en: 'Aquatubos' },
+  homeLabel: { pt: 'Aquatubos, tela inicial', en: 'Aquatubos, title screen' },
   loading: { pt: 'Carregando…', en: 'Loading…' },
   skipToContent: { pt: 'Ir para o conteúdo', en: 'Skip to content' },
   backToStages: { pt: 'Etapas', en: 'Stages' },
@@ -10,6 +11,7 @@ export const shellStrings = {
   glossary: { pt: 'Glossário', en: 'Glossary' },
   language: { pt: 'Idioma', en: 'Language' },
   theme: { pt: 'Tema', en: 'Theme' },
+  settings: { pt: 'Configurações', en: 'Settings' },
   close: { pt: 'Fechar', en: 'Close' },
   stars: (value: number): LocalizedText => ({
     pt: `${value} de 3 estrelas`,
