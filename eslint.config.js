@@ -20,7 +20,8 @@ export default tseslint.config(
   },
   {
     files: ['*.config.{js,ts}', 'scripts/**', 'e2e/**'],
-    languageOptions: { globals: globals.node },
+    // Scripts and e2e tests also hold callbacks that run in the browser (page.evaluate).
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   prettier,
 );
