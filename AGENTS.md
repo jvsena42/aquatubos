@@ -45,13 +45,16 @@ src/
     config/nbr12218.ts   the only place with NBR 12218 limits
     data/pipeCatalog.json  commercial diameters and illustrative prices
   scenarios/       stage files (stages/*.json), their type, loader, validator
-  game/            scenario → network, evaluation, stars, system curve, reference search
+  game/            scenario → network, evaluation, stars, system curve, reference search,
+                   house counts; game/town is the procedural town generator
   worker/          Web Worker that runs the evaluation, and its client
   state/store.ts   Zustand store
   persistence/     Dexie (IndexedDB) for progress and preferences
   i18n/            useTr() and useFormat()
   styles/          tokens.css (design tokens), global.css (shared classes)
-  ui/              React components by feature; ui/three is the lazy 3D view
+  ui/              React components by feature: home (title screen), stages (stage map),
+                   stage (stage screen), hud, town (illustrated view), network (schematic),
+                   panels, charts, glossary, shell; ui/three is the lazy 3D view
   assets/brand/    logo sources
 scripts/           icon generation, reference solutions, screenshots
 e2e/               Playwright tests
@@ -112,7 +115,14 @@ These must not break. Each has tests; keep them.
    the stage has one). If it reports that no design passes, change the scenario.
 4. Update the expected stage list in `src/scenarios/stages.test.ts` and run `npm test`. The
    per-stage tests run for the new file automatically.
-5. Play it: `npm run dev`.
+5. Play it: `npm run dev`. The town (streets, houses, trees, park, hill shading) is generated
+   from the geometry, seeded by the stage id; no drawing work is needed. Each demand node gets
+   3 houses per L/s (2 to 12). Keep nodes at least about 150 m apart in plan so streets, houses
+   and labels fit at phone width. To adjust the scenery add an optional `town` block (`seed`,
+   `park`, `landmarks`, `extraHouses`, `scenery`) or `kind` on a reservoir; the fields are
+   described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#town-view).
+6. The stage map (`src/ui/stages/mapLayout.ts`) is laid out for five neighbourhoods; add one
+   there for a sixth stage.
 
 ## How to add a head loss formula
 

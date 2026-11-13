@@ -23,19 +23,19 @@ flowchart LR
 
 ## Module map
 
-| Module      | Path                           | Responsibility                                                                                                                                          | May import                           |
-| ----------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| Engine      | `src/engine`                   | Head loss formulas, pump curve, GGA solver, Hardy Cross, demand helpers, checks, cost. Pure TypeScript, SI units, no DOM, no React.                     | nothing outside `src/engine`         |
-| Scenarios   | `src/scenarios`                | Stage files (JSON), their TypeScript type, loader and structural validator.                                                                             | engine types                         |
-| Game        | `src/game`                     | Scenario → SI network, stage evaluation (solve, check, cost, stars), system curve, reference solution search, table/CSV and profile data.               | engine, scenarios                    |
-| Worker      | `src/worker`                   | Web Worker that runs `evaluateStage`, and the promise-based client. Falls back to the calling thread where `Worker` does not exist (unit tests).        | game, scenarios                      |
-| State       | `src/state/store.ts`           | One Zustand store: preferences, saved progress, the open stage, diameters, selection, last evaluation, `verify()`.                                      | game, scenarios, worker, persistence |
-| Persistence | `src/persistence/db.ts`        | Dexie database `aquatubos`: `progress` (per stage: completed, stars, best cost, last design) and `preferences` (language, theme).                       | game types                           |
-| UI          | `src/ui`                       | Shell (header, dialogs, tabs), stage select, stage screen, network view, calculation panel, checks panel, results table, HGL profile, charts, glossary. | everything except `three`            |
-| 3D          | `src/ui/three`                 | react-three-fiber scene. Loaded with `React.lazy`, so three.js is a separate chunk fetched when the 3D tab opens.                                       | three, @react-three/fiber            |
-| i18n        | `src/i18n`                     | `useTr()` picks `pt` or `en` from `{ pt, en }` objects kept next to the components; `useFormat()` formats numbers per language.                         | state                                |
-| Styles      | `src/styles`                   | `tokens.css` (design tokens, light and dark) and `global.css` (base elements and shared classes). See [BRAND.md](BRAND.md).                             |                                      |
-| PWA         | `vite.config.ts`, `src/pwa.ts` | vite-plugin-pwa generates the manifest and a Workbox service worker that precaches the build, so the app works offline after the first visit.           |                                      |
+| Module      | Path                           | Responsibility                                                                                                                                                                                                                        | May import                           |
+| ----------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Engine      | `src/engine`                   | Head loss formulas, pump curve, GGA solver, Hardy Cross, demand helpers, checks, cost. Pure TypeScript, SI units, no DOM, no React.                                                                                                   | nothing outside `src/engine`         |
+| Scenarios   | `src/scenarios`                | Stage files (JSON), their TypeScript type, loader and structural validator.                                                                                                                                                           | engine types                         |
+| Game        | `src/game`                     | Scenario → SI network, stage evaluation (solve, check, cost, stars), system curve, reference solution search, table/CSV and profile data, house counts and service status, town generator (`game/town`).                              | engine, scenarios                    |
+| Worker      | `src/worker`                   | Web Worker that runs `evaluateStage`, and the promise-based client. Falls back to the calling thread where `Worker` does not exist (unit tests).                                                                                      | game, scenarios                      |
+| State       | `src/state/store.ts`           | One Zustand store: preferences, saved progress, the open stage, diameters, selection, last evaluation, `verify()`.                                                                                                                    | game, scenarios, worker, persistence |
+| Persistence | `src/persistence/db.ts`        | Dexie database `aquatubos`: `progress` (per stage: completed, stars, best cost, last design) and `preferences` (language, theme).                                                                                                     | game types                           |
+| UI          | `src/ui`                       | Title screen (`home`), stage map (`stages`), stage screen (`stage`), HUD (`hud`), town view (`town`), schematic (`network`), calculation and checks panels, results table, HGL profile, charts (`panels`, `charts`), glossary, shell. | everything except `three`            |
+| 3D          | `src/ui/three`                 | react-three-fiber scene. Loaded with `React.lazy`, so three.js is a separate chunk fetched when the 3D tab opens.                                                                                                                     | three, @react-three/fiber            |
+| i18n        | `src/i18n`                     | `useTr()` picks `pt` or `en` from `{ pt, en }` objects kept next to the components; `useFormat()` formats numbers per language.                                                                                                       | state                                |
+| Styles      | `src/styles`                   | `tokens.css` (design tokens, light and dark) and `global.css` (base elements and shared classes). See [BRAND.md](BRAND.md).                                                                                                           |                                      |
+| PWA         | `vite.config.ts`, `src/pwa.ts` | vite-plugin-pwa generates the manifest and a Workbox service worker that precaches the build, so the app works offline after the first visit.                                                                                         |                                      |
 
 The dependency direction is one way: engine ← game ← worker/state ← UI. The engine never imports
 from the rest of the app, which is what lets it run in a worker and in Node tests unchanged.
@@ -75,6 +75,89 @@ worker boundary by structured clone.
 
 Opening a stage also runs one evaluation so the network is drawn with pressures and velocities,
 but only `verify()` records progress.
+
+## Screens
+
+The store field `screen` (`home` or `map`) and `scenario` (the open stage, or null) decide what
+is shown:
+
+```mermaid
+flowchart LR
+  Home[Title screen<br/>src/ui/home] -->|Jogar| Map[Stage map<br/>src/ui/stages]
+  Home -->|Continuar| Stage
+  Map -->|open stage| Stage[Stage screen<br/>src/ui/stage]
+  Stage -->|Etapas| Map
+  Map -->|Início| Home
+```
+
+The title screen and the stage map are in the main chunk. The stage screen (HUD, town view,
+schematic, panels, charts) is a lazy chunk, and the 3D view is another one inside it.
+
+The network tab of a stage has two drawings of the same scenario, chosen with the
+Cidade | Esquema toggle (`networkView` in the store, saved in IndexedDB): the illustrated town
+(`src/ui/town`, the default) and the engineering schematic (`src/ui/network`). Both use the same
+selection in the store, the same `data-element` / `data-id` attributes and the same DN picker.
+
+## Town view
+
+### Houses and service status (`src/game/houses.ts`)
+
+Each demand node is drawn as a cluster of houses. `houseCount(node)` is 3 houses per L/s of
+demand, at least 2 and at most 12; a node without demand has none. `serviceStatuses` maps the
+check report to what the houses show: `ok`, `low` (dynamic pressure below the minimum, dry taps),
+`high` (static pressure above the maximum, burst risk) or `unknown` before a result. It follows
+the report, so a check that is off in a stage never marks a house. `housesSummary` gives the
+"Casas atendidas X / Y" of the HUD and the worst node, which the map pans to after a failed check.
+
+### Generator (`src/game/town`)
+
+`generateTown(scenario)` returns plain data in plan coordinates (metres), which the view only
+draws. It is deterministic: a seeded PRNG, seeded by `scenario.town.seed` or the stage id, so the
+same scenario always gives the same town and a new stage gets a town without extra work.
+
+| Field             | Content                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `streets[]`       | One per pipe (the pipe runs under the street) and a narrower lane per pump link.                        |
+| `plazas[]`        | A junction plaza at every node.                                                                         |
+| `clusters[]`      | Per demand node: exactly `houseCount(node)` houses (position, size, rotation, roof variant) and a hull. |
+| `buildings[]`     | Filler buildings, landmarks and extra houses, not tied to a node.                                       |
+| `trees[]`, `park` | Trees and one park.                                                                                     |
+| `reservoirs[]`    | Site and kind: `elevated` (water tower) or `ground`.                                                    |
+| `pumps[]`         | Pump house at the middle of the pump link.                                                              |
+| `terrain`         | Elevation bands for hill shading, or null when elevations span 4 m or less.                             |
+| `bounds`, `focus` | Extent of everything, and the extent the view fits.                                                     |
+
+Placement rules, covered by tests on the five stages and on random synthetic scenarios: no
+house, building or tree overlaps a street, a plaza, a reservoir or pump site, the park interior
+(trees may stand in the park) or another building; every demand node gets its exact number of
+houses; filler scenery is capped at 250 items. `fillOrder(scenario)` orders pipes and nodes by
+distance from the reservoirs and times the success sequence (water fills the pipes, then houses
+light up).
+
+### Overrides (`scenario.town`, all optional)
+
+| Field                        | Meaning                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `seed`                       | Seed of the generator. Default: the stage id.                                               |
+| `park { x, y, radius? }`     | Park centre and radius (default 70 m). Default position: the largest free area.             |
+| `landmarks [{ type, x, y }]` | `school`, `church`, `market` or `square` at a fixed position, turned to the nearest street. |
+| `extraHouses [{ x, y }]`     | Extra scenery houses, not tied to a node.                                                   |
+| `scenery: false`             | No filler buildings, trees or automatic park.                                               |
+
+A reservoir can also set `kind` (`elevated` or `ground`); the default is elevated when the water
+level is more than 8 m above the ground.
+
+Fixed items are placed first and everything generated keeps clear of them. An override is not
+checked against the streets, so place it in a free block.
+
+### Rendering (`src/ui/town`)
+
+Hand-written SVG. The static scenery (ground, terrain bands, park, streets, buildings, trees) is
+one memoized layer that depends only on the scenario; pipes, house status, selection and labels
+are separate layers, so a selection or a new result does not re-render the scenery. Labels are
+placed by a collision-avoiding placer shared with the schematic (`src/ui/network/labels.ts`),
+which drops lower-priority text first on small screens. The illustration style is described in
+[BRAND.md](BRAND.md#illustration-style).
 
 ## Hydraulic engine
 
@@ -201,22 +284,23 @@ illustrative values in the style of SINAPI compositions. They are not SINAPI dat
 One JSON file per stage in `src/scenarios/stages`, typed by `src/scenarios/types.ts` and checked by
 `validateScenario`. Display units are used because the files are meant to be edited by people.
 
-| Field                                        | Meaning                                                                                |
-| -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `id`, `order`                                | Stage id and position. Stage n unlocks when stage n − 1 is completed.                  |
-| `title`, `summary`, `briefing`, `objectives` | Text as `{ "pt": …, "en": … }`.                                                        |
-| `formula`                                    | Default head loss formula: `hazen-williams` or `darcy-weisbach`.                       |
-| `hazenWilliamsC`, `roughnessMm`              | Pipe coefficient C and absolute roughness ε (mm) for all pipes.                        |
-| `nodes[]`                                    | `id`, `x`, `y` (plan, m), `elevation` (m), `demandLps` (L/s).                          |
-| `reservoirs[]`                               | `id`, `x`, `y`, `elevation` (ground, m), `waterLevel` (total head, m).                 |
-| `pipes[]`                                    | `id`, `from`, `to`, `length` (m), `initialDN` (mm), optional `fixed`.                  |
-| `pumps[]`                                    | `id`, `from`, `to`, `points`: three `{ flowLps, head }` points.                        |
-| `checks`                                     | `error`, `warning` or `off` for each check.                                            |
-| `budget`                                     | Maximum cost in R$, or `null`.                                                         |
-| `features`                                   | Which views the stage shows: `hglProfile`, `hardyCross`, `cost`, `pumpChart`.          |
-| `loops[]`                                    | Optional loops for Hardy Cross: pipes with direction `1` or `-1` relative to the loop. |
-| `profilePath`                                | Node ids from the source to the critical node, the default HGL profile.                |
-| `reference`                                  | `diameters` (DN by pipe id), `cost` and `method` of the reference solution.            |
+| Field                                        | Meaning                                                                                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `id`, `order`                                | Stage id and position. Stage n unlocks when stage n − 1 is completed.                   |
+| `title`, `summary`, `briefing`, `objectives` | Text as `{ "pt": …, "en": … }`.                                                         |
+| `formula`                                    | Default head loss formula: `hazen-williams` or `darcy-weisbach`.                        |
+| `hazenWilliamsC`, `roughnessMm`              | Pipe coefficient C and absolute roughness ε (mm) for all pipes.                         |
+| `nodes[]`                                    | `id`, `x`, `y` (plan, m), `elevation` (m), `demandLps` (L/s).                           |
+| `reservoirs[]`                               | `id`, `x`, `y`, `elevation` (ground, m), `waterLevel` (total head, m), optional `kind`. |
+| `pipes[]`                                    | `id`, `from`, `to`, `length` (m), `initialDN` (mm), optional `fixed`.                   |
+| `pumps[]`                                    | `id`, `from`, `to`, `points`: three `{ flowLps, head }` points.                         |
+| `checks`                                     | `error`, `warning` or `off` for each check.                                             |
+| `budget`                                     | Maximum cost in R$, or `null`.                                                          |
+| `features`                                   | Which views the stage shows: `hglProfile`, `hardyCross`, `cost`, `pumpChart`.           |
+| `loops[]`                                    | Optional loops for Hardy Cross: pipes with direction `1` or `-1` relative to the loop.  |
+| `profilePath`                                | Node ids from the source to the critical node, the default HGL profile.                 |
+| `reference`                                  | `diameters` (DN by pipe id), `cost` and `method` of the reference solution.             |
+| `town`                                       | Optional overrides for the generated town scenery. See [Town view](#town-view).         |
 
 ### Stages and reference solutions
 
