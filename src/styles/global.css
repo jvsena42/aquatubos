@@ -3,7 +3,7 @@
  *
  * Shared classes (use these instead of restyling in each component):
  *   .btn  .btn--primary  .btn--ghost  .btn--sm  .btn--icon
- *   .card  .panel  .panel__title  .panel__body
+ *   .card  .card--interactive  .panel  .panel__title  .panel__body
  *   .table-wrap > table.table   (td.num / th.num for numeric columns)
  *   .badge  .badge--ok  .badge--warn  .badge--danger  .badge--info
  *   .field  .select  .input  .segmented
@@ -97,8 +97,18 @@ svg {
   color: var(--color-text);
 }
 
-/* Buttons */
+/*
+ * Buttons. They sit on a bottom edge, lift a little on hover and go down when pressed.
+ * Component-scoped custom properties (built from tokens):
+ *   --btn-depth  height of the bottom edge
+ *   --btn-edge   colour of the bottom edge
+ *   --btn-shade  layer over the edge that darkens it (primary button)
+ */
 .btn {
+  --btn-depth: 2px;
+  --btn-edge: color-mix(in srgb, var(--color-border-strong) 45%, var(--color-border));
+  --btn-shade: transparent;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -108,6 +118,9 @@ svg {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  box-shadow:
+    0 var(--btn-depth) 0 var(--btn-shade),
+    0 var(--btn-depth) 0 var(--btn-edge);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   font-weight: 550;
@@ -116,11 +129,24 @@ svg {
   cursor: pointer;
   transition:
     background-color 120ms ease,
-    border-color 120ms ease;
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
-.btn:hover:not(:disabled) {
+.btn:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--color-surface-2);
+  box-shadow:
+    0 calc(var(--btn-depth) + 1px) 0 var(--btn-shade),
+    0 calc(var(--btn-depth) + 1px) 0 var(--btn-edge),
+    var(--shadow-2);
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled, [aria-disabled='true']) {
+  box-shadow: none;
+  transform: translateY(var(--btn-depth));
+  transition-duration: 60ms;
 }
 
 .btn:disabled,
@@ -130,18 +156,31 @@ svg {
 }
 
 .btn--primary {
+  --btn-depth: 3px;
+  --btn-edge: var(--color-primary);
+  --btn-shade: var(--color-overlay);
+
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
 
-.btn--primary:hover:not(:disabled) {
+.btn--primary:hover:not(:disabled, [aria-disabled='true']) {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
 }
 
-.btn--ghost {
+/* Ghost buttons stay flat. */
+.btn--ghost,
+.btn--ghost:hover:not(:disabled, [aria-disabled='true']) {
+  --btn-depth: 0px;
+
   border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn--ghost {
   background: transparent;
 }
 
@@ -179,10 +218,17 @@ svg {
   font-size: var(--font-size-sm);
   font-weight: 550;
   cursor: pointer;
+  transition:
+    color 120ms ease,
+    transform 120ms ease;
 }
 
 .segmented > button:hover {
   color: var(--color-text);
+}
+
+.segmented > button:active {
+  transform: translateY(1px);
 }
 
 .segmented > button[aria-pressed='true'] {
@@ -218,13 +264,37 @@ svg {
   font-size: var(--font-size-sm);
 }
 
-/* Surfaces */
+/* Surfaces: a soft shadow on a bottom edge. Cards that are links or buttons lift on hover. */
 .card,
 .panel {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
+  box-shadow:
+    0 2px 0 var(--color-border),
+    var(--shadow-1);
+}
+
+a.card,
+button.card,
+.card--interactive {
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+:is(a.card, button.card, .card--interactive):hover:not(:disabled) {
+  box-shadow:
+    0 3px 0 var(--color-border),
+    var(--shadow-2);
+  transform: translateY(-2px);
+}
+
+:is(a.card, button.card, .card--interactive):active:not(:disabled) {
   box-shadow: var(--shadow-1);
+  transform: translateY(1px);
 }
 
 .card {
@@ -375,5 +445,12 @@ svg {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+
+  /* No lift or press movement; colour and shadow still change. */
+  .btn,
+  .segmented > button,
+  .card {
+    transform: none !important;
   }
 }
