@@ -8,14 +8,14 @@ import {
   type MouseEvent,
 } from 'react';
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
-import { housesSummary, serviceStatuses } from '../../game/houses';
+import { housesSummary, serviceStatuses, type ServiceStatus } from '../../game/houses';
 import { fillOrder, generateTown, type Town } from '../../game/town';
 import { useTr } from '../../i18n';
 import type { Scenario } from '../../scenarios/types';
 import { useAppStore, type Selection } from '../../state/store';
-import { IconStale } from '../shell/icons';
+import { TermScope } from '../glossary/TermScope';
 import { useNum } from '../network/format';
-import { fitToSize, toScreen, type Point, type View } from '../network/geometry';
+import { toScreen, type Point, type View } from '../network/geometry';
 import {
   HIT_PRIORITY,
   hitTargetSize,
@@ -25,18 +25,18 @@ import {
   type HitShape,
   type HitTarget,
 } from '../network/hit';
-import type { Rect } from '../network/labels';
-import { Legend } from '../network/Legend';
-import { pipeStatuses } from '../network/status';
-import { networkStrings } from '../network/strings';
+import { LegendHelp, LegendIcons } from '../network/Legend';
+import { layoutMap } from '../network/mapLayout';
+import { pipeStatuses, type LimitStatus } from '../network/status';
 import { useCoarsePointer, usePhone } from '../shell/breakpoints';
 import { usePanZoom } from '../network/usePanZoom';
-import { SelectionBar, ZoomControls, zoomControlsArea } from '../network/ViewControls';
+import { ControlStrip, MapFoot } from '../network/ViewControls';
 import { detailClass } from './detail';
 import { StatusBadge } from './sprites';
 import { townStrings as text } from './strings';
 import { lightDelays, TownNetwork } from './TownNetwork';
 import { TownOverlay } from './TownOverlay';
+import { townBounds, townObstacles, townPadding } from './townLabels';
 import { TownScenery } from './TownScenery';
 import { useReducedMotion } from './useReducedMotion';
 import '../network/network.css';
@@ -69,6 +69,29 @@ function townOf(scenario: Scenario): Town {
   return town;
 }
 
+/**
+ * Review aid, not part of play: with `?debug=high-static` in the address the houses are drawn
+ * in the three service states in turn (served, dry taps, burst risk), whatever the results
+ * are. The burst-risk state needs a static pressure above 40 mca, which no stage reaches, so
+ * this is the way to see it in a browser. Nothing in the app links to it.
+ */
+export function housePreview(search?: string): boolean {
+  const query = search ?? (typeof window === 'undefined' ? '' : window.location.search);
+  return new URLSearchParams(query).get('debug') === 'high-static';
+}
+
+const PREVIEW_CYCLE: ServiceStatus[] = ['high', 'low', 'ok'];
+
+/** The three house states in turn over the demand nodes, for `housePreview`. */
+export function previewStatuses(scenario: Scenario): Record<string, ServiceStatus> {
+  const statuses: Record<string, ServiceStatus> = {};
+  let index = 0;
+  for (const node of scenario.nodes) {
+    statuses[node.id] = node.demandLps > 0 ? PREVIEW_CYCLE[index++ % 3]! : 'ok';
+  }
+  return statuses;
+}
+
 interface Feedback {
   kind: 'success' | 'failure';
   /** The `verifiedAt` that started it. */
@@ -86,7 +109,6 @@ export function TownView() {
   const diameters = useAppStore((s) => s.diameters);
   const evaluation = useAppStore((s) => s.evaluation);
   const stale = useAppStore((s) => s.stale);
-  const solving = useAppStore((s) => s.solving);
   const selection = useAppStore((s) => s.selection);
   const select = useAppStore((s) => s.select);
   const verifiedAt = useAppStore((s) => s.verifiedAt);
@@ -100,22 +122,27 @@ export function TownView() {
 
   const town = useMemo(() => (scenario ? townOf(scenario) : null), [scenario]);
   const order = useMemo(() => (scenario ? fillOrder(scenario) : null), [scenario]);
-  const narrow = size.width < 480;
-  const fit = useMemo(() => {
-    const focus = town?.focus ?? { minX: 0, minY: 0, maxX: 1, maxY: 1 };
-    return fitToSize(
-      [
-        { x: focus.minX, y: focus.minY },
-        { x: focus.maxX, y: focus.maxY },
-      ],
-      size,
-      // A short canvas (a phone lying down) cannot spare the margin that clears the controls.
-      { x: narrow ? 12 : 28, y: size.height < 260 ? 14 : narrow ? 46 : 52 },
-    );
-  }, [town, size, narrow]);
+  // On phones the legend help is the fourth control of the strip.
+  const slots = phone ? 4 : 3;
+  const layout = useMemo(
+    () =>
+      scenario && town
+        ? layoutMap({
+            bounds: townBounds(town),
+            obstacles: townObstacles(town, scenario, coarse),
+            size,
+            padding: townPadding(size),
+            slots,
+          })
+        : null,
+    [scenario, town, coarse, size, slots],
+  );
+  const fit = useMemo(() => layout?.fit ?? { scale: 1, center: { x: 0, y: 0 } }, [layout]);
+  const preview = useMemo(() => housePreview(), []);
   const service = useMemo(
-    () => (scenario ? serviceStatuses(scenario, evaluation) : {}),
-    [scenario, evaluation],
+    () =>
+      scenario ? (preview ? previewStatuses(scenario) : serviceStatuses(scenario, evaluation)) : {},
+    [scenario, evaluation, preview],
   );
   const pipeStatus = useMemo(
     () => (scenario ? pipeStatuses(evaluation, scenario.checks) : {}),
@@ -195,7 +222,7 @@ export function TownView() {
     };
   }, [feedback, setView]);
 
-  if (!scenario || !town || !order) return null;
+  if (!scenario || !town || !order || !layout) return null;
 
   const scale = fit.scale * view.k;
   const origin = toScreen({ x: 0, y: 0 }, fit, view, size);
@@ -296,65 +323,69 @@ export function TownView() {
     }
   };
 
-  const hint = stale
-    ? networkStrings.staleHint
-    : !evaluation && !solving
-      ? networkStrings.notSolvedHint
-      : null;
-  const controls = zoomControlsArea(coarse || phone);
-  const blocked: Rect[] = [{ x: size.width - controls.width, y: 0, ...controls }];
-  if (hint) {
-    blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - controls.width - 20), height: 38 });
-  }
   const celebrating = feedback?.kind === 'success' && !reducedMotion;
   const rootClass = ['town', detailClass(scale), stale && 'town--stale'].filter(Boolean).join(' ');
   const limits = NBR_CHECK_LIMITS;
-  const legend = (
-    <Legend
-      collapsed={phone}
-      checks={scenario.checks}
-      evaluated={evaluation !== null}
-      nodeSwatch={(status) =>
-        status === 'none' ? null : (
-          <svg className="netview__swatch" viewBox="-11 -11 22 22" aria-hidden="true">
-            <StatusBadge status={status} />
-          </svg>
-        )
-      }
-      nodeText={{
-        ok: tr(text.legendServed),
-        low: tr(text.legendLow(num(limits.minDynamicPressure, 0))),
-        high: tr(text.legendHigh(num(limits.maxStaticPressure, 0))),
-      }}
-    />
-  );
+  const legend = {
+    checks: scenario.checks,
+    evaluated: evaluation !== null,
+    allNodeStates: true,
+    nodeSwatch: (status: LimitStatus) =>
+      status === 'none' ? null : (
+        <svg className="netview__swatch" viewBox="-11 -11 22 22" aria-hidden="true">
+          <StatusBadge status={status} />
+        </svg>
+      ),
+    nodeText: {
+      ok: tr(text.legendServed),
+      low: tr(text.legendLow(num(limits.minDynamicPressure, 0))),
+      high: tr(text.legendHigh(num(limits.maxStaticPressure, 0))),
+    },
+  };
 
   return (
-    <div
-      className={rootClass}
-      data-feedback={feedback?.kind ?? 'none'}
-      data-motion={reducedMotion ? 'reduced' : 'full'}
-    >
+    <TermScope>
       <div
-        className={`town__canvas town__canvas--base-${Math.min(6, town.terrain?.base ?? 0)}`}
-        ref={canvasRef}
+        className={rootClass}
+        data-preview={preview ? 'house-states' : undefined}
+        data-feedback={feedback?.kind ?? 'none'}
+        data-motion={reducedMotion ? 'reduced' : 'full'}
       >
-        <svg
-          ref={svgRef}
-          className="town__svg"
-          role="group"
-          aria-label={tr(text.drawing)}
-          aria-describedby={helpId}
-          onClick={onClick}
-          onKeyDown={onKeyDown}
-          {...handlers}
+        <div
+          className={`town__canvas town__canvas--base-${Math.min(6, town.terrain?.base ?? 0)}`}
+          ref={canvasRef}
         >
-          <g
-            className="town__world"
-            transform={`translate(${origin.x.toFixed(2)} ${origin.y.toFixed(2)}) scale(${scale.toFixed(5)})`}
+          <svg
+            ref={svgRef}
+            className="town__svg"
+            role="group"
+            aria-label={tr(text.drawing)}
+            aria-describedby={helpId}
+            onClick={onClick}
+            onKeyDown={onKeyDown}
+            {...handlers}
           >
-            <TownScenery town={town} />
-            <TownNetwork
+            <g
+              className="town__world"
+              transform={`translate(${origin.x.toFixed(2)} ${origin.y.toFixed(2)}) scale(${scale.toFixed(5)})`}
+            >
+              <TownScenery town={town} />
+              <TownNetwork
+                town={town}
+                scenario={scenario}
+                diameters={diameters}
+                evaluation={evaluation}
+                pipeStatus={pipeStatus}
+                service={service}
+                selection={selection}
+                stale={stale}
+                scale={scale}
+                order={order}
+                celebrating={celebrating}
+                hitTarget={hitTargetSize(coarse)}
+              />
+            </g>
+            <TownOverlay
               town={town}
               scenario={scenario}
               diameters={diameters}
@@ -362,49 +393,33 @@ export function TownView() {
               pipeStatus={pipeStatus}
               service={service}
               selection={selection}
-              stale={stale}
+              size={size}
               scale={scale}
-              order={order}
-              celebrating={celebrating}
-              hitTarget={hitTargetSize(coarse)}
+              project={project}
+              blocked={[layout.keepClear]}
+              delays={delays}
             />
-          </g>
-          <TownOverlay
-            town={town}
-            scenario={scenario}
-            diameters={diameters}
-            evaluation={evaluation}
-            pipeStatus={pipeStatus}
-            service={service}
-            selection={selection}
-            size={size}
-            scale={scale}
-            project={project}
-            blocked={blocked}
-            delays={delays}
-          />
-        </svg>
+          </svg>
 
-        <p id={helpId} className="visually-hidden">
-          {tr(text.drawingHelp)}
-        </p>
-
-        {hint && (
-          <p className="netview__hint" role="status">
-            <span className={stale ? 'badge badge--warn' : 'badge badge--info'}>
-              {stale && <IconStale />}
-              {tr(hint)}
-            </span>
+          <p id={helpId} className="visually-hidden">
+            {tr(text.drawingHelp)}
           </p>
-        )}
 
-        <ZoomControls onZoom={zoomBy} onFit={reset} />
-        {phone && legend}
+          <ControlStrip orientation={layout.orientation} onZoom={zoomBy} onFit={reset}>
+            {phone && (
+              <span className="netview__ctl-slot" data-overlay-control="legend">
+                <LegendHelp {...legend} />
+              </span>
+            )}
+          </ControlStrip>
+        </div>
+
+        <MapFoot
+          phone={phone}
+          legend={<LegendIcons {...legend} />}
+          help={<LegendHelp {...legend} className="netview__legend-help" />}
+        />
       </div>
-
-      <SelectionBar />
-
-      {!phone && legend}
-    </div>
+    </TermScope>
   );
 }

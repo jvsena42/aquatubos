@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { HeadLossFormula } from '../../engine/types';
 import { initialDiameters } from '../../game/buildNetwork';
@@ -89,11 +89,37 @@ describe('NetworkView', () => {
     expect(element('reservoir', 'R1')).toHaveAccessibleName(
       "Reservatório R1, nível d'água 128,00 m",
     );
-    // Visible labels: DN and flow on the pipe, pressure at the node.
-    expect(element('pipe', 'T1')).toHaveTextContent(`T1 · DN 75${flow} L/s`);
-    expect(element('node', 'A')).toHaveTextContent(
+    // Visible labels: id and DN on the pipe, id and pressure at the node, and no words.
+    const pipeLabel = element('pipe', 'T1').querySelector('[data-label]')!;
+    expect(pipeLabel).toHaveTextContent(/^T1 · DN 75$/);
+    expect(pipeLabel).toHaveAttribute('data-label-kind', 'pipe');
+    expect(pipeLabel).toHaveAttribute('data-label-for', 'T1');
+    expect(element('node', 'A').querySelector('[data-label-kind="node"]')).toHaveTextContent(
       `A${pt(evaluation.result.nodes.A!.pressure, 1)} mca`,
     );
+    expect(element('reservoir', 'R1').querySelector('[data-label]')).toHaveTextContent(
+      /^R1128,0 m$/,
+    );
+    // The flow is shown on the selected pipe only.
+    act(() => useAppStore.getState().select({ type: 'pipe', id: 'T1' }));
+    expect(element('pipe', 'T1').querySelector('[data-label]')).toHaveTextContent(
+      `T1 · DN 75${flow} L/s`,
+    );
+    expect(element('pipe', 'T2').querySelector('[data-label]')).not.toHaveTextContent('L/s');
+  });
+
+  it('marks a pipe outside the velocity limits with an icon and no words', () => {
+    openStage('stage4', stage('stage4').reference.diameters);
+    render(<NetworkView />);
+    const slow = [...document.querySelectorAll('[data-element="pipe"][data-status="low"]')];
+    expect(slow.length).toBeGreaterThan(0);
+    for (const pipe of slow) {
+      expect(pipe.querySelector('.netview__pipe-mark')).toHaveAttribute('data-mark', 'low');
+      expect(pipe).not.toHaveTextContent(/V baixa|low V/);
+      expect(pipe).toHaveAccessibleName(/velocidade abaixo da mínima/);
+    }
+    const fine = document.querySelector('[data-element="pipe"][data-status="ok"]')!;
+    expect(fine.querySelector('.netview__pipe-mark')).toBeNull();
   });
 
   it('selects with a click and clears with a click on empty space', async () => {
@@ -177,28 +203,27 @@ describe('NetworkView', () => {
     expect(span()).toBeCloseTo(fitted, 6);
   });
 
-  it('changes the diameter of the selected pipe and marks the results as outdated', async () => {
+  it('has no diameter picker on a desktop: the calculation panel has it', async () => {
     const user = userEvent.setup();
     openStage('stage3');
     render(<NetworkView />);
-    expect(screen.getByText('Selecione um trecho para alterar o diâmetro.')).toBeInTheDocument();
-
     await user.click(element('pipe', 'T2'));
-    const picker = within(screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' }));
-    expect(picker.getByRole('button', { name: /^DN 50,/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(picker.getByRole('button', { name: /^DN 100, R\$\s65,00 por metro$/ })).toBeEnabled();
+    expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T2' });
+    expect(screen.queryByRole('group', { name: /^Diâmetro nominal/ })).not.toBeInTheDocument();
+    expect(document.querySelector('#dn-bar')).toBeNull();
+    expect(screen.queryByText('Selecione um trecho')).not.toBeInTheDocument();
+  });
 
+  it('follows a new diameter and marks the results as outdated', () => {
+    openStage('stage3');
+    render(<NetworkView />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     const thin = Number(
       element('pipe', 'T2').querySelector('.netview__pipe-line')!.getAttribute('stroke-width'),
     );
-    await user.click(picker.getByRole('button', { name: /^DN 100,/ }));
+    act(() => useAppStore.getState().setDiameter('T2', 100));
 
-    expect(useAppStore.getState().diameters.T2).toBe(100);
     expect(useAppStore.getState().stale).toBe(true);
-    expect(picker.getByRole('button', { name: /^DN 100,/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
     // The DN label and the line width follow the design; the old results stay, dimmed.
     expect(element('pipe', 'T2')).toHaveTextContent('T2 · DN 100');
     expect(
@@ -207,29 +232,66 @@ describe('NetworkView', () => {
       ),
     ).toBeGreaterThan(thin);
     expect(document.querySelector('.netview')).toHaveClass('netview--stale');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Resultados do cálculo anterior. Calcule novamente.',
-    );
+    // Under the drawing: one word, with the whole sentence for screen readers and as a tooltip.
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Desatualizado');
+    expect(status).toHaveTextContent('Resultados do cálculo anterior. Calcule novamente.');
+    expect(status.closest('.netview__canvas')).toBeNull();
     expect(element('pipe', 'T2')).toHaveAccessibleName(/resultados desatualizados$/);
   });
 
-  it('does not let a fixed pipe change', async () => {
-    const user = userEvent.setup();
-    const { scenario } = openStage('stage3');
-    useAppStore.setState({
-      scenario: {
-        ...scenario,
-        pipes: scenario.pipes.map((p) => (p.id === 'T1' ? { ...p, fixed: true } : p)),
-      },
+  describe('diameter bar on a phone', () => {
+    let restore = () => {};
+    beforeEach(() => {
+      restore = mockMatchMedia([PHONE_QUERY]);
     });
-    render(<NetworkView />);
-    await user.click(element('pipe', 'T1'));
-    const picker = within(screen.getByRole('group', { name: 'Diâmetro nominal do trecho T1' }));
-    for (const button of picker.getAllByRole('button')) expect(button).toBeDisabled();
-    expect(
-      screen.getByText('O diâmetro deste trecho é fixo nesta etapa e não pode ser alterado.'),
-    ).toBeInTheDocument();
-    expect(element('pipe', 'T1')).toHaveAccessibleName(/diâmetro fixo/);
+    afterEach(() => restore());
+
+    it('is the picker of the selected pipe, in one row under the drawing', async () => {
+      const user = userEvent.setup();
+      openStage('stage3');
+      render(<NetworkView />);
+      expect(screen.getByText('Selecione um trecho')).toBeInTheDocument();
+      expect(document.querySelector('#dn-bar')).toBeNull();
+
+      await user.click(element('pipe', 'T2'));
+      const group = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
+      expect(group).toHaveAttribute('id', 'dn-bar');
+      expect(group.closest('.netview__canvas')).toBeNull();
+      expect(document.querySelector('#dn-bar [aria-pressed="true"]')).toHaveAccessibleName(
+        /^DN 50,/,
+      );
+      const picker = within(group);
+      expect(picker.getByRole('button', { name: /^DN 100, R\$\s65,00 por metro$/ })).toBeEnabled();
+      // The hint and the legend symbols give the row to the keys; no caption about prices.
+      expect(screen.queryByText('Selecione um trecho')).not.toBeInTheDocument();
+      expect(screen.queryByText(/preço em/)).not.toBeInTheDocument();
+      expect(screen.getByText(/^Trecho T2, [\d.]+ m$/)).toHaveClass('visually-hidden');
+
+      await user.click(picker.getByRole('button', { name: /^DN 100,/ }));
+      expect(useAppStore.getState().diameters.T2).toBe(100);
+      expect(useAppStore.getState().stale).toBe(true);
+      expect(document.querySelector('#dn-bar [aria-pressed="true"]')).toHaveAccessibleName(
+        /^DN 100,/,
+      );
+      expect(element('pipe', 'T2')).toHaveTextContent('T2 · DN 100');
+    });
+
+    it('does not let a fixed pipe change', async () => {
+      const user = userEvent.setup();
+      const { scenario } = openStage('stage3');
+      useAppStore.setState({
+        scenario: {
+          ...scenario,
+          pipes: scenario.pipes.map((p) => (p.id === 'T1' ? { ...p, fixed: true } : p)),
+        },
+      });
+      render(<NetworkView />);
+      await user.click(element('pipe', 'T1'));
+      const picker = within(screen.getByRole('group', { name: 'Diâmetro nominal do trecho T1' }));
+      for (const button of picker.getAllByRole('button')) expect(button).toBeDisabled();
+      expect(element('pipe', 'T1')).toHaveAccessibleName(/diâmetro fixo/);
+    });
   });
 
   it('draws the flow marks in the real direction of the flow', () => {
@@ -583,16 +645,25 @@ describe('NetworkView', () => {
       expect(centre('node', 'A').x).toBeCloseTo(a2.x, 6);
     });
 
-    it('puts the legend behind a button over the drawing on a phone', async () => {
-      const user = userEvent.setup();
+    it('groups the legend help and the zoom buttons in one strip on a phone', async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       restoreMedia = mockMatchMedia([PHONE_QUERY]);
       openStage('stage3');
       render(<NetworkView />);
-      expect(screen.queryByRole('list', { name: 'Legenda' })).not.toBeInTheDocument();
-      const button = screen.getByRole('button', { name: 'Legenda' });
-      expect(button.closest('.netview__canvas')).not.toBeNull();
-      await user.click(button);
-      expect(screen.getByRole('list', { name: 'Legenda' })).toHaveTextContent('Pressão adequada');
+      const strip = screen.getByRole('group', { name: 'Controles do mapa' });
+      expect(strip.closest('.netview__canvas')).not.toBeNull();
+      expect(
+        [...strip.querySelectorAll('[data-overlay-control]')].map((control) =>
+          control.getAttribute('data-overlay-control'),
+        ),
+      ).toEqual(['legend', 'zoom-in', 'zoom-out', 'fit']);
+      // The symbols are under the drawing, without text; the texts open from the "?".
+      expect(screen.queryByText('Pressão adequada')).not.toBeInTheDocument();
+      const icons = screen.getByRole('list', { name: 'Legenda' });
+      expect(icons.closest('.netview__canvas')).toBeNull();
+      expect(within(icons).getByRole('img', { name: 'Pressão adequada' })).toBeInTheDocument();
+      await user.click(within(strip).getByRole('button', { name: 'Ajuda: Legenda' }));
+      expect(screen.getByRole('dialog', { name: 'Legenda' })).toHaveTextContent('Pressão adequada');
     });
   });
 
@@ -604,6 +675,7 @@ describe('NetworkView', () => {
     expect(element('pipe', 'T1')).toHaveAccessibleName(/^Pipe T1, DN 75 mm, flow 10\.50 L\/s/);
     expect(element('node', 'A')).toHaveAccessibleName(/dynamic pressure below the minimum$/);
     expect(screen.getByRole('button', { name: 'Zoom in' })).toBeInTheDocument();
-    expect(screen.getByText('Select a pipe to change its diameter.')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Map controls' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Help: Legend' })).toBeInTheDocument();
   });
 });

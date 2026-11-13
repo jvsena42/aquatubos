@@ -1,86 +1,193 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { COMMERCIAL_DNS } from '../../engine/cost';
 import { initialDiameters } from '../../game/buildNetwork';
+import { evaluateStage } from '../../game/evaluate';
 import { getScenario } from '../../scenarios';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
-import { mockMatchMedia } from './mockMatchMedia';
 import { PHONE_QUERY } from '../shell/breakpoints';
-import { SelectionBar, zoomControlsArea } from './ViewControls';
+import { LegendIcons } from './Legend';
+import { mockMatchMedia } from './mockMatchMedia';
+import { ControlStrip, MapFoot } from './ViewControls';
 
-function openStage() {
-  const scenario = getScenario('stage4')!;
-  useAppStore.setState({ scenario, diameters: initialDiameters(scenario) });
-  return scenario;
+vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
+
+const scenario = getScenario('stage3')!;
+
+function openStage(solved = true) {
+  const diameters = initialDiameters(scenario);
+  useAppStore.setState({
+    scenario,
+    diameters,
+    formula: scenario.formula,
+    evaluation: solved ? evaluateStage(scenario, diameters, scenario.formula) : null,
+  });
 }
 
-describe('zoomControlsArea', () => {
-  it('reserves room for three 44 px buttons on touch', () => {
-    // 3 × 44 px + 2 gaps of 4 px + 8 px from the edge = 148 px.
-    expect(zoomControlsArea(true).width).toBeGreaterThanOrEqual(148);
-    expect(zoomControlsArea(true).height).toBeGreaterThanOrEqual(52);
-    expect(zoomControlsArea(false)).toEqual({ width: 116, height: 44 });
+const legend = <LegendIcons checks={scenario.checks} evaluated />;
+
+describe('ControlStrip', () => {
+  beforeEach(() => resetStore());
+
+  it('is one group of icon buttons, each marked as an overlay control', async () => {
+    const user = userEvent.setup();
+    const onZoom = vi.fn();
+    const onFit = vi.fn();
+    render(
+      <ControlStrip orientation="column" onZoom={onZoom} onFit={onFit}>
+        <span data-overlay-control="legend">?</span>
+      </ControlStrip>,
+    );
+    const strip = screen.getByRole('group', { name: 'Controles do mapa' });
+    expect(strip).toHaveAttribute('data-orientation', 'column');
+    expect(strip.querySelectorAll('[data-overlay-control]')).toHaveLength(4);
+    for (const button of within(strip).getAllByRole('button')) {
+      expect(button).toHaveAttribute('data-overlay-control');
+      expect(button).toHaveAttribute('title');
+      expect(button).toHaveTextContent('');
+    }
+    await user.click(screen.getByRole('button', { name: 'Aproximar' }));
+    expect(onZoom).toHaveBeenLastCalledWith(1.4);
+    await user.click(screen.getByRole('button', { name: 'Afastar' }));
+    expect(onZoom).toHaveBeenLastCalledWith(1 / 1.4);
+    await user.click(screen.getByRole('button', { name: 'Enquadrar a rede' }));
+    expect(onFit).toHaveBeenCalledOnce();
   });
 });
 
-describe('SelectionBar', () => {
-  let restore = () => {};
+describe('MapFoot', () => {
   beforeEach(() => resetStore());
-  afterEach(() => restore());
 
-  it('asks for a selection while no pipe is selected', () => {
-    openStage();
-    render(<SelectionBar />);
-    expect(screen.getByText('Selecione um trecho para alterar o diâmetro.')).toBeInTheDocument();
-  });
+  describe('on a tablet or desktop', () => {
+    it('shows the legend symbols and its help, and never a diameter picker', () => {
+      openStage();
+      render(<MapFoot phone={false} legend={legend} help={<button type="button">ajuda</button>} />);
+      expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'ajuda' })).toBeInTheDocument();
+      expect(screen.queryByText('Selecione um trecho')).not.toBeInTheDocument();
 
-  it('shows only the DN numbers on a wide screen, the price in the name of each option', () => {
-    openStage();
-    useAppStore.setState({ selection: { type: 'pipe', id: 'T2' } });
-    render(<SelectionBar />);
-    const group = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
-    const option = within(group).getByRole('button', { name: /^DN 100, R\$\s65,00 por metro/ });
-    expect(option).toHaveTextContent(/^100$/);
-    expect(document.querySelector('.netview__bar--phone')).not.toBeInTheDocument();
-    expect(document.querySelector('.netview__bar-title')).toHaveTextContent(
-      'Trecho T2 · 300 m · DN',
-    );
+      act(() => useAppStore.getState().select({ type: 'pipe', id: 'T2' }));
+      expect(screen.queryByRole('group', { name: /^Diâmetro nominal/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+    });
+
+    it('says in one or two words that there is no result or that it is outdated', () => {
+      openStage(false);
+      render(<MapFoot phone={false} legend={legend} />);
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent('Sem cálculo');
+      expect(status).toHaveAttribute('title', 'Calcule para ver pressões, vazões e velocidades.');
+      expect(
+        within(status).getByText('Calcule para ver pressões, vazões e velocidades.'),
+      ).toHaveClass('visually-hidden');
+
+      openStage();
+      act(() => useAppStore.setState({ stale: true }));
+      expect(screen.getByRole('status')).toHaveTextContent('Desatualizado');
+      act(() => useAppStore.setState({ stale: false }));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
   });
 
   describe('on a phone', () => {
+    let restore = () => {};
     beforeEach(() => {
       restore = mockMatchMedia([PHONE_QUERY]);
     });
+    afterEach(() => restore());
 
-    it('keeps the name and length of the pipe and says what the numbers are', () => {
+    it('shows a three-word hint and the legend symbols while no pipe is selected', () => {
       openStage();
-      useAppStore.setState({ selection: { type: 'pipe', id: 'T2' } });
-      render(<SelectionBar />);
-      const title = document.querySelector('.netview__bar--phone .netview__bar-title');
-      expect(title).toHaveTextContent('Trecho T2 · 300 m');
-      expect(title).toHaveTextContent('DN e preço em R$/m');
+      render(<MapFoot phone legend={legend} />);
+      expect(screen.getByText('Selecione um trecho')).toBeInTheDocument();
+      expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+      expect(document.querySelector('#dn-bar')).toBeNull();
+      // A node has no diameter: the row stays as it is.
+      act(() => useAppStore.getState().select({ type: 'node', id: 'A' }));
+      expect(screen.getByText('Selecione um trecho')).toBeInTheDocument();
     });
 
-    it('lays the seven diameters out as one row of keys with the price under each DN', async () => {
+    it('gives the row to the seven diameter keys of the selected pipe', async () => {
       const user = userEvent.setup();
       openStage();
-      useAppStore.setState({ selection: { type: 'pipe', id: 'T2' } });
-      render(<SelectionBar />);
-      const group = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
-      expect(group.closest('.dn-picker')).toHaveClass('dn-picker--compact', 'dn-picker--prices');
-      const options = within(group).getAllByRole('button');
-      expect(options).toHaveLength(COMMERCIAL_DNS.length);
-      const dn150 = within(group).getByRole('button', { name: /^DN 150, R\$\s120,00 por metro/ });
-      expect(dn150.querySelector('.dn-picker__dn')).toHaveTextContent('150');
-      const price = dn150.querySelector('.dn-picker__price');
-      expect(price).toHaveTextContent('120');
-      // The visible number repeats the accessible name: hidden from assistive technology.
-      expect(price).toHaveAttribute('aria-hidden', 'true');
+      useAppStore.getState().select({ type: 'pipe', id: 'T2' });
+      render(<MapFoot phone legend={legend} />);
+      const row = document.querySelector('.netview__foot')!;
+      expect(row).toHaveClass('netview__foot--pipe');
+      // Title: the id over the length, the full words for screen readers only.
+      expect(row.querySelector('.netview__foot-title')).toHaveTextContent(/T2\d+ m$/);
+      expect(screen.getByText(/^Trecho T2, \d+ m$/)).toHaveClass('visually-hidden');
+      expect(screen.queryByText(/preço em/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('list', { name: 'Legenda' })).not.toBeInTheDocument();
 
-      await user.click(dn150);
+      const group = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
+      expect(group).toHaveAttribute('id', 'dn-bar');
+      expect(group.closest('.dn-picker')).toHaveClass('dn-picker--bar');
+      const keys = within(group).getAllByRole('button');
+      expect(keys.map((key) => key.querySelector('.dn-picker__dn')!.textContent)).toEqual([
+        '50',
+        '75',
+        '100',
+        '150',
+        '200',
+        '250',
+        '300',
+      ]);
+      // Each key: the DN over its price; the whole price is in the accessible name.
+      expect(keys[2]).toHaveTextContent(/^100R\$\s65$/);
+      expect(keys[2]).toHaveAccessibleName(/^DN 100, R\$\s65,00 por metro$/);
+      expect(document.querySelector('#dn-bar [aria-pressed="true"]')).toBe(keys[0]);
+
+      await user.click(keys[3]!);
       expect(useAppStore.getState().diameters.T2).toBe(150);
-      expect(dn150).toHaveAttribute('aria-pressed', 'true');
+      expect(document.querySelector('#dn-bar [aria-pressed="true"]')).toBe(keys[3]);
+    });
+
+    it('brings the pressed key to the middle of the scrolling row', () => {
+      const offsetLeft = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetLeft');
+      const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+      const clientWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'clientWidth');
+      const scrollWidth = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollWidth');
+      // Seven keys of 44 px in a row 200 px wide.
+      Object.defineProperty(HTMLElement.prototype, 'offsetLeft', {
+        configurable: true,
+        get(this: HTMLElement) {
+          return [...(this.parentElement?.children ?? [])].indexOf(this) * 44;
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+        configurable: true,
+        get: () => 44,
+      });
+      Object.defineProperty(Element.prototype, 'clientWidth', {
+        configurable: true,
+        get: () => 200,
+      });
+      Object.defineProperty(Element.prototype, 'scrollWidth', {
+        configurable: true,
+        get: () => 308,
+      });
+      try {
+        openStage();
+        useAppStore.setState({ diameters: { ...initialDiameters(scenario), T2: 150 } });
+        useAppStore.getState().select({ type: 'pipe', id: 'T2' });
+        render(<MapFoot phone legend={legend} />);
+        const group = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
+        // DN 150 is the fourth key: 3 × 44 − (200 − 44) / 2 = 54.
+        expect(group.scrollLeft).toBe(54);
+        // Keys are hidden on both sides: both edge fades are on.
+        const picker = group.closest('.dn-picker')!;
+        expect(picker).toHaveAttribute('data-fade-start', 'true');
+        expect(picker).toHaveAttribute('data-fade-end', 'true');
+
+        act(() => useAppStore.getState().setDiameter('T2', 200));
+        expect(group.scrollLeft).toBe(98);
+      } finally {
+        Object.defineProperty(HTMLElement.prototype, 'offsetLeft', offsetLeft!);
+        Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth!);
+        Object.defineProperty(Element.prototype, 'clientWidth', clientWidth!);
+        Object.defineProperty(Element.prototype, 'scrollWidth', scrollWidth!);
+      }
     });
   });
 });

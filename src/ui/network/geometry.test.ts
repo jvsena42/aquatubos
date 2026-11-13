@@ -92,8 +92,8 @@ describe('network geometry', () => {
     const anchors = pipeLabelAnchors({ x: 0, y: 50 }, { x: 100, y: 50 }, 10, inward);
     expect(anchors).toHaveLength(6);
     expect(anchors[1]).toMatchObject({ x: 50, y: 60, anchor: 'middle', block: 'below' });
-    expect(anchors[2]).toMatchObject({ x: 32, y: 40, block: 'above' });
-    expect(anchors[3]).toMatchObject({ x: 68, y: 40, block: 'above' });
+    expect(anchors[2]).toMatchObject({ x: 25, y: 40, block: 'above' });
+    expect(anchors[3]).toMatchObject({ x: 75, y: 40, block: 'above' });
     // Vertical pipe: the second anchor is on the outer side.
     const vertical = pipeLabelAnchors({ x: 20, y: 0 }, { x: 20, y: 100 }, 10, inward);
     expect(vertical[1]).toMatchObject({ x: 10, y: 50, anchor: 'end', block: 'centered' });

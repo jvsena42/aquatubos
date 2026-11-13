@@ -10,14 +10,14 @@ export const networkStrings = {
     pt: 'Arraste para mover e use a roda do mouse ou o gesto de pinça para aproximar. Selecione um trecho ou nó para ver o cálculo.',
     en: 'Drag to pan and use the mouse wheel or pinch to zoom. Select a pipe or node to see its calculation.',
   },
-  selectHint: {
-    pt: 'Selecione um trecho para alterar o diâmetro.',
-    en: 'Select a pipe to change its diameter.',
-  },
+  selectHint: { pt: 'Selecione um trecho', en: 'Select a pipe' },
   zoomIn: { pt: 'Aproximar', en: 'Zoom in' },
   zoomOut: { pt: 'Afastar', en: 'Zoom out' },
   fit: { pt: 'Enquadrar a rede', en: 'Fit network' },
-  zoomControls: { pt: 'Controles de zoom', en: 'Zoom controls' },
+  mapControls: { pt: 'Controles do mapa', en: 'Map controls' },
+  /** Short forms of the two hints below, shown as a badge under the drawing. */
+  staleShort: { pt: 'Desatualizado', en: 'Outdated' },
+  notSolvedShort: { pt: 'Sem cálculo', en: 'Not calculated' },
   staleHint: {
     pt: 'Resultados do cálculo anterior. Calcule novamente.',
     en: 'Results of the previous calculation. Calculate again.',
@@ -37,16 +37,12 @@ export const networkStrings = {
   demand: { pt: 'demanda', en: 'demand' },
   head: { pt: 'altura manométrica', en: 'head' },
   waterLevel: { pt: "nível d'água", en: 'water level' },
-  /** Abbreviation of "nível d'água" drawn next to the reservoir. */
-  waterLevelShort: { pt: 'NA', en: 'WL' },
   flowFromTo: (from: string, to: string): LocalizedText => ({
     pt: `escoamento de ${from} para ${to}`,
     en: `flowing from ${from} to ${to}`,
   }),
   noFlow: { pt: 'sem escoamento', en: 'no flow' },
   fixedDiameter: { pt: 'diâmetro fixo', en: 'fixed diameter' },
-  lowVelocityMark: { pt: 'V baixa', en: 'low V' },
-  highVelocityMark: { pt: 'V alta', en: 'high V' },
   legend: { pt: 'Legenda', en: 'Legend' },
   legendPressureOk: { pt: 'Pressão adequada', en: 'Pressure within limits' },
   legendPressureLow: (limit: string): LocalizedText => ({
@@ -81,8 +77,19 @@ export const networkStrings = {
     en: `DN ${dn}, ${price} per metre`,
   }),
   perMetre: { pt: '/m', en: '/m' },
-  /** Caption of the compact picker on phones: the number under each DN is its price. */
-  dnPriceUnit: { pt: 'DN e preço em R$/m', en: 'DN and price in R$/m' },
+  /** Title of the selection bar on phones: "T2 · 250 m". */
+  pipeLength: (id: string, length: string): LocalizedText => ({
+    pt: `Trecho ${id}, ${length} m`,
+    en: `Pipe ${id}, ${length} m`,
+  }),
+  legendLabels: {
+    pt: 'Trechos: identificação e DN em mm. Nós: identificação e pressão em mca. Reservatório: nível d’água em m. Bomba: altura manométrica em m. A vazão aparece no trecho selecionado.',
+    en: 'Pipes: id and DN in mm. Nodes: id and pressure in mca. Reservoir: water level in m. Pump: head in m. The flow is shown on the selected pipe.',
+  },
+  legendGestures: {
+    pt: 'Arraste para mover; pinça, roda do mouse ou toque duplo para aproximar.',
+    en: 'Drag to pan; pinch, mouse wheel or double tap to zoom.',
+  },
   fixedPipe: {
     pt: 'O diâmetro deste trecho é fixo nesta etapa e não pode ser alterado.',
     en: 'The diameter of this pipe is fixed in this stage and cannot be changed.',
