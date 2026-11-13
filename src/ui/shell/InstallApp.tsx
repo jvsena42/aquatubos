@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react';
+import { useAppStore } from '../../state/store';
+import { IconClose } from './icons';
 import { useTr } from '../../i18n';
 import { usePwaInstall } from '../../pwa/install';
 import { Dialog } from './Dialog';
@@ -15,9 +17,11 @@ export const installStrings = {
     en: 'In Safari the Share button is in the bottom bar; in other browsers it is in the menu.',
   },
   close: { pt: 'Entendi', en: 'Got it' },
+  hint: { pt: 'Use sem internet: instale o app.', en: 'Use it offline: install the app.' },
+  dismiss: { pt: 'Dispensar', en: 'Dismiss' },
 } as const;
 
-function IconInstall() {
+export function IconInstall() {
   return (
     <svg className="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path
@@ -147,6 +151,69 @@ export function InstallButton({ className = 'btn' }: { className?: string }) {
         <IconInstall />
         {action.label}
       </button>
+      {action.dialog}
+    </>
+  );
+}
+
+const HINT_KEY = 'aquatubos:install-hint-dismissed';
+
+function hintDismissed(): boolean {
+  try {
+    return window.localStorage.getItem(HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One-time suggestion to install the app, shown on the title screen and the stage map once a
+ * stage has been completed. Dismissing it (or installing) is remembered on this device.
+ */
+export function InstallHint() {
+  const tr = useTr();
+  const action = useInstallAction();
+  const stageOpen = useAppStore((s) => s.scenario !== null);
+  const anyCompleted = useAppStore((s) => Object.values(s.progress).some((p) => p.completed));
+  const [dismissed, setDismissed] = useState(hintDismissed);
+
+  const dismiss = () => {
+    setDismissed(true);
+    try {
+      window.localStorage.setItem(HINT_KEY, '1');
+    } catch {
+      // Storage can be unavailable (private mode); the hint then returns next session.
+    }
+  };
+
+  const visible = action.available && anyCompleted && !stageOpen && !dismissed;
+  return (
+    <>
+      {visible && (
+        <div className="pwa-notice install-hint" role="status">
+          <div className="pwa-notice__box">
+            <span>{tr(installStrings.hint)}</span>
+            <button
+              type="button"
+              className="btn btn--sm btn--primary"
+              onClick={() => {
+                dismiss();
+                action.start();
+              }}
+            >
+              {action.label}
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--icon btn--sm"
+              aria-label={tr(installStrings.dismiss)}
+              onClick={dismiss}
+            >
+              <IconClose />
+            </button>
+          </div>
+        </div>
+      )}
       {action.dialog}
     </>
   );

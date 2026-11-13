@@ -8,6 +8,8 @@ import { useTr } from '../i18n';
 import { useAppStore } from '../state/store';
 import { useDevice, useDeviceAttributes } from './shell/breakpoints';
 import { Header } from './shell/Header';
+import { IconInstall, InstallHint, useInstallAction } from './shell/InstallApp';
+import type { MenuEntry } from './shell/Menu';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
 import { HomeScreen } from './home/HomeScreen';
@@ -47,6 +49,7 @@ function focusScreenHeading(main: HTMLElement): () => void {
 
 export function App() {
   useDeviceAttributes();
+  const install = useInstallAction();
   const tr = useTr();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
@@ -95,12 +98,25 @@ export function App() {
       ? 'app__main app__main--bleed'
       : 'app__main';
 
+  // "Instalar app" appears in the menu only where installing is possible and not done yet.
+  const installItems: MenuEntry[] = install.available
+    ? [
+        {
+          kind: 'action',
+          id: 'install',
+          label: install.label,
+          icon: <IconInstall />,
+          onSelect: install.start,
+        },
+      ]
+    : [];
+
   return (
     <div className={shell ? 'app app--shell' : 'app'}>
       <a className="skip-link" href="#main">
         {tr(shellStrings.skipToContent)}
       </a>
-      <Header />
+      <Header extraItems={installItems} />
       <main id="main" ref={mainRef} className={mainClass} tabIndex={-1}>
         <div key={screenKey} className="screen">
           {!hydrated ? (
@@ -125,6 +141,8 @@ export function App() {
         </div>
       </main>
       <PwaNotice />
+      <InstallHint />
+      {install.dialog}
     </div>
   );
 }

@@ -44,3 +44,9 @@
   margin-top: var(--space-4);
   font-size: var(--font-size-sm);
 }
+
+/* The install hint sits at the bottom left so it never overlaps the offline/update notice. */
+.install-hint {
+  right: auto;
+  left: max(var(--space-4), env(safe-area-inset-left, 0px));
+}

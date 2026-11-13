@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { resetPwaInstall, useInstallStore, type BeforeInstallPromptEvent } from '../../pwa/install';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
-import { InstallButton } from './InstallApp';
+import { makeProgress } from '../../test/fixtures';
+import { InstallButton, InstallHint } from './InstallApp';
 
 function promptEvent() {
   const event = new Event('beforeinstallprompt') as BeforeInstallPromptEvent;
@@ -69,5 +70,56 @@ describe('InstallButton', () => {
     useInstallStore.setState({ ios: true });
     render(<InstallButton />);
     expect(screen.getByRole('button', { name: 'Install app' })).toBeInTheDocument();
+  });
+});
+
+describe('InstallHint', () => {
+  beforeEach(() => {
+    resetStore();
+    resetPwaInstall();
+    window.localStorage.clear();
+  });
+
+  const completeOneStage = () =>
+    useAppStore.setState({
+      progress: { stage1: makeProgress('stage1') },
+    });
+
+  it('appears only after a stage is completed and where installing is possible', () => {
+    useInstallStore.setState({ ios: true });
+    const { rerender } = render(<InstallHint />);
+    expect(screen.queryByText('Use sem internet: instale o app.')).not.toBeInTheDocument();
+    act(completeOneStage);
+    rerender(<InstallHint />);
+    expect(screen.getByText('Use sem internet: instale o app.')).toBeInTheDocument();
+  });
+
+  it('is hidden when installing is not possible', () => {
+    completeOneStage();
+    render(<InstallHint />);
+    expect(screen.queryByText('Use sem internet: instale o app.')).not.toBeInTheDocument();
+  });
+
+  it('remembers the dismissal', async () => {
+    const user = userEvent.setup();
+    useInstallStore.setState({ ios: true });
+    completeOneStage();
+    const { unmount } = render(<InstallHint />);
+    await user.click(screen.getByRole('button', { name: 'Dispensar' }));
+    expect(screen.queryByText('Use sem internet: instale o app.')).not.toBeInTheDocument();
+    unmount();
+    render(<InstallHint />);
+    expect(screen.queryByText('Use sem internet: instale o app.')).not.toBeInTheDocument();
+  });
+
+  it('starts the install from the hint and does not come back', async () => {
+    const user = userEvent.setup();
+    const event = promptEvent();
+    useInstallStore.setState({ deferred: event });
+    completeOneStage();
+    render(<InstallHint />);
+    await user.click(screen.getByRole('button', { name: 'Instalar app' }));
+    expect(event.prompt).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem('aquatubos:install-hint-dismissed')).toBe('1');
   });
 });
