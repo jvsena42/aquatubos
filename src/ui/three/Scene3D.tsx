@@ -699,7 +699,11 @@ export default function Scene3D({
       </Settings.Provider>
 
       <CameraControls bounds={model.bounds} resetCount={resetCount} />
-      <LabelProjector labels={labels} elements={labelElements} declutter={profile.compact} />
+      <LabelProjector
+        labels={labels}
+        elements={labelElements}
+        declutter={profile.compact || profile.touch}
+      />
       <RenderOnChange token={[model, colors, selection, showHgl, stale, labels, profile]} />
     </Canvas>
   );
