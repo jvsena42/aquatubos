@@ -13,10 +13,13 @@ const LABEL: Record<Detent, string> = {
 function Example({
   start = 'peek',
   mode = 'sheet',
+  half = 0.5,
   onVerify = () => undefined,
 }: {
   start?: Detent;
   mode?: 'sheet' | 'side';
+  /** Half detent as a fraction of the 1000 px window of `layout`. */
+  half?: number;
   onVerify?: () => void;
 }) {
   const initial: SheetState = { detent: start, section: 'calc' };
@@ -26,6 +29,7 @@ function Example({
       <BottomSheet
         mode={mode}
         detent={state.detent}
+        half={half}
         label="Cálculo e verificações"
         handleLabel={LABEL[state.detent]}
         collapseLabel="Recolher painel"
@@ -131,6 +135,17 @@ describe('BottomSheet', () => {
     expect(handle()).toHaveFocus();
   });
 
+  it('leaves Escape to a dialog opened from inside the panel', async () => {
+    const user = userEvent.setup();
+    render(<Example start="half" />);
+    const dialog = document.createElement('dialog');
+    dialog.innerHTML = '<button type="button">Fechar ajuda</button>';
+    panel().append(dialog);
+    dialog.querySelector('button')!.focus();
+    await user.keyboard('{Escape}');
+    expect(sheet()).toHaveAttribute('data-detent', 'half');
+  });
+
   it('collapses with the close button and moves the focus to the handle', async () => {
     const user = userEvent.setup();
     render(<Example start="half" />);
@@ -181,6 +196,15 @@ describe('BottomSheet', () => {
       expect(sheet().style.height).toBe('');
       expect(sheet()).not.toHaveAttribute('data-dragging');
       // 364 px is nearer to half (500) than to peek (64).
+      expect(sheet()).toHaveAttribute('data-detent', 'half');
+    });
+
+    it('takes the height of the half detent from the `half` fraction of the viewport', () => {
+      // 36 % of 1000 px = 360 px. A slow drag released at 264 px is nearer to it than to the
+      // bar (64 px); with half at 500 px the same release would fall back to peek.
+      render(<Example half={0.36} />);
+      layout();
+      drag(sheet().querySelector('.sheet__grip')!, 900, 700, 200, 400);
       expect(sheet()).toHaveAttribute('data-detent', 'half');
     });
 

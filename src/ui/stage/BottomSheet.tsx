@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { IconChevronDown, IconChevronUp } from '../shell/icons';
-import { releaseVelocity, snapDetent, type Detent } from './sheetState';
+import { releaseVelocity, SHEET_HALF, snapDetent, type Detent } from './sheetState';
 
 interface BottomSheetProps {
   /**
@@ -15,6 +15,8 @@ interface BottomSheetProps {
    */
   mode: 'sheet' | 'side';
   detent: Detent;
+  /** Height of the `half` detent as a fraction of the viewport height (see `SHEET_HALF`). */
+  half?: number;
   /** Accessible name of the whole region. */
   label: string;
   /** Accessible name of the handle button; it says what the next press does. */
@@ -60,6 +62,7 @@ interface Drag {
 export function BottomSheet({
   mode,
   detent,
+  half = SHEET_HALF.phone,
   label,
   handleLabel,
   collapseLabel,
@@ -99,7 +102,7 @@ export function BottomSheet({
       startHeight: height,
       heights: {
         peek: height - panelHeight,
-        half: Math.min(window.innerHeight / 2, full),
+        half: Math.min(window.innerHeight * half, full),
         full,
       },
       samples: [{ time: event.timeStamp, y: event.clientY }],
@@ -157,6 +160,8 @@ export function BottomSheet({
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key !== 'Escape' || side || detent === 'peek' || event.defaultPrevented) return;
+    // Escape inside a dialog opened from the panel (a help text) closes that dialog only.
+    if (event.target instanceof Element && event.target.closest('dialog')) return;
     event.preventDefault();
     collapse();
   };

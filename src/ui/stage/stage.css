@@ -4,26 +4,106 @@
   gap: var(--space-3);
 }
 
-.stage__bar {
+/*
+ * Head of the stage: name, briefing button and, on phones, the HUD. StageScreen renders it
+ * into the app header (see headerSlot.ts); the two wrappers take no part in the layout.
+ */
+.stage__head-inline:empty {
+  display: none;
+}
+
+.stage__head-host {
+  display: contents;
+}
+
+.stage__head {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1;
   align-items: center;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .stage__title {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  font-size: var(--font-size-lg);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  line-height: 1.2;
 }
 
 .stage__number {
+  flex: none;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
   font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.stage__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage__briefing {
+  flex: none;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-size: var(--font-size-lg);
+}
+
+/* Phones: the name in one line over the HUD, the briefing button at the right of both. */
+.stage__head--phone {
+  display: grid;
+  grid-template-areas:
+    'title briefing'
+    'hud briefing';
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1px var(--space-1);
+}
+
+.stage__head--phone .stage__title {
+  grid-area: title;
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+
+.stage__head--phone .stage__number {
+  white-space: nowrap;
+}
+
+.stage__head--phone .stage__number::after {
+  content: ' ·';
+}
+
+.stage__head--phone .hud {
+  grid-area: hud;
+}
+
+.stage__head--phone .stage__briefing {
+  position: relative;
+  grid-area: briefing;
+  min-width: 2.25rem;
+  min-height: 2.75rem;
+}
+
+/* Desktop and tablets: the HUD and, on desktop, the actions of the stage. */
+.stage__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-1);
 }
 
 .stage__actions {
@@ -34,18 +114,9 @@
   margin-left: auto;
 }
 
-.stage__stale {
-  flex-basis: 100%;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.stage__stale:empty {
-  display: none;
-}
-
-.stage__stale .badge {
-  white-space: normal;
+/* The design changed after the last calculation: the button says so with an icon and a ring. */
+.stage__verify[data-stale] {
+  box-shadow: 0 0 0 3px var(--color-warn-bg);
 }
 
 .stage__layout {
@@ -62,7 +133,7 @@
   overflow: hidden;
 }
 
-/* Row of the view tabs; on phones the town / schematic switch sits at its end. */
+/* Row of the view tabs; on phones and tablets the town / schematic switch sits at its end. */
 .stage__tabs {
   display: flex;
   align-items: center;
@@ -112,33 +183,19 @@
   gap: var(--space-1);
 }
 
-@media (max-width: 960px) {
-  .stage__layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .stage__tabpanel {
-    min-height: clamp(18rem, 60dvh, 36rem);
-  }
-}
-
-/* Tablets in portrait: the map on top, calculation and checks side by side under it. */
-@media (min-width: 761px) and (max-width: 960px) {
-  .stage__side {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-  }
-}
-
 /*
- * Phone layout (class set by StageScreen from PHONE_QUERY). The stage is a frame that fills the
- * space under the app header and does not scroll: head row (HUD and menu), tabs, the view, and
- * the bottom sheet over it. --sheet-peek is the height of the closed sheet, kept free under
- * the view so the sheet never covers the selection bar of the map.
+ * Framed layout of phones and tablets (classes set by StageScreen from the breakpoints hooks).
+ * The stage fills the space under the app header and does not scroll: the HUD row (tablets),
+ * the tabs, the view, and the bottom sheet over it.
+ *
+ * --sheet-peek is the height of the closed sheet, kept free under the view so the sheet never
+ * covers the selection bar of the map. --sheet-half is the height of the half-open sheet: a
+ * fraction of the viewport that StageScreen sets in --sheet-half-fraction (SHEET_HALF in
+ * sheetState.ts). The sheet and the space the view keeps above it both follow --sheet-half.
  */
-.stage--phone {
-  --sheet-peek: calc(4rem + env(safe-area-inset-bottom, 0px));
+.stage--frame {
+  --sheet-peek: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  --sheet-half: calc(100vh * var(--sheet-half-fraction, 0.36));
 
   position: relative;
   flex: 1;
@@ -150,21 +207,22 @@
   background: var(--color-surface);
 }
 
-.stage__head {
-  position: relative;
-  display: flex;
+@supports (height: 100dvh) {
+  .stage--frame {
+    --sheet-half: calc(100dvh * var(--sheet-half-fraction, 0.36));
+  }
+}
+
+.stage--frame .stage__bar {
   flex: none;
-  align-items: center;
-  min-width: 0;
-  padding-right: var(--space-1);
+  padding: var(--space-1) var(--space-4);
+  border: 0;
   border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.stage__menu {
-  flex: none;
-}
-
-.stage--phone .stage__layout {
+.stage--frame .stage__layout {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -172,40 +230,75 @@
   min-height: 0;
 }
 
-.stage--phone .stage__main {
+.stage--frame .stage__main {
   flex: 1;
   min-height: 0;
+  overflow: visible;
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
-.stage--phone .stage__tabs {
+.stage--frame .stage__tabs {
   flex: none;
   padding-right: var(--space-2);
 }
 
-.stage--phone .stage__tabpanel {
+.stage--frame .stage__tabpanel {
   flex: 1;
   min-height: 0;
   padding: var(--space-2);
   overscroll-behavior: contain;
 }
 
+/* The map and the 3D view go edge to edge. */
+.stage--frame .stage__tabpanel--flush {
+  padding: 0;
+}
+
+/*
+ * Phones: a thin tab row. The tabs are 36 px tall; their touch area reaches 8 px into the top
+ * of the view (44 px in all), inside the padding that the scrolling tab list gets for it.
+ */
+.stage--phone .stage__tabs {
+  position: relative;
+  z-index: 1;
+  height: 2.25rem;
+  padding-right: var(--space-1);
+}
+
+.stage--phone .tabs {
+  align-self: flex-start;
+  margin-bottom: -0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.stage--phone .tabs__tab {
+  position: relative;
+  min-height: 2.25rem;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.stage--phone .tabs__tab::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 -0.5rem;
+}
+
 /*
  * With the sheet half open the view keeps only the space above it, so the map refits there and
  * the selected pipe or node is not hidden under the sheet.
  */
-.stage--phone:not(.stage--side):has(.sheet[data-detent='half']) .stage__tabpanel {
-  margin-bottom: calc(50vh - var(--sheet-peek));
-  margin-bottom: calc(50dvh - var(--sheet-peek));
+.stage--frame:not(.stage--side):has(.sheet[data-detent='half']) .stage__tabpanel {
+  margin-bottom: calc(var(--sheet-half) - var(--sheet-peek));
 }
 
 /*
  * The drawings ask for a minimum canvas height that a phone held sideways does not have; with
  * a lower floor the selection bar under the canvas stays on screen.
  */
-.stage--phone .stage__tabpanel :is(.town__canvas, .netview__canvas) {
+.stage--frame .stage__tabpanel :is(.town__canvas, .netview__canvas) {
   min-height: 8rem;
 }
 
@@ -229,8 +322,7 @@
 }
 
 .sheet[data-detent='half'] {
-  height: min(50vh, 100%);
-  height: min(50dvh, 100%);
+  height: min(var(--sheet-half), 100%);
 }
 
 .sheet[data-detent='full'] {
@@ -255,7 +347,7 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  height: 0.75rem;
+  height: 0.625rem;
   cursor: grab;
   touch-action: none;
 }
@@ -289,7 +381,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
 }
 
 .sheet__switch {
@@ -300,19 +392,19 @@
 
 .sheet__switch > button {
   flex: 1;
-  min-height: 2.5rem;
+  min-height: 2rem;
 }
 
 .sheet__close {
   flex: none;
   min-width: 2.75rem;
-  min-height: 2.75rem;
+  min-height: 2.25rem;
 }
 
 .sheet__content {
   flex: 1;
   min-height: 0;
-  padding: var(--space-3) var(--space-4) var(--space-4);
+  padding: var(--space-2) var(--space-4) var(--space-3);
   overflow-y: auto;
   overscroll-behavior: contain;
   border-top: 1px solid var(--color-border);
@@ -323,15 +415,16 @@
   flex: none;
   align-items: center;
   gap: var(--space-2);
-  height: calc(3.25rem + env(safe-area-inset-bottom, 0px));
-  padding: 0 var(--space-3) calc(var(--space-2) + env(safe-area-inset-bottom, 0px)) var(--space-2);
+  height: calc(2.875rem + env(safe-area-inset-bottom, 0px));
+  padding: 0 var(--space-3) calc(2px + env(safe-area-inset-bottom, 0px)) var(--space-2);
   padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
   padding-left: max(var(--space-2), env(safe-area-inset-left, 0px));
 }
 
 .sheet:not([data-detent='peek']) > .sheet__bar {
-  height: calc(3.75rem + env(safe-area-inset-bottom, 0px));
-  padding-top: var(--space-2);
+  height: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+  padding-top: var(--space-1);
+  padding-bottom: calc(var(--space-1) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-border);
 }
 
@@ -464,23 +557,34 @@
   }
 }
 
+/* Tablets in portrait: the sheet content is centred in a readable column. */
+.stage--tablet .sheet__tools,
+.stage--tablet .sheet__content {
+  padding-right: max(var(--space-4), calc((100% - 44rem) / 2));
+  padding-left: max(var(--space-4), calc((100% - 44rem) / 2));
+}
+
 /*
- * Phone held sideways: the view on the left over the full height; on the right the head row
- * and the panel, always open, with the Calcular button at its foot.
+ * Side layout (a phone held sideways, a tablet in landscape): the view on the left over the
+ * full height, the panel on the right, always open, with the Calcular button at its foot. On
+ * tablets the HUD row runs across the top.
  */
 .stage--side {
   display: grid;
   grid-template-areas:
-    'main head'
+    'bar bar'
     'main sheet';
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns: minmax(0, 1fr) min(22rem, 44%);
   padding-bottom: 0;
 }
 
-.stage--side .stage__head {
-  grid-area: head;
-  border-left: 1px solid var(--color-border);
+.stage--tablet.stage--side {
+  grid-template-columns: minmax(0, 1fr) 23rem;
+}
+
+.stage--side .stage__bar {
+  grid-area: bar;
 }
 
 .stage--side .stage__layout {
@@ -499,15 +603,17 @@
   transition: none;
 }
 
-.sheet--side .sheet__tools {
-  padding: var(--space-2) var(--space-3);
+.sheet--side .sheet__tools,
+.stage--tablet .sheet--side .sheet__tools {
+  padding: var(--space-1) var(--space-3);
 }
 
 .sheet--side .sheet__switch {
   max-width: none;
 }
 
-.sheet--side .sheet__content {
+.sheet--side .sheet__content,
+.stage--tablet .sheet--side .sheet__content {
   padding: var(--space-3);
 }
 

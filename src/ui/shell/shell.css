@@ -36,7 +36,7 @@
 }
 
 /*
- * Phones with a stage open: the app is a fixed frame as tall as the visible viewport and the
+ * Phones and tablets with a stage open: the app is a fixed frame as tall as the visible viewport and the
  * page itself does not scroll; only the inside of panels does (see stage.css).
  */
 .app--shell {
@@ -69,6 +69,19 @@ html:has(.app--shell) {
 /* Headings that receive focus on a screen change stay clear of the sticky header. */
 .app__main h1 {
   scroll-margin-top: 6rem;
+}
+
+/*
+ * The heading of a screen takes the focus when the screen changes (App.tsx). It is not a
+ * control, so it only shows the ring to people using the keyboard.
+ */
+.app h1:focus {
+  outline: none;
+}
+
+.app h1:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 /* Each screen (title, stage map, stage) fades in when it is shown. */
@@ -157,7 +170,7 @@ html:has(.app--shell) {
   background: var(--header-status);
 }
 
-/* Phones: one row with the logo, back, the stage name and the settings menu. */
+/* Phones: one row with the logo and the menu. */
 .header--compact {
   flex-wrap: nowrap;
   gap: var(--space-1);
@@ -179,35 +192,47 @@ html:has(.app--shell) {
   padding-right: var(--space-2);
 }
 
+/*
+ * With a stage open: back, the slot the stage screen fills (its name, the briefing button and,
+ * on phones, the HUD; see headerSlot.ts) and the menu, in one row that never wraps.
+ */
+.header[data-stage] {
+  flex-wrap: nowrap;
+}
+
 .header__back {
   flex-shrink: 0;
-  min-width: 2.75rem;
+}
+
+.header__stage {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Phones with a stage open: a row of 44 px with no padding of its own above and below. */
+.header--compact[data-stage] {
+  gap: 0;
+  min-height: calc(2.75rem + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: 0;
+  padding-left: max(var(--space-1), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--space-1), env(safe-area-inset-right, 0px));
+}
+
+.header--compact .header__back {
+  min-width: 2.25rem;
   min-height: 2.75rem;
 }
 
-.header__context {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  padding: 0 var(--space-1);
-  line-height: 1.2;
+.header--compact[data-stage] .menu__button {
+  min-width: 2.5rem;
 }
 
-.header__context-kicker {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.header__context-title {
-  overflow: hidden;
-  font-size: var(--font-size-md);
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Tablets with a stage open: the logo without the name leaves room for the stage name. */
+:root[data-device='tablet'] .header[data-stage] .header__name {
+  display: none;
 }
 
 .header__menu {
@@ -547,25 +572,24 @@ html:has(.app--shell) {
   }
 }
 
-@media (max-width: 480px) {
-  .app__main {
-    padding: var(--space-3);
-    padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
-    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
-    padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
-  }
+/* Phones: tighter gutters. */
+:root[data-device='phone'] .app__main {
+  padding: var(--space-3);
+  padding-right: max(var(--space-3), env(safe-area-inset-right, 0px));
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--space-3), env(safe-area-inset-left, 0px));
+}
 
-  .app__main--bleed,
-  .app__main--shell {
-    padding: 0;
-  }
+:root[data-device='phone'] .app__main--bleed,
+:root[data-device='phone'] .app__main--shell {
+  padding: 0;
+}
 
-  .dialog__header,
-  .dialog__footer {
-    padding: var(--space-2) var(--space-3);
-  }
+:root[data-device='phone'] .dialog__header,
+:root[data-device='phone'] .dialog__footer {
+  padding: var(--space-2) var(--space-3);
+}
 
-  .dialog__body {
-    padding: var(--space-3);
-  }
+:root[data-device='phone'] .dialog__body {
+  padding: var(--space-3);
 }

@@ -6,8 +6,14 @@ import { makeEvaluation, makeProgress } from '../../test/fixtures';
 import { resetStore } from '../../test/store';
 import { evaluateInWorker } from '../../worker/client';
 import { App } from '../App';
+import {
+  LANDSCAPE_QUERY,
+  PHONE_LANDSCAPE_QUERY,
+  PHONE_QUERY,
+  UP_TO_TABLET_QUERY,
+} from '../shell/breakpoints';
 import { mockMatchMedia, type MatchMediaMock } from '../shell/testMatchMedia';
-import { PHONE_LANDSCAPE_QUERY, PHONE_QUERY } from '../shell/useMediaQuery';
+import { SHEET_HALF } from './sheetState';
 
 vi.mock('../../scenarios', async () => {
   const { fixtureScenarios } = await import('../../test/fixtures');
@@ -18,78 +24,149 @@ vi.mock('../../scenarios', async () => {
 });
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
-const PORTRAIT = (query: string) => query === PHONE_QUERY;
-const SIDEWAYS = (query: string) => query === PHONE_QUERY || query === PHONE_LANDSCAPE_QUERY;
+const among =
+  (...queries: string[]) =>
+  (query: string) =>
+    queries.includes(query);
+const PORTRAIT = among(PHONE_QUERY, UP_TO_TABLET_QUERY);
+const SIDEWAYS = among(PHONE_QUERY, UP_TO_TABLET_QUERY, PHONE_LANDSCAPE_QUERY, LANDSCAPE_QUERY);
+const TABLET_PORTRAIT = among(UP_TO_TABLET_QUERY);
+const TABLET_LANDSCAPE = among(UP_TO_TABLET_QUERY, LANDSCAPE_QUERY);
 
-describe('stage screen on a phone', () => {
-  let media: MatchMediaMock;
+let media: MatchMediaMock;
 
+async function openStage(order: number) {
+  const user = userEvent.setup();
+  render(<App />);
+  await screen.findByRole('heading', { level: 1 });
+  act(() =>
+    useAppStore.setState({
+      progress: { 'stage-1': makeProgress('stage-1'), 'stage-2': makeProgress('stage-2') },
+    }),
+  );
+  await user.click(screen.getByRole('button', { name: new RegExp(`Etapa ${order}: `) }));
+  await user.click(await screen.findByRole('button', { name: 'Continuar' }));
+  return user;
+}
+
+function setUp(matches: (query: string) => boolean) {
   beforeEach(async () => {
     await savePreferences({ lang: 'pt', theme: 'system' });
     resetStore(false);
     useAppStore.setState({ screen: 'map' });
     document.documentElement.removeAttribute('data-theme');
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
-    media = mockMatchMedia(PORTRAIT);
+    media = mockMatchMedia(matches);
   });
   afterEach(() => media.restore());
+}
 
-  async function openStage(order: number) {
-    const user = userEvent.setup();
-    render(<App />);
-    await screen.findByRole('heading', { level: 1 });
-    act(() =>
-      useAppStore.setState({
-        progress: { 'stage-1': makeProgress('stage-1'), 'stage-2': makeProgress('stage-2') },
-      }),
-    );
-    await user.click(screen.getByRole('button', { name: new RegExp(`Etapa ${order}: `) }));
-    await user.click(await screen.findByRole('button', { name: 'Continuar' }));
-    return user;
-  }
+const header = () => document.querySelector('.header') as HTMLElement;
+const stage = () => document.querySelector('.stage') as HTMLElement;
+
+describe('stage screen on a phone', () => {
+  setUp(PORTRAIT);
 
   describe('header', () => {
-    it('is one row: logo, and a settings menu with glossary, language and theme', async () => {
+    it('is one row with the logo and one menu: glossary, language and theme', async () => {
       const user = userEvent.setup();
       render(<App />);
       await screen.findByRole('heading', { level: 1 });
       expect(screen.getByRole('button', { name: 'Aquatubos, tela inicial' })).toBeInTheDocument();
-      expect(screen.queryByRole('group', { name: 'Tema' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Glossário' })).not.toBeInTheDocument();
+      expect(within(header()).getAllByRole('button')).toHaveLength(2);
 
-      const settings = screen.getByRole('button', { name: 'Configurações' });
-      expect(settings).toHaveAttribute('aria-haspopup', 'menu');
-      await user.click(settings);
-      const menu = screen.getByRole('menu', { name: 'Configurações' });
-      expect(
-        within(within(menu).getByRole('group', { name: 'Idioma' })).getAllByRole('menuitemradio'),
-      ).toHaveLength(2);
-      expect(
-        within(within(menu).getByRole('group', { name: 'Tema' })).getAllByRole('menuitemradio'),
-      ).toHaveLength(3);
-
+      const menuButton = screen.getByRole('button', { name: 'Menu' });
+      expect(menuButton).toHaveAttribute('aria-haspopup', 'menu');
+      await user.click(menuButton);
+      const menu = screen.getByRole('menu', { name: 'Menu' });
       await user.click(within(menu).getByRole('menuitemradio', { name: 'Escuro' }));
       expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
       expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
-      await user.click(settings);
+      await user.click(menuButton);
       await user.click(screen.getByRole('menuitemradio', { name: 'English' }));
       expect(screen.getByRole('heading', { level: 1, name: 'Stages' })).toBeInTheDocument();
       expect(document.documentElement.lang).toBe('en');
       await waitFor(async () => expect((await loadPreferences()).lang).toBe('en'));
 
-      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      await user.click(menuButton);
       await user.click(screen.getByRole('menuitem', { name: 'Glossary' }));
       expect(screen.getByRole('dialog', { name: 'Glossary' })).toBeInTheDocument();
     });
 
-    it('shows the stage name and an icon button back to the stage list', async () => {
+    it('holds back, the stage name, the HUD, the briefing and the menu in one row', async () => {
       const user = await openStage(1);
-      const header = document.querySelector('.header') as HTMLElement;
-      expect(header).toHaveTextContent('Etapa 1');
-      expect(header).toHaveTextContent('Título 1');
+      // No logo here: the row is back, name over numbers, briefing, menu.
+      expect(screen.queryByRole('button', { name: 'Aquatubos, tela inicial' })).toBeNull();
+      expect(header()).toHaveAttribute('data-stage', 'true');
+      const heading = within(header()).getByRole('heading', { level: 1 });
+      expect(heading).toHaveAccessibleName('Etapa 1: Título 1');
+      expect(heading).toBeVisible();
+      expect(heading).not.toHaveClass('visually-hidden');
+      const hud = within(header()).getByRole('region', { name: 'Situação do projeto' });
+      expect(hud).toHaveClass('hud--compact');
+      expect(
+        within(header())
+          .getAllByRole('button')
+          .map((button) => button.getAttribute('aria-label')),
+      ).toEqual([
+        'Voltar para a lista de etapas',
+        'Ajuda: Situação do projeto',
+        'Enunciado',
+        'Menu',
+      ]);
+      // Nothing of the stage head is left in the stage itself.
+      expect(stage().querySelector('h1, .hud')).toBeNull();
+
       await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
       expect(screen.getByRole('heading', { level: 1, name: 'Etapas' })).toHaveFocus();
+    });
+
+    it('opens the briefing from its button', async () => {
+      const user = await openStage(1);
+      await user.click(screen.getByRole('button', { name: 'Enunciado' }));
+      const briefing = screen.getByRole('dialog', { name: 'Etapa 1: Título 1' });
+      await user.click(within(briefing).getByRole('button', { name: 'Continuar' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      // A browser gives the focus back to the button. jsdom leaves it nowhere, which is the
+      // case the stage covers by focusing its heading.
+      await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus());
+    });
+
+    it('puts the stage actions in the same menu: formula and reset', async () => {
+      const user = await openStage(1);
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      const menuButton = screen.getByRole('button', { name: 'Menu' });
+
+      await user.click(menuButton);
+      const menu = screen.getByRole('menu', { name: 'Menu' });
+      expect(
+        [...menu.querySelectorAll('[role^="menuitem"]')].map((item) => item.textContent),
+      ).toEqual([
+        'Hazen-Williams',
+        'Darcy-Weisbach',
+        'Restaurar diâmetros',
+        'Como jogar',
+        'Glossário',
+        'Português',
+        'English',
+        'Sistema',
+        'Claro',
+        'Escuro',
+        'Sobre',
+      ]);
+      const formula = within(menu).getByRole('group', { name: 'Fórmula de perda de carga' });
+      expect(
+        within(formula).getByRole('menuitemradio', { name: 'Hazen-Williams' }),
+      ).toHaveAttribute('aria-checked', 'true');
+      await user.click(within(formula).getByRole('menuitemradio', { name: 'Darcy-Weisbach' }));
+      expect(useAppStore.getState().formula).toBe('darcy-weisbach');
+      expect(useAppStore.getState().stale).toBe(true);
+
+      act(() => useAppStore.getState().setDiameter('T1', 100));
+      await user.click(menuButton);
+      await user.click(screen.getByRole('menuitem', { name: 'Restaurar diâmetros' }));
+      expect(useAppStore.getState().diameters).toEqual({ T1: 50 });
     });
   });
 
@@ -98,17 +175,32 @@ describe('stage screen on a phone', () => {
       const user = await openStage(1);
       expect(document.querySelector('.app')).toHaveClass('app--shell');
       expect(screen.getByRole('main')).toHaveClass('app__main--shell');
-      expect(document.querySelector('.stage')).toHaveClass('stage--phone');
-      expect(document.querySelector('.stage')).not.toHaveClass('stage--side');
+      expect(stage()).toHaveClass('stage--frame', 'stage--phone');
+      expect(stage()).not.toHaveClass('stage--side');
+      expect(stage()).not.toHaveClass('stage--tablet');
+      expect(document.querySelector('.stage__bar')).toBeNull();
 
       await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
       expect(document.querySelector('.app')).not.toHaveClass('app--shell');
     });
 
-    it('keeps one heading with the stage name, which takes the focus', async () => {
+    it('sets the half height of the sheet in one CSS variable', async () => {
       await openStage(1);
+      expect(stage().style.getPropertyValue('--sheet-half-fraction')).toBe(
+        String(SHEET_HALF.phone),
+      );
+      // Under 40 % of the viewport, so the map keeps at least 40 % above the open sheet.
+      expect(SHEET_HALF.phone).toBeLessThan(0.4);
+    });
+
+    it('focuses the visible stage heading when a stage opens again', async () => {
+      const user = await openStage(1);
+      await user.click(screen.getByRole('button', { name: 'Voltar para a lista de etapas' }));
+      await user.click(screen.getByRole('button', { name: /Etapa 1: / }));
+      await user.click(await screen.findByRole('button', { name: 'Continuar' }));
       const heading = screen.getByRole('heading', { level: 1, name: 'Etapa 1: Título 1' });
       expect(heading).toHaveAttribute('tabindex', '-1');
+      await waitFor(() => expect(heading).toHaveFocus());
     });
 
     it('puts calculation and checks in the bottom sheet instead of the side column', async () => {
@@ -121,17 +213,13 @@ describe('stage screen on a phone', () => {
       ).toHaveAttribute('aria-expanded', 'false');
     });
 
-    it('shows the HUD as one line that opens the figures and the objectives', async () => {
+    it('explains the HUD and lists the objectives in a help dialog', async () => {
       const user = await openStage(1);
-      const hud = screen.getByRole('region', { name: 'Situação do projeto' });
-      const summary = within(hud).getByRole('button', { name: /Casas atendidas/ });
-      expect(summary).toHaveAttribute('aria-expanded', 'false');
-      expect(within(hud).queryByText('Objetivo 1')).not.toBeVisible();
-      await user.click(summary);
-      expect(summary).toHaveAttribute('aria-expanded', 'true');
-      expect(within(hud).getByText('Objetivo 1')).toBeVisible();
-      await user.keyboard('{Escape}');
-      expect(summary).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByText('Objetivo 1')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Ajuda: Situação do projeto' }));
+      const dialog = screen.getByRole('dialog', { name: 'Situação do projeto' });
+      expect(within(dialog).getByText('Objetivo 1')).toBeInTheDocument();
+      expect(dialog).toHaveTextContent('Casas em nós sem falha de pressão');
     });
 
     it('keeps the tabs pattern and moves the town / schematic switch next to the tabs', async () => {
@@ -165,34 +253,6 @@ describe('stage screen on a phone', () => {
     });
   });
 
-  describe('more actions menu', () => {
-    it('holds the briefing, the formula and the reset', async () => {
-      const user = await openStage(1);
-      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Enunciado' })).not.toBeInTheDocument();
-
-      const more = screen.getByRole('button', { name: 'Mais ações' });
-      await user.click(more);
-      await user.click(screen.getByRole('menuitem', { name: 'Enunciado' }));
-      const briefing = screen.getByRole('dialog', { name: 'Etapa 1: Título 1' });
-      await user.click(within(briefing).getByRole('button', { name: 'Continuar' }));
-
-      await user.click(more);
-      const formula = screen.getByRole('group', { name: 'Fórmula de perda de carga' });
-      expect(
-        within(formula).getByRole('menuitemradio', { name: 'Hazen-Williams' }),
-      ).toHaveAttribute('aria-checked', 'true');
-      await user.click(within(formula).getByRole('menuitemradio', { name: 'Darcy-Weisbach' }));
-      expect(useAppStore.getState().formula).toBe('darcy-weisbach');
-      expect(useAppStore.getState().stale).toBe(true);
-
-      act(() => useAppStore.getState().setDiameter('T1', 100));
-      await user.click(more);
-      await user.click(screen.getByRole('menuitem', { name: 'Restaurar diâmetros' }));
-      expect(useAppStore.getState().diameters).toEqual({ T1: 50 });
-    });
-  });
-
   describe('Calcular / Verificar', () => {
     it('sits in the bar of the sheet, shows the stale state and verifies', async () => {
       const user = await openStage(1);
@@ -201,7 +261,7 @@ describe('stage screen on a phone', () => {
 
       act(() => useAppStore.getState().setDiameter('T1', 100));
       const again = within(sheet).getByRole('button', { name: 'Recalcular' });
-      expect(screen.getByText(/O projeto mudou desde/)).toBeInTheDocument();
+      expect(screen.getByText('Resultado desatualizado: recalcule.')).toBeInTheDocument();
 
       vi.mocked(evaluateInWorker).mockClear();
       await user.click(again);
@@ -209,7 +269,32 @@ describe('stage screen on a phone', () => {
       expect(
         await within(sheet).findByRole('button', { name: 'Calcular / Verificar' }),
       ).toBeEnabled();
-      expect(screen.queryByText(/O projeto mudou desde/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Resultado desatualizado: recalcule.')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('diameter of the selected pipe', () => {
+    it('is text in the sheet; "Alterar" closes the sheet and goes to the bar under the map', async () => {
+      const user = await openStage(1);
+      // The bar belongs to the map views; a stand-in with the agreed id.
+      const bar = document.createElement('div');
+      bar.id = 'dn-bar';
+      bar.innerHTML = '<button aria-pressed="true">50</button><button>75</button>';
+      document.body.append(bar);
+
+      act(() => useAppStore.getState().select({ type: 'pipe', id: 'T1' }));
+      const sheet = screen.getByRole('region', { name: 'Cálculo e verificações' });
+      expect(sheet).toHaveAttribute('data-detent', 'half');
+      expect(within(sheet).getByRole('heading', { name: 'Trecho T1' })).toBeInTheDocument();
+      expect(within(sheet).queryByRole('group', { name: /Diâmetro nominal/ })).toBeNull();
+      expect(sheet.querySelector('[data-result="dn"]')).toHaveTextContent(/^DN \d+ · R\$\s\d+\/m$/);
+
+      await user.click(
+        within(sheet).getByRole('button', { name: 'Alterar o diâmetro do trecho T1' }),
+      );
+      expect(sheet).toHaveAttribute('data-detent', 'peek');
+      expect(bar.querySelector('[aria-pressed="true"]')).toHaveFocus();
+      document.body.removeChild(bar);
     });
   });
 
@@ -217,7 +302,7 @@ describe('stage screen on a phone', () => {
     it('shows the panel beside the view, always open', async () => {
       media.set(SIDEWAYS);
       await openStage(1);
-      expect(document.querySelector('.stage')).toHaveClass('stage--phone', 'stage--side');
+      expect(stage()).toHaveClass('stage--frame', 'stage--phone', 'stage--side');
       const panel = screen.getByRole('region', { name: 'Cálculo e verificações' });
       expect(panel).not.toHaveAttribute('data-detent');
       expect(within(panel).getByRole('group', { name: 'Seção do painel' })).toBeInTheDocument();
@@ -228,10 +313,74 @@ describe('stage screen on a phone', () => {
   it('goes back to the desktop layout when the viewport grows', async () => {
     await openStage(1);
     act(() => media.set(() => false));
-    expect(document.querySelector('.stage')).not.toHaveClass('stage--phone');
+    expect(stage()).not.toHaveClass('stage--frame');
+    expect(document.querySelector('.app')).not.toHaveClass('app--shell');
     expect(document.querySelector('.stage__side')).not.toBeNull();
     expect(screen.getByRole('combobox', { name: 'Fórmula de perda de carga' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Tema' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Mais ações' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Restaurar diâmetros' })).toBeInTheDocument();
+    // The name stays in the header on every device; the HUD moves to the bar of the stage.
+    expect(within(header()).getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(within(stage()).getByRole('region', { name: 'Situação do projeto' })).not.toHaveClass(
+      'hud--compact',
+    );
+  });
+});
+
+describe('stage screen on a tablet', () => {
+  describe('portrait', () => {
+    setUp(TABLET_PORTRAIT);
+
+    it('is a frame with the map on top and the panels in the bottom sheet', async () => {
+      await openStage(1);
+      expect(document.querySelector('.app')).toHaveClass('app--shell');
+      expect(stage()).toHaveClass('stage--frame', 'stage--tablet');
+      expect(stage()).not.toHaveClass('stage--phone');
+      expect(stage()).not.toHaveClass('stage--side');
+      expect(stage().style.getPropertyValue('--sheet-half-fraction')).toBe(
+        String(SHEET_HALF.tablet),
+      );
+      expect(document.querySelector('.stage__side')).toBeNull();
+      const sheet = screen.getByRole('region', { name: 'Cálculo e verificações' });
+      expect(sheet).toHaveAttribute('data-detent', 'peek');
+      expect(within(sheet).getByRole('button', { name: 'Calcular / Verificar' })).toBeEnabled();
+    });
+
+    it('keeps the logo and the full HUD, with formula and reset in the menu', async () => {
+      const user = await openStage(1);
+      expect(screen.getByRole('button', { name: 'Aquatubos, tela inicial' })).toBeInTheDocument();
+      expect(within(header()).getByRole('heading', { level: 1 })).toHaveAccessibleName(
+        'Etapa 1: Título 1',
+      );
+      const hud = within(stage()).getByRole('region', { name: 'Situação do projeto' });
+      expect(hud).not.toHaveClass('hud--compact');
+      expect(within(hud).getByRole('button', { name: 'Ajuda: Estrelas' })).toBeInTheDocument();
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Menu' }));
+      expect(screen.getByRole('menuitem', { name: 'Restaurar diâmetros' })).toBeInTheDocument();
+    });
+
+    it('keeps the full diameter picker in the calculation panel', async () => {
+      await openStage(1);
+      act(() => useAppStore.getState().select({ type: 'pipe', id: 'T1' }));
+      const sheet = screen.getByRole('region', { name: 'Cálculo e verificações' });
+      expect(
+        within(sheet).getByRole('group', { name: 'Diâmetro nominal do trecho T1' }),
+      ).toBeInTheDocument();
+      expect(within(sheet).queryByRole('button', { name: /Alterar/ })).toBeNull();
+    });
+  });
+
+  describe('landscape', () => {
+    setUp(TABLET_LANDSCAPE);
+
+    it('is a frame with the map on the left and the panel on the right, always open', async () => {
+      await openStage(1);
+      expect(document.querySelector('.app')).toHaveClass('app--shell');
+      expect(stage()).toHaveClass('stage--frame', 'stage--tablet', 'stage--side');
+      const panel = screen.getByRole('region', { name: 'Cálculo e verificações' });
+      expect(panel).toHaveClass('sheet--side');
+      expect(panel).not.toHaveAttribute('data-detent');
+      expect(within(panel).getByRole('button', { name: 'Calcular / Verificar' })).toBeEnabled();
+    });
   });
 });

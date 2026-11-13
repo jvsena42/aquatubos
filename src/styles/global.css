@@ -497,7 +497,7 @@ button.card,
 }
 
 /* iOS zooms the page when a focused field has text smaller than 16 px. */
-@media (pointer: coarse), (max-width: 760px) {
+@media (pointer: coarse) {
   .select,
   .input,
   select,
@@ -505,6 +505,11 @@ button.card,
   textarea {
     font-size: max(1rem, 16px);
   }
+}
+
+/* The same on a phone-sized screen whatever the pointer (data-device is set by App). */
+:root[data-device='phone'] :is(.select, .input, select, input, textarea) {
+  font-size: max(1rem, 16px);
 }
 
 @media (prefers-reduced-motion: reduce) {

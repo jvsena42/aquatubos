@@ -6,11 +6,10 @@ import './shell/shell.css';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTr } from '../i18n';
 import { useAppStore } from '../state/store';
-import { useDeviceAttributes } from './shell/breakpoints';
+import { useDevice, useDeviceAttributes } from './shell/breakpoints';
 import { Header } from './shell/Header';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
-import { PHONE_QUERY, useMediaQuery } from './shell/useMediaQuery';
 import { HomeScreen } from './home/HomeScreen';
 import { StageSelect } from './stages/StageSelect';
 
@@ -24,11 +23,13 @@ const HTML_LANG = { pt: 'pt-BR', en: 'en' } as const;
 /**
  * Moves focus to the main heading of the screen that was just shown, so keyboard and screen
  * reader users land on it. While the screen is still loading, focus waits on <main> and moves to
- * the heading when it appears. Returns a cleanup function.
+ * the heading when it appears. The heading of a stage is in the app header (see headerSlot.ts),
+ * so the search covers the whole app. Returns a cleanup function.
  */
 function focusScreenHeading(main: HTMLElement): () => void {
+  const app = main.parentElement ?? main;
   const focusHeading = (): boolean => {
-    const heading = main.querySelector('h1');
+    const heading = app.querySelector('h1');
     if (!heading) return false;
     if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
     // A modal dialog that is already open (the stage briefing) keeps the focus.
@@ -40,7 +41,7 @@ function focusScreenHeading(main: HTMLElement): () => void {
   const observer = new MutationObserver(() => {
     if (focusHeading()) observer.disconnect();
   });
-  observer.observe(main, { childList: true, subtree: true });
+  observer.observe(app, { childList: true, subtree: true });
   return () => observer.disconnect();
 }
 
@@ -85,9 +86,9 @@ export function App() {
   }, [screenKey]);
 
   const bleed = hydrated && !scenarioId && screen === 'home';
-  // On phones an open stage is a fixed frame the size of the viewport (see shell.css).
-  const phone = useMediaQuery(PHONE_QUERY);
-  const shell = phone && hydrated && scenarioId !== null;
+  // On phones and tablets an open stage is a fixed frame the size of the viewport (shell.css).
+  const device = useDevice();
+  const shell = device !== 'desktop' && hydrated && scenarioId !== null;
   const mainClass = shell
     ? 'app__main app__main--shell'
     : bleed

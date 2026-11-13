@@ -3,7 +3,7 @@ import type { LocalizedText } from '../../engine/types';
 import { useTr } from '../../i18n';
 import { SCENARIOS } from '../../scenarios';
 import { isUnlocked, useAppStore } from '../../state/store';
-import { CalcPanel } from '../panels/CalcPanel';
+import { CalcPanel, focusDnBar } from '../panels/CalcPanel';
 import { calcStrings } from '../panels/calcStrings';
 import { ChecksPanel } from '../panels/ChecksPanel';
 import { checksStrings } from '../panels/checksStrings';
@@ -24,17 +24,19 @@ const HANDLE_LABEL: Record<Detent, LocalizedText> = {
 };
 
 interface StageSheetProps {
-  /** Phone held sideways: a panel beside the map instead of a sheet over it. */
+  /** Phone held sideways or tablet in landscape: a panel beside the map, not a sheet over it. */
   side: boolean;
+  /** Height of the half detent as a fraction of the viewport (see `SHEET_HALF`). */
+  half?: number;
 }
 
 /**
- * Calculation panel and checks of the phone layout, in a bottom sheet with the
+ * Calculation panel and checks of the phone and tablet layouts, in a bottom sheet with the
  * "Calcular / Verificar" button in its bar. The sheet follows the game: picking an element
  * brings its calculation up, a failed verification brings the checks, a passed one gets out of
  * the way of the map.
  */
-export function StageSheet({ side }: StageSheetProps) {
+export function StageSheet({ side, half }: StageSheetProps) {
   const tr = useTr();
   const scenario = useAppStore((s) => s.scenario);
   const selection = useAppStore((s) => s.selection);
@@ -182,6 +184,7 @@ export function StageSheet({ side }: StageSheetProps) {
     <BottomSheet
       mode={side ? 'side' : 'sheet'}
       detent={state.detent}
+      half={half}
       label={tr(stageStrings.sidePanel)}
       handleLabel={tr(HANDLE_LABEL[state.detent])}
       collapseLabel={tr(stageStrings.sheetClose)}
@@ -194,7 +197,17 @@ export function StageSheet({ side }: StageSheetProps) {
       onSnap={(detent) => dispatch({ type: 'snap', detent, hasSelection })}
       onCollapse={() => dispatch({ type: 'collapse' })}
     >
-      {state.section === 'calc' ? <CalcPanel /> : <ChecksPanel />}
+      {state.section === 'calc' ? (
+        <CalcPanel
+          onChangeDn={() => {
+            // The picker is in the bar under the map: get the sheet out of its way and go there.
+            dispatch({ type: 'collapse' });
+            focusDnBar();
+          }}
+        />
+      ) : (
+        <ChecksPanel />
+      )}
     </BottomSheet>
   );
 }
