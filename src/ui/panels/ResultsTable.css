@@ -24,23 +24,18 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  flex: none;
   min-height: 2rem;
 }
 
-/* The wrap scrolls in both directions so the header row can stay in view. */
-.results__wrap {
-  /* Contains the visually hidden texts, which are absolutely positioned. */
-  position: relative;
+/* The frame (ScrollTable) scrolls in both directions so the header row can stay in view. */
+.results__wrap > .hscroll__scroller {
   max-height: min(34rem, 75dvh);
-  overflow: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
-.results__table thead {
-  position: sticky;
-  top: 0;
-  z-index: 2;
+/* Switch between the two tables: phones only. */
+.results__switch {
+  display: none;
 }
 
 .results__table th,
@@ -75,35 +70,8 @@
   font-weight: var(--font-weight-regular);
 }
 
-/* First column stays in view while the table scrolls sideways. */
-.results__table .results__corner,
 .results__table .results__id {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-}
-
-.results__table .results__id {
-  background: var(--color-surface);
-  box-shadow: inset -1px 0 0 var(--color-border);
   font-weight: var(--font-weight-semibold);
-}
-
-.results__table .results__corner {
-  box-shadow:
-    inset -1px 0 0 var(--color-border),
-    inset 0 -1px 0 var(--color-border);
-}
-
-.results__table tbody tr:hover .results__id {
-  background: var(--color-surface-2);
-}
-
-.results__table tr[aria-selected='true'] .results__id {
-  background: var(--color-info-bg);
-  box-shadow:
-    inset 3px 0 0 var(--color-primary),
-    inset -1px 0 0 var(--color-border);
 }
 
 .results__rowbtn {
@@ -169,4 +137,79 @@
 
 .results__legend-item--warning {
   color: var(--color-warn);
+}
+
+/* The marks of the selected row in words. */
+.results__notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-size: var(--font-size-sm);
+}
+
+@media (pointer: coarse), (max-width: 760px) {
+  .results__bar .btn,
+  .results__switch > button {
+    min-height: 2.75rem;
+  }
+}
+
+/*
+ * Phones: the view fills the tab panel and one table at a time fills the view, so the only
+ * scrolling is inside the table, with its header row and first column in place.
+ */
+@media (max-width: 760px) {
+  .results {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .results > .result-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: var(--space-2);
+  }
+
+  .results__section {
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
+  .results--pipes .results__section--pipes,
+  .results--nodes .results__section--nodes {
+    min-height: 14rem;
+  }
+
+  .results__switch {
+    display: inline-flex;
+  }
+
+  .results__bar h3,
+  .results__section--nodes .results__bar,
+  .results--nodes .results__section--pipes .results__wrap,
+  .results--pipes .results__section--nodes {
+    display: none;
+  }
+
+  .results__wrap > .hscroll__scroller {
+    max-height: none;
+  }
+
+  .results__notes,
+  .results__legend {
+    flex: none;
+  }
+
+  /* Keeps the sticky first column narrow. */
+  .results__kind {
+    display: block;
+    margin-left: 0;
+  }
 }
