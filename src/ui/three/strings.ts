@@ -15,7 +15,7 @@ export const strings3d = {
   }),
   controls: { pt: 'Controles da vista 3D', en: '3D view controls' },
   exaggeration: { pt: 'Exagero vertical', en: 'Vertical exaggeration' },
-  /** Shown next to the 1× 5× 10× buttons on a small screen. */
+  /** Shown next to the 1× 5× 10× buttons. */
   exaggerationShort: { pt: 'Vertical', en: 'Vertical' },
   exaggerationOption: (factor: number): LocalizedText => ({
     pt: `Exagero vertical de ${factor}×`,
@@ -28,6 +28,8 @@ export const strings3d = {
   resetView: { pt: 'Recentrar vista', en: 'Reset view' },
   resetShort: { pt: 'Recentrar', en: 'Reset' },
   hgl: { pt: 'Linha piezométrica', en: 'Hydraulic grade line' },
+  hglShort: { pt: 'Piezométrica', en: 'HGL' },
+  helpTopic: { pt: 'Vista 3D', en: '3D view' },
   labels: { pt: 'Rótulos', en: 'Labels' },
   hint: {
     pt: 'Arraste para girar. Role ou afaste dois dedos para aproximar. O botão direito ou dois dedos arrastando deslocam a vista. Clique em um tubo ou nó para selecionar.',
@@ -37,10 +39,7 @@ export const strings3d = {
     pt: 'Arraste com um dedo para girar. Afaste ou junte dois dedos para aproximar ou afastar e arraste com dois dedos para deslocar a vista. Toque em um tubo, nó ou reservatório para selecionar e ver o rótulo completo.',
     en: 'Drag with one finger to rotate. Pinch with two fingers to zoom and drag with two fingers to pan the view. Tap a pipe, node or reservoir to select it and see its full label.',
   },
-  staleShort: {
-    pt: 'Resultados desatualizados. Calcule novamente.',
-    en: 'Results are outdated. Calculate again.',
-  },
+  staleShort: { pt: 'Desatualizado', en: 'Outdated' },
   stale: {
     pt: 'Resultados desatualizados: as pressões e a linha piezométrica são do último cálculo. Calcule novamente.',
     en: 'Results are outdated: pressures and the hydraulic grade line are from the last calculation. Calculate again.',
@@ -49,6 +48,15 @@ export const strings3d = {
     pt: 'Ainda não há resultado. Calcule para ver as pressões e a linha piezométrica.',
     en: 'There is no result yet. Calculate to see pressures and the hydraulic grade line.',
   },
+  noResultShort: { pt: 'Sem cálculo', en: 'Not calculated' },
+  summaryShort: (node: string, pressure: string, minimum: string, ok: boolean): LocalizedText => ({
+    pt: ok
+      ? `Crítico: ${node} · ${pressure} mca`
+      : `Crítico: ${node} · ${pressure} mca < ${minimum} mca`,
+    en: ok
+      ? `Critical: ${node} · ${pressure} mca`
+      : `Critical: ${node} · ${pressure} mca < ${minimum} mca`,
+  }),
   noWebgl: {
     pt: 'Este navegador não conseguiu iniciar o WebGL, por isso a vista 3D não pode ser mostrada. As outras abas mostram os mesmos resultados.',
     en: 'This browser could not start WebGL, so the 3D view cannot be shown. The other tabs show the same results.',
@@ -66,7 +74,6 @@ export const strings3d = {
   pipeVelocity: { pt: 'Tubos, velocidade:', en: 'Pipes, velocity:' },
   hglSurface: { pt: 'Linha piezométrica', en: 'Hydraulic grade line' },
   pump: { pt: 'Bomba', en: 'Pump' },
-  waterLevel: (level: string): LocalizedText => ({ pt: `NA ${level} m`, en: `WL ${level} m` }),
 } as const;
 
 export const statusLabels: Record<Exclude<Status, 'none'>, LocalizedText> = {

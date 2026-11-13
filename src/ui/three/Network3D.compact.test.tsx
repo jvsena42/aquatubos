@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { evaluateStage } from '../../game/evaluate';
 import { getScenario } from '../../scenarios';
@@ -78,28 +78,26 @@ describe('Network3D on a phone', () => {
     expect(screen.getByRole('img')).toHaveAttribute('data-reset', '1');
   });
 
-  it('shows the pressure summary and opens the legend and the touch help from a button', async () => {
-    const user = userEvent.setup();
+  it('shows the critical node in one line and opens the legend and the touch help from the "?"', async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     openStage('stage2');
     render(<Network3D />);
+    const summary = document.querySelector('.net3d__summary')!;
+    expect(summary.querySelector('[aria-hidden="true"]')).toHaveTextContent(
+      /^Crítico: N4 · 10,6 mca$/,
+    );
     expect(
-      screen.getByText('Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).'),
-    ).toBeInTheDocument();
-
-    const toggle = screen.getByRole('button', { name: 'Legenda' });
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      within(summary as HTMLElement).getByText(
+        'Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).',
+      ),
+    ).toHaveClass('visually-hidden');
     expect(screen.queryByRole('list', { name: 'Legenda' })).toBeNull();
+    expect(screen.queryByText(/^Arraste com um dedo para girar\./)).toBeNull();
 
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    const panel = document.getElementById(toggle.getAttribute('aria-controls')!)!;
-    expect(panel).toBeVisible();
-    expect(within(panel).getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
-    expect(within(panel).getByText(/^Arraste com um dedo para girar\./)).toBeInTheDocument();
-
-    await user.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(panel).not.toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Vista 3D' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Vista 3D' }));
+    expect(dialog.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+    expect(dialog.getByText(/^Arraste com um dedo para girar\./)).toBeInTheDocument();
   });
 
   it('thins the labels: no pipe labels, pressures without the unit, ids for the rest', () => {
@@ -109,7 +107,7 @@ describe('Network3D on a phone', () => {
     expect(screen.getByText('N4 · 10,6')).toBeInTheDocument();
     expect(screen.queryByText('N4 · 10,6 mca')).toBeNull();
     expect(screen.getByText('R1')).toBeInTheDocument();
-    expect(screen.queryByText('R1 · NA 150,0 m')).toBeNull();
+    expect(screen.queryByText('R1 · 150,0 m')).toBeNull();
   });
 
   it('gives the selected element its full label, so a tap reveals what was thinned out', () => {
@@ -126,25 +124,25 @@ describe('Network3D on a phone', () => {
 
     useAppStore.setState({ selection: { type: 'reservoir', id: 'R1' } });
     rerender(<Network3D />);
-    expect(screen.getByText('R1 · NA 150,0 m')).toBeInTheDocument();
+    expect(screen.getByText('R1 · 150,0 m')).toBeInTheDocument();
   });
 
   it('shortens the outdated note', () => {
     openStage('stage2');
     useAppStore.setState({ stale: true });
     render(<Network3D />);
-    expect(screen.getByRole('status')).toHaveTextContent(
-      /^Resultados desatualizados\. Calcule novamente\.$/,
-    );
+    const note = screen.getByRole('status');
+    expect(note.querySelector('[aria-hidden="true"]')).toHaveTextContent(/^Desatualizado$/);
+    expect(note).toHaveTextContent('as pressões e a linha piezométrica são do último cálculo');
   });
 
   it('uses the English texts', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     openStage('stage2');
     useAppStore.setState({ lang: 'en' });
     render(<Network3D />);
     expect(screen.getByRole('button', { name: 'Reset view' })).toHaveTextContent(/^Reset$/);
-    await user.click(screen.getByRole('button', { name: 'Legend' }));
+    await user.click(screen.getByRole('button', { name: 'Help: 3D view' }));
     expect(screen.getByText(/^Drag with one finger to rotate\./)).toBeInTheDocument();
   });
 });
@@ -162,10 +160,10 @@ describe('Network3D on other devices', () => {
     expect(scene).toHaveAttribute('data-grid-cells', String(DETAIL.high.gridCells));
     expect(scene).toHaveAttribute('data-declutter', 'false');
     expect(screen.getByRole('button', { name: 'Recentrar vista' })).toHaveTextContent(
-      'Recentrar vista',
+      /^Recentrar$/,
     );
-    expect(screen.getByText('Exagero vertical')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Legenda' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Legenda' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Vista 3D' }));
     expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
     expect(screen.getByText(/^Arraste para girar\./)).toBeInTheDocument();
     expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
@@ -180,7 +178,7 @@ describe('Network3D on other devices', () => {
     expect(scene).toHaveAttribute('data-max-dpr', '1.5');
     expect(scene).toHaveAttribute('data-grid-cells', String(DETAIL.low.gridCells));
     expect(scene).toHaveAttribute('data-hit-scale', '1.8');
-    expect(screen.queryByRole('button', { name: 'Legenda' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Vista 3D' }));
     expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
     expect(screen.getByText(/^Arraste com um dedo para girar\./)).toBeInTheDocument();
     expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
