@@ -128,12 +128,16 @@ export const Scenery = memo(function Scenery({ layout, orders, unlockedCount }: 
           transform={`translate(${site.x} ${site.y})`}
         >
           {MOTIFS[((orders[index]! - 1) % 5) + 1]}
+          {/* Numbered waypoint on the main. */}
           <circle
             className={index < unlockedCount ? 'm-node m-node--wet' : 'm-node'}
             cx="0"
             cy={ROAD_DY}
-            r="6"
+            r="12"
           />
+          <text className="m-number" x="0" y={ROAD_DY}>
+            {orders[index]}
+          </text>
         </g>
       ))}
     </>

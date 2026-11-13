@@ -7,8 +7,38 @@
 .stages__header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+/* Back button, heading and total stars on one line. */
+.stages__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.stages__bar h1 {
+  border-radius: var(--radius-sm);
+}
+
+.stages__total {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.stages__total-star {
+  display: inline-flex;
+  color: var(--color-warn);
 }
 
 /* The map: an illustration with the stage buttons laid over it. */
@@ -149,6 +179,15 @@
   stroke-width: 4;
 }
 
+.m-number {
+  fill: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
 .m-node--wet {
   stroke: var(--color-water);
 }
@@ -177,6 +216,44 @@
   stroke: none;
 }
 
+/* The number of a locked stage is text, not a shape. */
+.m-site--locked .m-number {
+  fill: var(--color-text-muted);
+  stroke: none;
+}
+
+/* Ring that pulses around the waypoint of the next stage. The "Next" badge says the same. */
+.m-pulse {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+  animation: m-pulse 1.8s ease-out infinite;
+}
+
+@keyframes m-pulse {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+
+  70%,
+  to {
+    opacity: 0;
+    transform: scale(2.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-pulse {
+    opacity: 0.7;
+    transform: scale(1.45);
+    animation: none;
+  }
+}
+
 .m-halo {
   fill: none;
   stroke: var(--color-primary);
@@ -203,20 +280,40 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  box-shadow: var(--shadow-1);
+  box-shadow:
+    0 2px 0 var(--color-border),
+    var(--shadow-1);
   color: var(--color-text);
   font-size: clamp(0.75rem, 1.45cqw, 0.875rem);
   text-align: left;
   cursor: pointer;
   transition:
     border-color 120ms ease,
-    box-shadow 120ms ease;
+    box-shadow 120ms ease,
+    transform 120ms ease;
 }
 
 .stage-pin:hover:not(:disabled),
 .stage-pin--active:not(:disabled) {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-2);
+  box-shadow:
+    0 2px 0 var(--color-primary),
+    var(--shadow-2);
+}
+
+.stage-pin:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.stage-pin:active:not(:disabled) {
+  box-shadow: var(--shadow-1);
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-pin {
+    transform: none !important;
+  }
 }
 
 .stage-pin:disabled {
@@ -243,6 +340,13 @@
   color: var(--color-primary-contrast);
   font-size: var(--font-size-xs);
   font-weight: 650;
+}
+
+/* Static ring on the number of the next stage. */
+.stage-pin--next .stage-pin__number {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-primary);
 }
 
 .stage-pin:disabled .stage-pin__number {

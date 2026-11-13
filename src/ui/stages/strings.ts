@@ -2,6 +2,10 @@ import type { LocalizedText } from '../../engine/types';
 
 export const stagesStrings = {
   heading: { pt: 'Etapas', en: 'Stages' },
+  home: { pt: 'Início', en: 'Home' },
+  totalStars: { pt: 'Estrelas', en: 'Stars' },
+  next: { pt: 'Próxima', en: 'Next' },
+  nextHint: { pt: 'Próxima etapa a jogar', en: 'Next stage to play' },
   intro: {
     pt: 'Cada etapa é um projeto de rede de distribuição de água. Escolha os diâmetros, calcule e verifique os critérios da NBR 12218. Concluir uma etapa libera a seguinte.',
     en: 'Each stage is a water distribution network design. Choose the diameters, run the calculation and check the NBR 12218 criteria. Completing a stage unlocks the next one.',

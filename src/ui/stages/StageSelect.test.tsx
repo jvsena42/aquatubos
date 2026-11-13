@@ -17,6 +17,8 @@ vi.mock('../../scenarios', async () => {
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
 const details = () => within(screen.getByTestId('stage-details'));
+/** The stage buttons, without the back button of the screen header. */
+const stageButtons = () => within(screen.getByRole('list')).getAllByRole('button');
 
 describe('StageSelect', () => {
   beforeEach(() => {
@@ -32,7 +34,7 @@ describe('StageSelect', () => {
 
   it('has one button per stage, in play order, with number and title', () => {
     render(<StageSelect />);
-    const buttons = screen.getAllByRole('button');
+    const buttons = stageButtons();
     expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
       'Etapa 1: Título 1',
       'Etapa 2: Título 2. Bloqueada: conclua a etapa 1 para liberar.',
@@ -58,8 +60,81 @@ describe('StageSelect', () => {
   it('describes an unlocked stage with its status and summary', () => {
     render(<StageSelect />);
     expect(screen.getByRole('button', { name: /^Etapa 1: / })).toHaveAccessibleDescription(
-      'Não iniciada. Resumo 1',
+      'Não iniciada. Resumo 1. Próxima etapa a jogar',
     );
+  });
+
+  describe('screen header', () => {
+    it('goes back to the title screen', async () => {
+      useAppStore.setState({ screen: 'map' });
+      const user = userEvent.setup();
+      render(<StageSelect />);
+      await user.click(screen.getByRole('button', { name: 'Início' }));
+      expect(useAppStore.getState().screen).toBe('home');
+    });
+
+    it('shows the total of stars out of three per stage', () => {
+      render(<StageSelect />);
+      expect(screen.getByTestId('stages-total')).toHaveTextContent('Estrelas: 0 / 9');
+
+      act(() =>
+        useAppStore.setState({
+          progress: {
+            'stage-1': makeProgress('stage-1', { stars: 3 }),
+            'stage-2': makeProgress('stage-2', { stars: 1 }),
+          },
+        }),
+      );
+      expect(screen.getByTestId('stages-total')).toHaveTextContent('Estrelas: 4 / 9');
+    });
+
+    it('has a heading that can receive focus', () => {
+      render(<StageSelect />);
+      expect(screen.getByRole('heading', { level: 1 })).toHaveAttribute('tabindex', '-1');
+    });
+  });
+
+  describe('next stage marker', () => {
+    it('marks the first stage when there is no progress', () => {
+      const { container } = render(<StageSelect />);
+      const first = screen.getByRole('button', { name: /^Etapa 1: / });
+      expect(first).toHaveClass('stage-pin--next');
+      expect(within(first).getByText('Próxima')).toBeInTheDocument();
+      expect(screen.getAllByText('Próxima')).toHaveLength(1);
+      expect(container.querySelectorAll('.m-pulse')).toHaveLength(1);
+    });
+
+    it('moves to the first stage that is not completed', () => {
+      useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
+      render(<StageSelect />);
+      expect(screen.getByRole('button', { name: /^Etapa 1: / })).not.toHaveClass('stage-pin--next');
+      const second = screen.getByRole('button', { name: /^Etapa 2: / });
+      expect(second).toHaveClass('stage-pin--next');
+      expect(second).toHaveAccessibleDescription('Não iniciada. Resumo 2. Próxima etapa a jogar');
+    });
+
+    it('is absent when every stage is completed', () => {
+      useAppStore.setState({
+        progress: {
+          'stage-1': makeProgress('stage-1'),
+          'stage-2': makeProgress('stage-2'),
+          'stage-3': makeProgress('stage-3'),
+        },
+      });
+      const { container } = render(<StageSelect />);
+      expect(screen.queryByText('Próxima')).not.toBeInTheDocument();
+      expect(container.querySelector('.m-pulse')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Concluída')).toHaveLength(3);
+    });
+  });
+
+  it('numbers the waypoints of the map', () => {
+    const { container } = render(<StageSelect />);
+    expect([...container.querySelectorAll('.m-number')].map((n) => n.textContent)).toEqual([
+      '1',
+      '2',
+      '3',
+    ]);
   });
 
   it('shows a stage with a saved design as in progress', () => {
@@ -115,6 +190,8 @@ describe('StageSelect', () => {
     const user = userEvent.setup();
     render(<StageSelect />);
     await user.tab();
+    expect(screen.getByRole('button', { name: 'Início' })).toHaveFocus();
+    await user.tab();
     expect(screen.getByRole('button', { name: /^Etapa 1: / })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole('button', { name: /^Etapa 2: / })).toHaveFocus();
@@ -151,6 +228,7 @@ describe('StageSelect', () => {
       useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
       const user = userEvent.setup();
       render(<StageSelect />);
+      await user.tab();
       await user.tab();
       expect(details().getByText('Etapa 1: Título 1')).toBeInTheDocument();
       expect(details().getByText('Resumo 1')).toBeInTheDocument();
@@ -191,7 +269,7 @@ describe('StageSelect', () => {
       const { container } = render(<StageSelect />);
       expect(container.querySelector('.stage-map')).toHaveClass('stage-map--tall');
       expect(container.querySelector('.stage-map__art')).toHaveAttribute('viewBox', '0 0 360 540');
-      expect(screen.getAllByRole('button')).toHaveLength(3);
+      expect(stageButtons()).toHaveLength(3);
     });
   });
 });

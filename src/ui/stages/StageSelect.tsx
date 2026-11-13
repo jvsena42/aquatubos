@@ -4,10 +4,11 @@ import type { StageProgress } from '../../game/types';
 import { SCENARIOS } from '../../scenarios';
 import type { Scenario } from '../../scenarios/types';
 import { isUnlocked, useAppStore } from '../../state/store';
-import { IconCheck, IconLock } from '../shell/icons';
+import { summarizeProgress } from '../home/homeModel';
+import { IconBack, IconCheck, IconLock, IconNext, IconStar } from '../shell/icons';
 import { Stars } from '../shell/Stars';
 import { money } from '../shell/strings';
-import { tallLayout, wideLayout, type Site } from './mapLayout';
+import { ROAD_DY, tallLayout, wideLayout, type Site } from './mapLayout';
 import { Scenery } from './StageMap';
 import { stagesStrings } from './strings';
 import './stages.css';
@@ -31,6 +32,7 @@ export function StageSelect() {
   const tr = useTr();
   const progress = useAppStore((s) => s.progress);
   const openStage = useAppStore((s) => s.openStage);
+  const goHome = useAppStore((s) => s.goHome);
   const tall = useSyncExternalStore(subscribeTall, isTall, () => false);
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -48,11 +50,32 @@ export function StageSelect() {
   const active = stages.find((s) => s.id === hovered) ?? current;
   const activeIndex = active ? stages.indexOf(active) : -1;
   const activeSite = layout.sites[activeIndex];
+  // The stage to play next: the first one that is not completed (it is always unlocked).
+  const nextIndex = stages.findIndex((s) => progress[s.id]?.completed !== true);
+  const nextSite = layout.sites[nextIndex];
+  const totals = summarizeProgress(stages, progress);
 
   return (
     <section className="stages" aria-labelledby="stages-heading">
       <div className="stages__header">
-        <h1 id="stages-heading">{tr(stagesStrings.heading)}</h1>
+        <div className="stages__bar">
+          <button type="button" className="btn btn--sm" onClick={goHome}>
+            <IconBack />
+            {tr(stagesStrings.home)}
+          </button>
+          <h1 id="stages-heading" tabIndex={-1}>
+            {tr(stagesStrings.heading)}
+          </h1>
+          <p className="stages__total" data-testid="stages-total">
+            <span className="stages__total-star">
+              <IconStar filled />
+            </span>
+            <span className="visually-hidden">{tr(stagesStrings.totalStars)}: </span>
+            <span className="num">
+              {totals.stars} / {totals.maxStars}
+            </span>
+          </p>
+        </div>
         <p className="muted">{tr(stagesStrings.intro)}</p>
       </div>
       {stages.length === 0 ? (
@@ -71,6 +94,9 @@ export function StageSelect() {
               focusable="false"
             >
               <Scenery layout={layout} orders={orders} unlockedCount={unlockedCount} />
+              {nextSite && (
+                <circle className="m-pulse" cx={nextSite.x} cy={nextSite.y + ROAD_DY} r="12" />
+              )}
               {activeSite && (
                 <ellipse
                   className="m-halo"
@@ -109,6 +135,7 @@ export function StageSelect() {
                     progress={progress[scenario.id]}
                     unlocked={unlocked[index] === true}
                     active={scenario === active}
+                    next={index === nextIndex}
                     onOpen={() => void openStage(scenario.id)}
                     onFocus={() => setHovered(scenario.id)}
                   />
@@ -138,12 +165,14 @@ interface StagePinProps {
   progress: StageProgress | undefined;
   unlocked: boolean;
   active: boolean;
+  /** The stage to play next. */
+  next: boolean;
   onOpen: () => void;
   onFocus: () => void;
 }
 
 /** Label of a neighbourhood: the button that opens the stage, with its status. */
-function StagePin({ scenario, progress, unlocked, active, onOpen, onFocus }: StagePinProps) {
+function StagePin({ scenario, progress, unlocked, active, next, onOpen, onFocus }: StagePinProps) {
   const tr = useTr();
   const fmt = useFormat();
   const detailsId = useId();
@@ -152,7 +181,9 @@ function StagePin({ scenario, progress, unlocked, active, onOpen, onFocus }: Sta
   return (
     <button
       type="button"
-      className={active ? 'stage-pin stage-pin--active' : 'stage-pin'}
+      className={['stage-pin', active && 'stage-pin--active', next && 'stage-pin--next']
+        .filter(Boolean)
+        .join(' ')}
       disabled={!unlocked}
       aria-label={tr(
         unlocked
@@ -177,6 +208,13 @@ function StagePin({ scenario, progress, unlocked, active, onOpen, onFocus }: Sta
           </span>
         ) : (
           <>
+            {next && (
+              // Hidden from the description, which ends with the same information in words.
+              <span className="badge badge--info" aria-hidden="true">
+                <IconNext />
+                {tr(stagesStrings.next)}
+              </span>
+            )}
             {progress?.completed ? (
               <span className="badge badge--ok">
                 <IconCheck />
@@ -194,7 +232,10 @@ function StagePin({ scenario, progress, unlocked, active, onOpen, onFocus }: Sta
                 <span className="num">{money(fmt(progress.bestCost, 2))}</span>
               </span>
             )}
-            <span className="visually-hidden">. {tr(scenario.summary)}</span>
+            <span className="visually-hidden">
+              . {tr(scenario.summary)}
+              {next && `. ${tr(stagesStrings.nextHint)}`}
+            </span>
           </>
         )}
       </span>
