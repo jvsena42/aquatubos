@@ -32,13 +32,28 @@ Aquatubos succeeds the original Aquatubos (Unity, 2021), the author's undergradu
 
 ## Screenshots
 
-| Stage select (light)                                            | Stage select (dark)                                           |
-| --------------------------------------------------------------- | ------------------------------------------------------------- |
-| ![Stage select, light](docs/screenshots/stage-select-light.png) | ![Stage select, dark](docs/screenshots/stage-select-dark.png) |
+| Title screen                                            | Stage map                                               |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| ![Title screen, light](docs/screenshots/home-light.png) | ![Stage map, dark](docs/screenshots/stage-map-dark.png) |
 
-| Stage 3 (light)                                     | Stage 3 (dark)                                    |
-| --------------------------------------------------- | ------------------------------------------------- |
-| ![Stage 3, light](docs/screenshots/stage-light.png) | ![Stage 3, dark](docs/screenshots/stage-dark.png) |
+| Town view (stage 2, light)                           | Town view (dark)                                   |
+| ---------------------------------------------------- | -------------------------------------------------- |
+| ![Town view, light](docs/screenshots/town-light.png) | ![Town view, dark](docs/screenshots/town-dark.png) |
+
+The same stage with the schematic toggle:
+
+![Schematic view](docs/screenshots/schematic-light.png)
+
+On a phone (Pixel 7 viewport): title screen, stage map, town view, bottom sheet half open with
+the calculation, results table.
+
+|                                                                   |                                                               |                                                          |                                                                  |                                                               |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| ![Title screen on a phone](docs/screenshots/home-phone-light.png) | ![Stage map on a phone](docs/screenshots/stage-map-phone.png) | ![Town view on a phone](docs/screenshots/town-phone.png) | ![Bottom sheet half open](docs/screenshots/town-phone-sheet.png) | ![Results table on a phone](docs/screenshots/table-phone.png) |
+
+More: [title screen, dark](docs/screenshots/home-dark.png),
+[title screen on a phone, dark](docs/screenshots/home-phone-dark.png),
+[stage map, light](docs/screenshots/stage-map-light.png). Regenerate with `npm run screenshots`.
 
 ## The five stages
 
@@ -59,16 +74,35 @@ cheapest design that passes (found by exhaustive search or branch and bound): wi
 
 ## What is on screen
 
-- **Network view (2D):** nodes coloured by pressure status, pipes coloured by velocity with
-  flow-direction marks; click a pipe to change its DN from the commercial list.
+- **Title screen:** what the game is, Jogar / Continuar, how to play, glossary, about, and a
+  summary of stars, completed stages and best total cost.
+- **Stage map:** five neighbourhoods along a water main; locked stages are greyed, the next one
+  is marked.
+- **Town view (default):** an illustrated town generated from the stage geometry. Streets follow
+  the pipes, each demand node is a cluster of houses, and after Calcular the houses show the
+  result: lit windows and a water drop when served, a dry tap when the pressure is too low, a
+  burst mark when the static pressure is too high (always an icon plus a colour). Pipes are
+  coloured by velocity with flow-direction dashes. A toggle switches to the **schematic**, the
+  plain engineering drawing of the same network.
+- **HUD:** houses served, cost against the budget or the reference, stars, the objective.
 - **Calculation panel:** for the selected pipe or node, the formula with the numbers substituted
-  and the energy balance (hydraulic grade line − ground elevation = pressure).
+  and the energy balance (hydraulic grade line − ground elevation = pressure). Click or tap a
+  pipe to change its DN from the commercial list.
 - **Checks:** each failed criterion with the value, the limit and what to change.
 - **Results table:** the usual design spreadsheet (pipe, length, flow, DN, velocity, unit head
   loss, head loss, hydraulic grade line, ground elevation, pressure), exportable to CSV.
 - **HGL profile**, **Hardy Cross table** (stages 3 and 4), **pump and system curves** (stage 5)
   and a **3D view** of terrain, pipes and the hydraulic grade surface, loaded on demand.
 - A glossary of the technical terms, in both languages.
+
+### On a phone
+
+The stage screen becomes an app frame: the map fills the screen, the calculation and the checks
+live in a bottom sheet (closed, half, full), stage actions move to a menu and
+Calcular / Verificar stays at the bottom within thumb reach. Maps pan with one finger and zoom
+with a pinch; pipes and houses have 44 px touch targets; tables keep their first column while
+scrolling sideways; nothing depends on hover. Tested in Chromium device emulation at 360, 390
+and 430 px portrait, 844×390 landscape and 768×1024, in light and dark.
 
 ## Engineering basis
 
@@ -134,14 +168,14 @@ npm test           # unit tests (Vitest)
 npm run coverage   # fails under 80 % line coverage of src/engine
 npm run build
 npm run preview    # serves the production build at http://localhost:4173/aquatubos/
-npm run e2e        # Playwright; first run: npx playwright install chromium
+npm run e2e        # Playwright, desktop and phone projects; first run: npx playwright install chromium
 ```
 
 ## Deploy
 
 Every push to `main` runs [`deploy.yml`](.github/workflows/deploy.yml), which builds the app and
 publishes it to GitHub Pages. [`ci.yml`](.github/workflows/ci.yml) runs lint, typecheck, tests
-with coverage and the build on every pull request.
+with coverage, the build and the phone end-to-end tests on every pull request.
 
 ## Documentation
 
@@ -159,7 +193,8 @@ point had at least 10 mca. The thesis listed as future work: a cost score for ec
 diameters, carrying diameters across phases, and looped networks.
 
 This version adds looped networks (stages 3 and 4), a cost score against a computed reference
-(all stages) and a budget (stage 4), pumping (stage 5) and Darcy-Weisbach. Diameters are not
+(all stages) and a budget (stage 4), pumping (stage 5) and Darcy-Weisbach. The network is shown
+as an illustrated town, with the schematic one toggle away. Diameters are not
 carried across stages; each stage stands alone. It also corrects three errors of the original
 code: Hardy Cross summing unsigned head losses, Hazen-Williams receiving an absolute roughness
 instead of the coefficient C, and a head loss in metres compared against a limit in kPa.
