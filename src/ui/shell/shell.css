@@ -18,6 +18,43 @@
   outline: none;
 }
 
+/* The title screen fills the viewport edge to edge. */
+.app__main--bleed {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  padding: 0;
+}
+
+.app__main--bleed > .screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+/* Headings that receive focus on a screen change stay clear of the sticky header. */
+.app__main h1 {
+  scroll-margin-top: 6rem;
+}
+
+/* Each screen (title, stage map, stage) fades in when it is shown. */
+.screen {
+  animation: screen-in 180ms ease-out backwards;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    animation: none;
+  }
+}
+
 .app__loading {
   padding: var(--space-7) 0;
   color: var(--color-text-muted);
@@ -235,5 +272,9 @@
 
   .app__main {
     padding: var(--space-3);
+  }
+
+  .app__main--bleed {
+    padding: 0;
   }
 }
