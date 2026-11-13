@@ -4,6 +4,7 @@ import { SCENARIOS, getScenario } from '../../scenarios';
 import type { Scenario } from '../../scenarios/types';
 import {
   DEFAULT_EXAGGERATION,
+  DETAIL,
   EXAGGERATIONS,
   findPoint,
   fitDistance,
@@ -19,6 +20,7 @@ import {
   pipeRadius,
   sceneLayout,
   segmentTransform,
+  startDirection,
   toWorld,
   type Vec3,
 } from './geometry';
@@ -376,5 +378,79 @@ describe('status', () => {
     const evaluation = evaluateStage(scenario, scenario.reference.diameters);
     expect(pressureStatus(evaluation, 'J1')).toBe('none');
     expect(criticalNode(evaluation)!.id).not.toBe('J1');
+  });
+});
+
+describe('DETAIL', () => {
+  it('spends less on every count in low quality and keeps the counts usable', () => {
+    const { high, low } = DETAIL;
+    expect(low.gridCells).toBeLessThan(high.gridCells);
+    expect(low.pathSegments).toBeLessThan(high.pathSegments);
+    expect(low.tubeRings * low.pathSegments).toBeLessThan(high.tubeRings * high.pathSegments);
+    expect(low.tubeSides).toBeLessThan(high.tubeSides);
+    expect(low.sphere[0]).toBeLessThan(high.sphere[0]);
+    expect(low.sphere[1]).toBeLessThan(high.sphere[1]);
+    expect(low.cylinderSides).toBeLessThan(high.cylinderSides);
+    for (const detail of [high, low]) {
+      // The pump marker needs a middle point with a neighbour on each side.
+      expect(detail.pathSegments % 2).toBe(0);
+      expect(detail.pathSegments).toBeGreaterThanOrEqual(4);
+      // A tube, a sphere and a cylinder need at least a triangle around them.
+      expect(detail.tubeSides).toBeGreaterThanOrEqual(3);
+      expect(detail.sphere[0]).toBeGreaterThanOrEqual(3);
+      expect(detail.sphere[1]).toBeGreaterThanOrEqual(2);
+      expect(detail.cylinderSides / 2).toBeGreaterThanOrEqual(3);
+      expect(Number.isInteger(detail.cylinderSides / 2)).toBe(true);
+      expect(detail.lineStep).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('gives a coarser terrain grid that still has a vertex on every node', () => {
+    const scenario = stage('stage2');
+    const layout = sceneLayout(scenario);
+    const points = groundPoints(scenario);
+    const fine = interpolateGrid(layout, points, DETAIL.high.gridCells);
+    const coarse = interpolateGrid(layout, points, DETAIL.low.gridCells);
+    expect(coarse.values.length).toBeLessThan(fine.values.length * 0.6);
+    for (const p of points) {
+      const ix = coarse.xs.indexOf(p.x);
+      const iy = coarse.ys.indexOf(p.y);
+      expect(ix).toBeGreaterThanOrEqual(0);
+      expect(iy).toBeGreaterThanOrEqual(0);
+      expect(coarse.values[iy * coarse.xs.length + ix]).toBe(p.value);
+    }
+  });
+});
+
+describe('startDirection', () => {
+  it('is a unit vector from the south-east, above the ground', () => {
+    for (const aspect of [0.4, 0.92, 1, 1.6, 2.5]) {
+      const d = startDirection(aspect);
+      expect(Math.hypot(d.x, d.y, d.z)).toBeCloseTo(1, 12);
+      expect(d.x).toBeGreaterThan(0);
+      expect(d.y).toBeGreaterThan(0);
+      expect(d.z).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the low camera of wide viewports', () => {
+    // Before normalising: (0.35, 0.5, 1).
+    const length = Math.hypot(0.35, 0.5, 1);
+    for (const aspect of [1.84, 2, 3]) {
+      const d = startDirection(aspect);
+      expect(d.x).toBeCloseTo(0.35 / length, 12);
+      expect(d.y).toBeCloseTo(0.5 / length, 12);
+      expect(d.z).toBeCloseTo(1 / length, 12);
+    }
+  });
+
+  it('raises the camera as the viewport gets narrower, up to a limit', () => {
+    const elevation = (aspect: number) => Math.asin(startDirection(aspect).y);
+    expect(elevation(1.2)).toBeGreaterThan(elevation(2));
+    expect(elevation(0.92)).toBeGreaterThan(elevation(1.2));
+    expect(elevation(0.6)).toBeGreaterThan(elevation(0.92));
+    expect(elevation(0.1)).toBe(elevation(0.6));
+    // Never straight down: the orbit controls stop just short of the vertical.
+    expect(elevation(0)).toBeLessThan(Math.PI * 0.4);
   });
 });

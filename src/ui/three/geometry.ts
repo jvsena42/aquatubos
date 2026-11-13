@@ -27,8 +27,52 @@ export type Exaggeration = (typeof EXAGGERATIONS)[number];
 /** Stages have tens of metres of relief over about a kilometre: 5× makes it readable. */
 export const DEFAULT_EXAGGERATION: Exaggeration = 5;
 
-/** Cells along the longer side of the terrain and HGL grids. */
-export const GRID_CELLS = 40;
+/**
+ * Render budget. 'low' is for phones and tablets: coarser grids and fewer segments around
+ * tubes, spheres and cylinders, which at their screen size look the same.
+ */
+export type Quality = 'high' | 'low';
+
+export interface Detail {
+  /** Cells along the longer side of the terrain and HGL grids. */
+  gridCells: number;
+  /** Grid lines are drawn every this many cells. */
+  lineStep: number;
+  /** Straight pieces of the centre line of a pipe draped over the terrain (even). */
+  pathSegments: number;
+  /** Rings along a tube per piece of its centre line. */
+  tubeRings: number;
+  /** Sides around a tube. */
+  tubeSides: number;
+  /** Width and height segments of the node spheres. */
+  sphere: readonly [number, number];
+  /** Sides of the tank, the water column and the pump body. */
+  cylinderSides: number;
+}
+
+export const DETAIL: Record<Quality, Detail> = {
+  high: {
+    gridCells: 40,
+    lineStep: 2,
+    pathSegments: 16,
+    tubeRings: 2,
+    tubeSides: 10,
+    sphere: [24, 16],
+    cylinderSides: 32,
+  },
+  low: {
+    gridCells: 24,
+    lineStep: 2,
+    pathSegments: 10,
+    tubeRings: 1,
+    tubeSides: 6,
+    sphere: [14, 10],
+    cylinderSides: 16,
+  },
+};
+
+/** Cells along the longer side of the terrain and HGL grids at full quality. */
+export const GRID_CELLS = DETAIL.high.gridCells;
 
 export interface Layout {
   /** Plan bounding box of nodes and reservoirs plus a margin, m. */
@@ -356,4 +400,16 @@ export function fitDistance(
     }
   }
   return distance;
+}
+
+/**
+ * Unit vector from the scene centre to the camera at the start: from the south-east, looking
+ * down. In a wide viewport (aspect = width / height of 1.8 or more) the camera is low, which
+ * shows the relief. The narrower the viewport, the higher the camera, so that the plan fills
+ * the height of a square or portrait screen instead of a thin band across it.
+ */
+export function startDirection(aspect: number): Vec3 {
+  const up = Math.min(1.4, Math.max(0.5, 1.1 / Math.max(aspect, 1e-6) - 0.1));
+  const length = Math.hypot(0.35, up, 1);
+  return { x: 0.35 / length, y: up / length, z: 1 / length };
 }
