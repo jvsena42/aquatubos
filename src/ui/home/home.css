@@ -344,10 +344,12 @@
 }
 
 /* How to play */
+/* The bottom padding of the dialog body is taken over by .howto__nav. */
 .howto {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  margin-bottom: calc(-1 * var(--space-4));
 }
 
 .howto__step {
@@ -388,11 +390,18 @@
   max-width: 32rem;
 }
 
+/* The buttons stay at the bottom of the dialog when a step is taller than it and scrolls. The
+   paddings cover the gap above and the padding of the dialog below. */
 .howto__nav {
+  position: sticky;
+  bottom: calc(-1 * var(--space-4));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  margin-top: calc(-1 * var(--space-2));
+  padding: var(--space-2) 0 var(--space-4);
+  background: var(--color-surface);
 }
 
 .howto__nav > .btn {
@@ -569,6 +578,24 @@
   font-weight: 550;
 }
 
+/* Fingers: the step dots and the links of the credits are 44 px tall. */
+@media (pointer: coarse) {
+  .howto__dots {
+    gap: 0;
+  }
+
+  .howto__dot {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .about a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}
+
 @media (max-width: 560px) {
   .home__content {
     padding-top: var(--space-5);
@@ -706,5 +733,25 @@
     flex-basis: 100%;
     border-top: 1px solid var(--color-border);
     border-left: 0;
+  }
+
+  /* Drawing beside the text, so a step fits the dialog without scrolling. */
+  .howto__step {
+    display: grid;
+    grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+    align-content: center;
+    column-gap: var(--space-4);
+    min-height: 9.5rem;
+    text-align: left;
+  }
+
+  .howto__art {
+    grid-row: 1 / span 3;
+    align-self: center;
+    margin-bottom: 0;
+  }
+
+  .howto__count {
+    align-self: end;
   }
 }
