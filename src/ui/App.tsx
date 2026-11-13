@@ -35,11 +35,16 @@ function focusScreenHeading(main: HTMLElement): () => void {
     if (!heading) return false;
     if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
     // A modal dialog that is already open (the stage briefing) keeps the focus.
-    if (!document.querySelector('dialog[open]')) heading.focus();
+    if (!document.querySelector('dialog[open]')) {
+      // No scrolling on focus: the browser would align the heading with the top edge, under
+      // the sticky header, and shift the page while the player is already aiming at a button.
+      heading.focus({ preventScroll: true });
+      window.scrollTo?.({ top: 0 });
+    }
     return true;
   };
   if (focusHeading()) return () => undefined;
-  main.focus();
+  main.focus({ preventScroll: true });
   const observer = new MutationObserver(() => {
     if (focusHeading()) observer.disconnect();
   });
