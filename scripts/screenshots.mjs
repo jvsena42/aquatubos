@@ -11,7 +11,7 @@
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, devices } from '@playwright/test';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:4173/aquatubos/';
 const EXTRA_DIR = process.env.EXTRA_DIR;
@@ -77,23 +77,25 @@ async function extraShots(stage, label) {
   await page.getByRole('tab', { name: 'Rede' }).click();
 }
 
-const PHONE = { width: 360, height: 780 };
-const DESKTOP = { width: 1366, height: 860 };
+const PHONE = { ...devices['Pixel 7'], serviceWorkers: 'block', reducedMotion: 'reduce' };
 
 await page.goto(BASE_URL);
 const play = page.getByRole('button', { name: 'Jogar', exact: true });
 await play.waitFor();
 
-// Title screen, before any progress.
+// Title screen, before any progress: desktop and phone.
 for (const [theme, name] of [
   ['Claro', 'light'],
   ['Escuro', 'dark'],
 ]) {
   await setTheme(theme);
   await shot(`${OUT_DIR}home-${name}.png`);
-  await page.setViewportSize(PHONE);
-  await shot(`${OUT_DIR}home-phone-${name}.png`);
-  await page.setViewportSize(DESKTOP);
+  const phone = await browser.newContext({ ...PHONE, colorScheme: name });
+  const phonePage = await phone.newPage();
+  await phonePage.goto(BASE_URL);
+  await phonePage.getByRole('button', { name: 'Jogar', exact: true }).waitFor();
+  await phonePage.screenshot({ path: `${OUT_DIR}home-phone-${name}.png`, animations: 'disabled' });
+  await phone.close();
 }
 await setTheme('Claro');
 await play.click();
@@ -107,12 +109,6 @@ for (const stage of stages) {
     await page.getByRole('button', { name: 'Calcular / Verificar' }).click();
     await page.waitForTimeout(400);
     await extraShots(stage, 'initial');
-    await page.setViewportSize(PHONE);
-    await shot(`${EXTRA_DIR}/${stage.id}-initial-phone-town.png`);
-    await page.getByRole('button', { name: 'Esquema', exact: true }).click();
-    await shot(`${EXTRA_DIR}/${stage.id}-initial-phone-schematic.png`);
-    await page.getByRole('button', { name: 'Cidade', exact: true }).click();
-    await page.setViewportSize(DESKTOP);
   }
   await solve(stage);
   await selectPipe(stage.pipes[1].id);
@@ -126,19 +122,8 @@ for (const stage of stages) {
     await page.getByRole('button', { name: 'Cidade', exact: true }).click();
     await setTheme('Escuro');
     await shot(`${OUT_DIR}town-dark.png`);
-    await page.setViewportSize(PHONE);
-    await shot(`${OUT_DIR}town-phone-dark.png`);
-    await page.setViewportSize(DESKTOP);
     if (EXTRA_DIR) await extraShots(stage, 'dark');
     await setTheme('Claro');
-  }
-  if (EXTRA_DIR) {
-    await page.setViewportSize(PHONE);
-    await shot(`${EXTRA_DIR}/${stage.id}-solved-phone-town.png`);
-    await page.getByRole('button', { name: 'Esquema', exact: true }).click();
-    await shot(`${EXTRA_DIR}/${stage.id}-solved-phone-schematic.png`);
-    await page.getByRole('button', { name: 'Cidade', exact: true }).click();
-    await page.setViewportSize(DESKTOP);
   }
   if (stage.order < stages.length) {
     await page.getByRole('button', { name: 'Próxima etapa' }).click();
@@ -152,16 +137,39 @@ await setTheme('Claro');
 await shot(`${OUT_DIR}stage-map-light.png`);
 await setTheme('Escuro');
 await shot(`${OUT_DIR}stage-map-dark.png`);
-await page.setViewportSize(PHONE);
-await shot(`${OUT_DIR}stage-map-phone-dark.png`);
-await page.setViewportSize(DESKTOP);
 
-if (EXTRA_DIR) {
-  await page.getByRole('button', { name: 'Início' }).click();
-  await shot(`${EXTRA_DIR}/home-progress-dark.png`);
-  await page.setViewportSize(PHONE);
-  await shot(`${EXTRA_DIR}/home-progress-phone-dark.png`);
-}
+// Phone: same saved progress (IndexedDB) in a Pixel 7 sized context with touch.
+const storageState = await context.storageState({ indexedDB: true });
+const phone = await browser.newContext({ ...PHONE, colorScheme: 'light', storageState });
+const phonePage = await phone.newPage();
+const phoneShot = (name) =>
+  phonePage.screenshot({ path: `${OUT_DIR}${name}.png`, animations: 'disabled' });
+await phonePage.goto(BASE_URL);
+await phonePage.getByRole('button', { name: /^Mapa de etapas/ }).tap();
+await phonePage.getByRole('heading', { name: 'Etapas' }).waitFor();
+await phoneShot('stage-map-phone');
+await phonePage.getByRole('button', { name: new RegExp(`^Etapa ${README_STAGE}: `) }).tap();
+await phonePage.getByRole('dialog').getByRole('button', { name: 'Continuar' }).tap();
+await phonePage.waitForTimeout(400);
+await phoneShot('town-phone');
+// Tapping a pipe opens the bottom sheet half way with the calculation.
+const pipe = stages[README_STAGE - 1].pipes[1].id;
+const centre = await phonePage
+  .locator(`[data-element="pipe"][data-id="${pipe}"]`)
+  .evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  });
+await phonePage.touchscreen.tap(centre.x, centre.y);
+await phonePage.locator('section.sheet[data-detent="half"]').waitFor();
+await phonePage.waitForTimeout(500);
+await phoneShot('town-phone-sheet');
+await phonePage.getByRole('button', { name: 'Recolher painel' }).tap();
+await phonePage.waitForTimeout(500);
+await phonePage.getByRole('tab', { name: 'Tabela' }).tap();
+await phonePage.waitForTimeout(300);
+await phoneShot('table-phone');
+await phone.close();
 
 await browser.close();
 console.log(`Screenshots written to ${OUT_DIR}`);
