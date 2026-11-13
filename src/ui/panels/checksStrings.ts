@@ -13,6 +13,11 @@ export const checksStrings = {
     pt: count === 0 ? 'Sem pendências' : count === 1 ? '1 pendência' : `${count} pendências`,
     en: count === 0 ? 'No issues' : count === 1 ? '1 issue' : `${count} issues`,
   }),
+  /** Used when the design passes and only warnings remain. */
+  warningCount: (count: number): LocalizedText => ({
+    pt: count === 1 ? '1 aviso' : `${count} avisos`,
+    en: count === 1 ? '1 warning' : `${count} warnings`,
+  }),
   pipe: (id: string): LocalizedText => ({ pt: `Trecho ${id}`, en: `Pipe ${id}` }),
   node: (id: string): LocalizedText => ({ pt: `Nó ${id}`, en: `Node ${id}` }),
   network: { pt: 'Rede', en: 'Network' },

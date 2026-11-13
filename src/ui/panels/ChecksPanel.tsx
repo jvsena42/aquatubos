@@ -83,7 +83,13 @@ export function ChecksPanel() {
           {tr(checksStrings[status])}
         </span>
         {evaluation && (
-          <span className="checks__count">{tr(checksStrings.issueCount(issues.length))}</span>
+          <span className="checks__count">
+            {tr(
+              issues.length > 0 && issues.every((issue) => issue.severity === 'warning')
+                ? checksStrings.warningCount(issues.length)
+                : checksStrings.issueCount(issues.length),
+            )}
+          </span>
         )}
       </div>
 

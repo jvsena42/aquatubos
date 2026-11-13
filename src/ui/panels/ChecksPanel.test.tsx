@@ -35,6 +35,31 @@ describe('ChecksPanel', () => {
     expect(screen.queryByText(/pendência/i)).not.toBeInTheDocument();
   });
 
+  it('counts warnings as "avisos" when the design passes', () => {
+    useAppStore.setState({
+      scenario: stage1,
+      evaluation: makeEvaluation('stage-1', {
+        passed: true,
+        report: {
+          passed: true,
+          staticPressure: {},
+          issues: [
+            makeIssue({
+              check: 'minVelocity',
+              severity: 'warning',
+              elementType: 'pipe',
+              elementId: 'T1',
+            }),
+          ],
+        },
+      }),
+    });
+    render(<ChecksPanel />);
+    expect(screen.getByText('Aprovado')).toBeInTheDocument();
+    expect(screen.getByText('1 aviso')).toBeInTheDocument();
+    expect(screen.queryByText(/pendência/i)).not.toBeInTheDocument();
+  });
+
   it('shows the failed status and one line per issue: icon, short label, element, value', () => {
     useAppStore.setState({
       scenario: stage1,
