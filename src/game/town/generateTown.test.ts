@@ -83,7 +83,7 @@ describe('generateTown', () => {
   it('changes the scenery with the seed and keeps the network', () => {
     const stage = getScenario('stage3')!;
     const a = generateTown(stage);
-    const b = generateTown({ ...stage, town: { seed: 'another seed' } });
+    const b = generateTown({ ...stage, town: { ...stage.town, seed: 'another seed' } });
     expect(b.seed).toBe('another seed');
     expect(a.seed).toBe('stage3');
     expect(b.trees).not.toEqual(a.trees);
@@ -92,7 +92,7 @@ describe('generateTown', () => {
     expect(b.plazas).toEqual(a.plazas);
     expect(b.clusters.map((c) => c.houses.length)).toEqual(a.clusters.map((c) => c.houses.length));
     // The seed of the stage id is the default.
-    expect(generateTown({ ...stage, town: { seed: 'stage3' } })).toEqual(a);
+    expect(generateTown({ ...stage, town: { ...stage.town, seed: 'stage3' } })).toEqual(a);
   });
 
   it('lays one street per pipe and a narrower lane per pump', () => {
@@ -307,6 +307,13 @@ describe('generateTown', () => {
     );
     // Generated houses, buildings and trees keep clear of the fixed items.
     expectNoOverlap(scenario, t);
+    // The landmarks written in the stage files are in their towns.
+    expect(town(stage).buildings).toContainEqual(
+      expect.objectContaining({ kind: 'church', x: 150, y: 105 }),
+    );
+    expect(town(getScenario('stage4')!).buildings.map((b) => b.kind)).toEqual(
+      expect.arrayContaining(['school', 'square', 'market']),
+    );
     // A park without a radius gets the default one.
     expect(town({ ...stage, town: { park: { x: 150, y: 420 } } }).park?.radius).toBe(70);
   });
@@ -314,10 +321,10 @@ describe('generateTown', () => {
   it('leaves out the filler scenery when asked', () => {
     const stage = getScenario('stage4')!;
     const bare = town({ ...stage, town: { scenery: false } });
+    const full = town({ ...stage, town: {} });
     expect(bare.buildings).toEqual([]);
     expect(bare.trees).toEqual([]);
     expect(bare.park).toBeNull();
-    const full = town(stage);
     expect(bare.clusters).toEqual(full.clusters);
     expect(bare.streets).toEqual(full.streets);
     // Fixed items still appear without the filler.
