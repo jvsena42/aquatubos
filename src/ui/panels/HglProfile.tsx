@@ -1,12 +1,20 @@
-import { useId, useState } from 'react';
+import { Fragment, useId, useState, type MouseEvent } from 'react';
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
 import { useFormat, useTr } from '../../i18n';
 import { buildProfile, profilePathTo, type ProfilePoint } from '../../game/profile';
 import { HEAD_UNIT } from '../../game/resultsTable';
 import { useAppStore } from '../../state/store';
 import { ResultBody, ResultHint } from '../charts/ResultState';
-import { linearScale, niceAxis, polyline } from '../charts/scale';
-import { useChartWidth } from '../charts/useChartWidth';
+import {
+  linearScale,
+  nearestIndex,
+  niceAxis,
+  polyline,
+  thinTicks,
+  tickLabelWidth,
+  tickTarget,
+} from '../charts/scale';
+import { useChartSize } from '../charts/useChartWidth';
 import { Term } from '../glossary/Term';
 import { profileStrings as s } from './HglProfile.strings';
 import './HglProfile.css';
@@ -17,6 +25,8 @@ const MIN_PRESSURE = NBR_CHECK_LIMITS.minDynamicPressure;
 const LABEL_CHAR = 6.8;
 /** Height of a label (two lines of text), px. */
 const LABEL_HEIGHT = 28;
+/** Radius of the touch target of a node, px: 44 px across. */
+const HIT_RADIUS = 22;
 
 type Pair = readonly [number, number];
 
@@ -35,9 +45,13 @@ export function HglProfile() {
   const selectId = useId();
   const summaryId = useId();
   const clipId = useId();
-  const [frameRef, width] = useChartWidth();
+  const [frameRef, { width, height }] = useChartSize();
   const [chosenEnd, setChosenEnd] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  // The readout shows the node under the mouse and otherwise the last one that was tapped,
+  // clicked or focused, which stays until another one is chosen.
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const activeId = hoverId ?? pinnedId;
 
   if (!scenario) return null;
   if (!evaluation) return <ResultHint />;
@@ -60,7 +74,8 @@ export function HglProfile() {
         value={endId ?? ''}
         onChange={(event) => {
           setChosenEnd(event.target.value);
-          setActiveId(null);
+          setHoverId(null);
+          setPinnedId(null);
         }}
       >
         {scenario.nodes.map((node) => (
@@ -90,7 +105,6 @@ export function HglProfile() {
 
   // Geometry
   const narrow = width < 520;
-  const height = narrow ? 320 : 400;
   const margin = { top: 64, right: narrow ? 14 : 24, bottom: 46, left: 46 };
   const plot = {
     x0: margin.left,
@@ -108,11 +122,23 @@ export function HglProfile() {
   const span = Math.max(top - ground, 1);
   const floor = Math.max(Math.min(lowestHead, ground), ground - 0.6 * span);
   const clipped = lowestHead < floor;
-  const yAxis = niceAxis(floor - 0.05 * span, top + 0.05 * span, narrow ? 5 : 7);
-  const xAxis = niceAxis(0, Math.max(totalLength, 1), narrow ? 4 : 7);
+  // Fewer ticks on a narrow or short chart, so the labels never touch.
+  const xLabel = tickLabelWidth(fmt(Math.max(totalLength, 1), 0).length) + 14;
+  const yAxis = niceAxis(
+    floor - 0.05 * span,
+    top + 0.05 * span,
+    tickTarget(plot.y1 - plot.y0, 30, 7),
+  );
+  const xAxis = niceAxis(0, Math.max(totalLength, 1), tickTarget(plot.x1 - plot.x0, xLabel, 7));
 
   const x = linearScale([0, Math.max(totalLength, 1)], [plot.x0, plot.x1]);
   const y = linearScale([yAxis.min, yAxis.max], [plot.y1, plot.y0]);
+  const xTicks = thinTicks(
+    xAxis.ticks.filter((tick) => tick <= totalLength),
+    x,
+    xLabel,
+  );
+  const yTicks = thinTicks(yAxis.ticks, y, 16);
   const yClamped = (value: number) => Math.min(Math.max(y(value), plot.y0), plot.y1);
 
   const terrain: Pair[] = points.map((p) => [x(p.distance), y(p.elevation)]);
@@ -163,15 +189,35 @@ export function HglProfile() {
     placed.push({ from, to, row });
   }
 
-  const describe = (point: ProfilePoint): string =>
-    [
-      `${tr(point.kind === 'reservoir' ? s.reservoir : s.node)} ${point.id}`,
-      `${tr(s.distance)} ${fmt(point.distance, 0)} m`,
-      `${tr(s.elevation)} ${fmt(point.elevation, 2)} m`,
-      `${tr(s.hgl)} ${fmt(point.head, 2)} m`,
-      `${tr(s.pressure)} ${fmt(point.pressure, 2)} ${mca}${point.belowMin ? ` (${tr(s.belowMin)})` : ''}`,
-      ...(point.staticHead === null ? [] : [`${tr(s.staticHead)} ${fmt(point.staticHead, 2)} m`]),
-    ].join(' · ');
+  const facts = (point: ProfilePoint): string[] => [
+    `${tr(point.kind === 'reservoir' ? s.reservoir : s.node)} ${point.id}`,
+    `${tr(s.distance)} ${fmt(point.distance, 0)} m`,
+    `${tr(s.elevation)} ${fmt(point.elevation, 2)} m`,
+    `${tr(s.hgl)} ${fmt(point.head, 2)} m`,
+    `${tr(s.pressure)} ${fmt(point.pressure, 2)} ${mca}${point.belowMin ? ` (${tr(s.belowMin)})` : ''}`,
+    ...(point.staticHead === null ? [] : [`${tr(s.staticHead)} ${fmt(point.staticHead, 2)} m`]),
+  ];
+  const describe = (point: ProfilePoint): string => facts(point).join(' · ');
+
+  const choose = (point: ProfilePoint) => {
+    setHoverId(null);
+    setPinnedId(point.id);
+    select({ type: point.kind, id: point.id });
+  };
+  // A tap anywhere on the plot chooses the node closest to it along the path.
+  const chooseNearest = (event: MouseEvent<SVGRectElement>) => {
+    const frame = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    if (!frame || !(frame.width > 0)) return;
+    const at = ((event.clientX - frame.left) / frame.width) * width;
+    const point =
+      points[
+        nearestIndex(
+          points.map((p) => x(p.distance)),
+          at,
+        )
+      ];
+    if (point) choose(point);
+  };
 
   const active = points.find((p) => p.id === activeId) ?? null;
   const title = tr(s.chartTitle(first.id, last.id));
@@ -210,7 +256,7 @@ export function HglProfile() {
           </defs>
 
           <g aria-hidden="true">
-            {yAxis.ticks.map((tick) => (
+            {yTicks.map((tick) => (
               <g key={tick}>
                 <line className="chart__grid" x1={plot.x0} x2={plot.x1} y1={y(tick)} y2={y(tick)} />
                 <text
@@ -224,22 +270,20 @@ export function HglProfile() {
                 </text>
               </g>
             ))}
-            {xAxis.ticks
-              .filter((tick) => tick <= totalLength)
-              .map((tick) => (
-                <g key={tick}>
-                  <line
-                    className="chart__axis"
-                    x1={x(tick)}
-                    x2={x(tick)}
-                    y1={plot.y1}
-                    y2={plot.y1 + 4}
-                  />
-                  <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
-                    {fmt(tick, 0)}
-                  </text>
-                </g>
-              ))}
+            {xTicks.map((tick) => (
+              <g key={tick}>
+                <line
+                  className="chart__axis"
+                  x1={x(tick)}
+                  x2={x(tick)}
+                  y1={plot.y1}
+                  y2={plot.y1 + 4}
+                />
+                <text className="chart__tick" x={x(tick)} y={plot.y1 + 16} textAnchor="middle">
+                  {fmt(tick, 0)}
+                </text>
+              </g>
+            ))}
             <text className="chart__axis-title" x={4} y={12}>
               {tr(s.axisY)}
             </text>
@@ -252,6 +296,14 @@ export function HglProfile() {
               {tr(s.axisX)}
             </text>
 
+            <rect
+              className="profile__plot"
+              x={plot.x0}
+              y={0}
+              width={plot.x1 - plot.x0}
+              height={plot.y1}
+              onClick={chooseNearest}
+            />
             <g clipPath={`url(#${clipId})`}>
               <polygon className="profile__terrain-fill" points={polyline(terrainArea)} />
               <polyline className="profile__pipe" points={polyline(pipeLine)} />
@@ -332,22 +384,19 @@ export function HglProfile() {
                 tabIndex={0}
                 aria-label={describe(p)}
                 aria-pressed={isSelected}
-                onMouseEnter={() => setActiveId(p.id)}
-                onMouseLeave={() => setActiveId((current) => (current === p.id ? null : current))}
-                onFocus={() => setActiveId(p.id)}
-                onBlur={() => setActiveId((current) => (current === p.id ? null : current))}
-                onClick={() => {
-                  setActiveId(p.id);
-                  select({ type: p.kind, id: p.id });
-                }}
+                onMouseEnter={() => setHoverId(p.id)}
+                onMouseLeave={() => setHoverId((current) => (current === p.id ? null : current))}
+                onFocus={() => setPinnedId(p.id)}
+                onClick={() => choose(p)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
-                    select({ type: p.kind, id: p.id });
+                    choose(p);
                   }
                 }}
               >
-                <circle className="profile__hit" cx={px} cy={py} r={16} />
+                <circle className="profile__hit" cx={px} cy={py} r={HIT_RADIUS} />
+                <circle className="profile__ring" cx={px} cy={py} r={13} />
                 {p.belowMin ? (
                   <path
                     className="profile__marker"
@@ -377,8 +426,19 @@ export function HglProfile() {
         </svg>
       </div>
 
-      <p className="profile__readout" aria-live="polite">
-        {active ? describe(active) : <span className="muted">{tr(s.hint)}</span>}
+      <p className="chart__readout profile__readout" role="status">
+        {active ? (
+          facts(active).map((fact, index) => (
+            <Fragment key={fact}>
+              {index > 0 && ' · '}
+              <span className={index === 0 ? 'chart__readout-title' : 'chart__readout-item'}>
+                {fact}
+              </span>
+            </Fragment>
+          ))
+        ) : (
+          <span className="muted">{tr(s.hint)}</span>
+        )}
       </p>
 
       <ul className="chart__legend" aria-hidden="true">
