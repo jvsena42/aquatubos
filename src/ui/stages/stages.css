@@ -50,9 +50,26 @@
   container-type: inline-size;
 }
 
-.stage-map--tall {
+/* Phone map: a list of rows in normal flow, each one a drawing with the card of its stage. */
+.stage-map.stage-map--tall {
+  display: flex;
+  flex-direction: column;
   max-width: 30rem;
   margin: 0 auto;
+  padding: var(--space-2) var(--space-2) var(--space-3);
+}
+
+.stage-map__row {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The road of a strip runs to its edges and continues in the next one, under the card. */
+.stage-map--tall .stage-map__art {
+  position: static;
+  display: block;
+  height: auto;
+  overflow: visible;
 }
 
 .stage-map__art {
@@ -374,6 +391,39 @@
   font-size: var(--font-size-xs);
 }
 
+/* Phone map: the card takes the width of the map and shows the summary of the stage. */
+.stage-map--tall .stage-pin {
+  position: relative;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.stage-pin__summary,
+.stage-pin__hint {
+  flex-basis: 100%;
+  line-height: var(--line-height);
+}
+
+.stage-pin__summary {
+  color: var(--color-text-muted);
+}
+
+.stage-pin:not(:disabled) .stage-pin__summary {
+  color: var(--color-text);
+}
+
+.stage-pin__hint {
+  font-weight: 550;
+}
+
+/* Keyboard focus and in-page scrolling keep the card clear of the sticky header. */
+.stage-pin {
+  scroll-margin: 6rem 0 var(--space-4);
+}
+
 /* Summary of the stage under the pointer or with focus. */
 .stages__details {
   display: flex;
@@ -388,14 +438,16 @@
   font-size: var(--font-size-sm);
 }
 
-@media (max-width: 800px) {
-  .stage-pin {
-    font-size: var(--font-size-xs);
-  }
+/* Touch screens with the wide map: the summaries of all stages, since nothing shows on hover. */
+.stages__details--all {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3) var(--space-5);
+  list-style: none;
+}
 
-  .stages__details {
-    max-width: 30rem;
-    margin-right: auto;
-    margin-left: auto;
-  }
+.stages__details--all > li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }

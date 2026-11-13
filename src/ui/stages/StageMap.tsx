@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import { ROAD_DY, segment, type MapLayout } from './mapLayout';
+import { ROAD_DY, segment, type MapLayout, type Strip } from './mapLayout';
 
 function House({ x, y, alt = false }: { x: number; y: number; alt?: boolean }) {
   return (
@@ -91,6 +91,64 @@ const MOTIFS: Record<number, ReactNode> = {
   ),
 };
 
+interface SiteArtProps {
+  /** Stage order: picks the motif and is written on the waypoint. */
+  order: number;
+  x: number;
+  y: number;
+  unlocked: boolean;
+}
+
+/** One neighbourhood with its numbered waypoint on the main. Locked ones are greyed. */
+function SiteArt({ order, x, y, unlocked }: SiteArtProps) {
+  return (
+    <g className={unlocked ? 'm-site' : 'm-site m-site--locked'} transform={`translate(${x} ${y})`}>
+      {MOTIFS[((order - 1) % 5) + 1]}
+      <circle className={unlocked ? 'm-node m-node--wet' : 'm-node'} cx="0" cy={ROAD_DY} r="12" />
+      <text className="m-number" x="0" y={ROAD_DY}>
+        {order}
+      </text>
+    </g>
+  );
+}
+
+/** A piece of road with the water main in it: full of water or dry. */
+function Road({ d, wet }: { d: string; wet: boolean }) {
+  return (
+    <>
+      <path className="m-street-edge m-street-edge--road" d={d} />
+      <path className="m-street m-street--road" d={d} />
+      <path className={wet ? 'm-main m-main--wet' : 'm-main m-main--dry'} d={d} />
+    </>
+  );
+}
+
+interface StripSceneryProps {
+  strip: Strip;
+  order: number;
+  /** The player can open this stage. */
+  unlocked: boolean;
+  /** The player can open the next stage, so the main below this one has water. */
+  nextUnlocked: boolean;
+}
+
+/** Phone map: the drawing of one stage, with the road in from the previous one and out. */
+export const StripScenery = memo(function StripScenery({
+  strip,
+  order,
+  unlocked,
+  nextUnlocked,
+}: StripSceneryProps) {
+  return (
+    <>
+      <ellipse className="m-grass" cx={strip.x} cy={strip.y + 4} rx="96" ry="60" />
+      {strip.roadIn && <Road d={strip.roadIn} wet={unlocked} />}
+      {strip.roadOut && <Road d={strip.roadOut} wet={nextUnlocked} />}
+      <SiteArt order={order} x={strip.x} y={strip.y} unlocked={unlocked} />
+    </>
+  );
+});
+
 interface SceneryProps {
   layout: MapLayout;
   /** Stage order of each site, in the same order as `layout.sites`. */
@@ -122,23 +180,13 @@ export const Scenery = memo(function Scenery({ layout, orders, unlockedCount }: 
         />
       ))}
       {sites.map((site, index) => (
-        <g
+        <SiteArt
           key={index}
-          className={index < unlockedCount ? 'm-site' : 'm-site m-site--locked'}
-          transform={`translate(${site.x} ${site.y})`}
-        >
-          {MOTIFS[((orders[index]! - 1) % 5) + 1]}
-          {/* Numbered waypoint on the main. */}
-          <circle
-            className={index < unlockedCount ? 'm-node m-node--wet' : 'm-node'}
-            cx="0"
-            cy={ROAD_DY}
-            r="12"
-          />
-          <text className="m-number" x="0" y={ROAD_DY}>
-            {orders[index]}
-          </text>
-        </g>
+          order={orders[index]!}
+          x={site.x}
+          y={site.y}
+          unlocked={index < unlockedCount}
+        />
       ))}
     </>
   );

@@ -4,7 +4,7 @@ import { useAppStore } from '../../state/store';
 import { makeEvaluation, makeProgress } from '../../test/fixtures';
 import { resetStore } from '../../test/store';
 import { evaluateInWorker } from '../../worker/client';
-import { tallLayout, wideLayout } from './mapLayout';
+import { ROAD_DY, stripLayout, wideLayout } from './mapLayout';
 import { StageSelect } from './StageSelect';
 
 vi.mock('../../scenarios', async () => {
@@ -256,19 +256,82 @@ describe('StageSelect', () => {
     ).toBeDisabled();
   });
 
+  /** Makes the media queries that contain one of `matching` match, as on a phone or tablet. */
+  const stubMedia = (...matching: string[]) =>
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: matching.some((part) => query.includes(part)),
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+
   describe('at phone width', () => {
+    beforeEach(() => stubMedia('max-width', 'hover: none'));
     afterEach(() => vi.unstubAllGlobals());
 
-    it('draws the map as a vertical path with the same buttons', () => {
-      vi.stubGlobal('matchMedia', (query: string) => ({
-        matches: true,
-        media: query,
-        addEventListener: () => undefined,
-        removeEventListener: () => undefined,
-      }));
+    it('draws one strip per stage with the same buttons', () => {
       const { container } = render(<StageSelect />);
       expect(container.querySelector('.stage-map')).toHaveClass('stage-map--tall');
-      expect(container.querySelector('.stage-map__art')).toHaveAttribute('viewBox', '0 0 360 540');
+      const strips = container.querySelectorAll('.stage-map__art');
+      expect(strips).toHaveLength(3);
+      for (const strip of strips) expect(strip).toHaveAttribute('viewBox', '0 0 360 140');
+      expect(stageButtons().map((button) => button.getAttribute('aria-label'))).toEqual([
+        'Etapa 1: Título 1',
+        'Etapa 2: Título 2. Bloqueada: conclua a etapa 1 para liberar.',
+        'Etapa 3: Título 3. Bloqueada: conclua a etapa 2 para liberar.',
+      ]);
+      expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    });
+
+    it('shows the summary inside each card, without hover or focus', () => {
+      render(<StageSelect />);
+      const first = screen.getByRole('button', { name: /^Etapa 1: / });
+      expect(within(first).getByText('Resumo 1')).toHaveClass('stage-pin__summary');
+      expect(first).toHaveAccessibleDescription('Não iniciada. Resumo 1. Próxima etapa a jogar');
+      const third = screen.getByRole('button', { name: /^Etapa 3: / });
+      expect(within(third).getByText('Resumo 3')).toHaveClass('stage-pin__summary');
+      expect(third).toHaveTextContent('Conclua a etapa 2 para liberar.');
+      expect(screen.queryByTestId('stage-details')).not.toBeInTheDocument();
+    });
+
+    it('opens a stage with one activation of its card or of its drawing', async () => {
+      const openStage = vi.fn(async () => undefined);
+      useAppStore.setState({ openStage, progress: { 'stage-1': makeProgress('stage-1') } });
+      const user = userEvent.setup();
+      const { container } = render(<StageSelect />);
+      await user.click(screen.getByRole('button', { name: /^Etapa 2: / }));
+      expect(openStage).toHaveBeenLastCalledWith('stage-2');
+      await user.click(container.querySelectorAll('.m-hit')[0]!);
+      expect(openStage).toHaveBeenLastCalledWith('stage-1');
+      await user.click(container.querySelectorAll('.m-hit')[2]!);
+      expect(openStage).toHaveBeenCalledTimes(2);
+    });
+
+    it('fills the main with water up to the last unlocked stage', () => {
+      useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
+      const { container } = render(<StageSelect />);
+      const rows = [...container.querySelectorAll('.stage-map__row')];
+      // Road out of 1 and into 2 are wet; out of 2 and into 3 are dry.
+      expect(rows.map((row) => row.querySelectorAll('.m-main--wet').length)).toEqual([1, 1, 0]);
+      expect(rows.map((row) => row.querySelectorAll('.m-main--dry').length)).toEqual([0, 1, 1]);
+      expect(container.querySelectorAll('.m-site--locked')).toHaveLength(1);
+      expect(container.querySelectorAll('.m-pulse')).toHaveLength(1);
+      expect(rows[1]!.querySelector('.m-pulse')).toBeInTheDocument();
+    });
+  });
+
+  describe('on a wide touch screen', () => {
+    beforeEach(() => stubMedia('hover: none'));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('keeps the wide map and lists the summary of every stage below it', () => {
+      const { container } = render(<StageSelect />);
+      expect(container.querySelector('.stage-map')).not.toHaveClass('stage-map--tall');
+      expect(details().getByText('Etapa 1: Título 1')).toBeInTheDocument();
+      expect(details().getByText('Resumo 1')).toBeInTheDocument();
+      expect(details().getByText('Resumo 2')).toBeInTheDocument();
+      expect(details().getByText('Resumo 3')).toBeInTheDocument();
+      expect(details().getByText('Conclua a etapa 2 para liberar.')).toBeInTheDocument();
       expect(stageButtons()).toHaveLength(3);
     });
   });
@@ -283,11 +346,37 @@ describe('map layouts', () => {
     expect(xs[4]).toBeLessThanOrEqual(width - 150);
   });
 
-  it('stacks the stages top to bottom on the tall map', () => {
-    const { sites, height } = tallLayout(5);
-    const ys = sites.map((site) => site.y);
-    expect(ys).toEqual([...ys].sort((a, b) => a - b));
-    expect(ys[4]).toBeLessThan(height);
+  it('alternates the sides of the strips of the phone map', () => {
+    const { strips, width, height } = stripLayout(5);
+    expect(strips.map((strip) => strip.x < width / 2)).toEqual([true, false, true, false, true]);
+    for (const strip of strips) {
+      // The drawing (about 180 × 120 around the centre) and the waypoint stay inside the strip.
+      expect(strip.x - 90).toBeGreaterThanOrEqual(0);
+      expect(strip.x + 90).toBeLessThanOrEqual(width);
+      expect(strip.y - 60).toBeGreaterThanOrEqual(0);
+      expect(strip.y + ROAD_DY + 12).toBeLessThanOrEqual(height);
+    }
+  });
+
+  it('joins the road of the phone map from one strip to the next', () => {
+    const { strips, height } = stripLayout(4);
+    expect(strips[0]!.roadIn).toBeNull();
+    expect(strips[3]!.roadOut).toBeNull();
+    for (let i = 0; i < 3; i++) {
+      const from = strips[i]!;
+      const to = strips[i + 1]!;
+      const node = from.y + ROAD_DY;
+      // Out: from the waypoint straight down to the bottom edge.
+      expect(from.roadOut).toBe(`M${from.x} ${node}V${height}`);
+      // In: from the top edge at the same x to the waypoint of the next stage.
+      expect(to.roadIn!.startsWith(`M${from.x} 0C`)).toBe(true);
+      expect(to.roadIn!.endsWith(` ${to.x} ${to.y + ROAD_DY}`)).toBe(true);
+    }
+  });
+
+  it('draws a single stage without a road', () => {
+    expect(stripLayout(1).strips).toEqual([{ x: 98, y: 62, roadIn: null, roadOut: null }]);
+    expect(stripLayout(0).strips).toEqual([]);
   });
 
   it('keeps the map light', () => {
