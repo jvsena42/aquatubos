@@ -41,7 +41,11 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 
-const setTheme = (name) => page.getByRole('button', { name, exact: true }).click();
+// Language and theme live in the header menu.
+const setTheme = async (name) => {
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitemradio', { name, exact: true }).click();
+};
 const shot = (path) => page.screenshot({ path, animations: 'disabled' });
 
 async function selectPipe(pipeId) {

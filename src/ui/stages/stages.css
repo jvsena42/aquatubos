@@ -6,19 +6,12 @@
     calc(var(--space-6) + env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px);
 }
 
-.stages__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
-/* Back button, heading and total stars on one line. */
+/* Back button, heading with its "?" and total stars on one line. */
 .stages__bar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .stages__bar h1 {
@@ -43,7 +36,7 @@
   color: var(--color-warn);
 }
 
-/* The map: an illustration with the stage buttons laid over it. */
+/* The map: an illustration with the stage cards laid over it. */
 .stage-map {
   position: relative;
   border: 1px solid var(--color-border);
@@ -66,19 +59,19 @@
   flex-direction: column;
 }
 
+.stage-map__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
 /* The road of a strip runs to its edges and continues in the next one, under the card. */
 .stage-map--tall .stage-map__art {
   position: static;
   display: block;
   height: auto;
   overflow: visible;
-}
-
-.stage-map__art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
 }
 
 .stage-map__list {
@@ -91,6 +84,80 @@
   position: absolute;
   display: flex;
   justify-content: center;
+}
+
+/*
+ * Phone held sideways: the drawing is a low band and the cards are a row under it. The whole
+ * screen (app header, bar, map) fits the height of the viewport: the map is never wider than
+ * what its height allows. 11.5rem is the header, the bar, the cards and the paddings; 6.67 is
+ * the width of the drawing over its height.
+ */
+.stages--row {
+  padding-top: var(--space-1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.stages--row .stages__bar {
+  margin-bottom: var(--space-1);
+}
+
+.stage-map--row {
+  width: min(100%, (100dvh - 11.5rem) * 6.67);
+  margin: 0 auto;
+  padding-bottom: var(--space-2);
+}
+
+.stage-map--row .stage-map__art {
+  position: static;
+  display: block;
+  height: auto;
+}
+
+/* The neighbourhoods are evenly spaced from 16 % to 84 % of the width; each card is centred
+   on its own. */
+.stage-map--row .stage-map__list {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 16%;
+}
+
+.stage-map--row .stage-map__item {
+  position: static;
+  width: 0;
+}
+
+.stage-map--row .stage-card {
+  flex: none;
+  position: relative;
+  width: 16.2cqw;
+  max-width: none;
+  padding: 0 var(--space-2);
+}
+
+/* The "?" sits at the end of the status line, so the name has the whole width. */
+.stage-map--row .stage-card__help {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-1);
+}
+
+/* No arrow in the "next" badge: the "?" needs the room. */
+.stage-map--row .badge svg {
+  display: none;
+}
+
+/* The waypoint right above the card has the number. */
+.stage-map--row .stage-pin__number {
+  display: none;
+}
+
+.stage-map--row .stage-pin {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 2.75rem;
+  font-size: var(--font-size-xs);
 }
 
 /* Scenery. Shapes take their colours from classes so the drawing stays small. */
@@ -289,63 +356,82 @@
   cursor: pointer;
 }
 
-/* Stage label: the button that opens the stage. */
-.stage-pin {
+/* Card of a stage: the button that opens it and the "?" beside it. */
+.stage-card {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: var(--space-1);
   max-width: 100%;
-  padding: var(--space-2);
+  padding: var(--space-1) var(--space-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow:
     0 2px 0 var(--color-border),
     var(--shadow-1);
-  color: var(--color-text);
-  font-size: clamp(0.75rem, 1.45cqw, 0.875rem);
-  text-align: left;
-  cursor: pointer;
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease,
     transform 120ms ease;
 }
 
-.stage-pin:hover:not(:disabled),
-.stage-pin--active:not(:disabled) {
+.stage-card:has(.stage-pin:hover:not(:disabled)),
+.stage-card:has(.stage-pin--active:not(:disabled)) {
   border-color: var(--color-primary);
   box-shadow:
     0 2px 0 var(--color-primary),
     var(--shadow-2);
 }
 
-.stage-pin:hover:not(:disabled) {
+.stage-card:has(.stage-pin:hover:not(:disabled)) {
   transform: translateY(-2px);
 }
 
-.stage-pin:active:not(:disabled) {
+.stage-card:has(.stage-pin:active:not(:disabled)) {
   box-shadow: var(--shadow-1);
   transform: translateY(1px);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage-pin {
+  .stage-card {
     transform: none !important;
   }
 }
 
-.stage-pin:disabled {
+.stage-card:has(.stage-pin:disabled) {
   background: var(--color-surface-2);
   box-shadow: none;
-  color: var(--color-text-muted);
-  cursor: not-allowed;
 }
 
-.stage-pin__head {
+.stage-card__help {
+  flex: none;
+}
+
+/* The button fills the card; the card draws the box. */
+.stage-pin {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: clamp(0.75rem, 1.45cqw, 0.875rem);
+  text-align: left;
+  cursor: pointer;
+  /* Keyboard focus and in-page scrolling keep the card clear of the sticky header. */
+  scroll-margin: 6rem 0 var(--space-4);
+}
+
+.stage-pin:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
 }
 
 .stage-pin__number {
@@ -374,64 +460,54 @@
 }
 
 .stage-pin__title {
-  align-self: center;
   font-size: 1.08em;
   font-weight: 650;
   line-height: 1.25;
+  white-space: nowrap;
 }
 
 .stage-pin__details {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-1) var(--space-2);
+  gap: var(--space-1);
 }
 
-.stage-pin__cost {
-  flex-basis: 100%;
+/* Status as an icon: check, lock or a dashed ring; the word is visually hidden next to it. */
+.stage-pin__status {
+  display: inline-flex;
   color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
 }
 
-/* Phone map: the card takes the width of the map and shows the summary of the stage. */
-.stage-map--tall .stage-pin {
+.stage-pin__status--ok {
+  color: var(--color-ok);
+}
+
+/* Phone map: the card takes the width of the map; the status sits at its right end. */
+.stage-map--tall .stage-card {
   position: relative;
-  gap: var(--space-2);
-  width: 100%;
+  padding: var(--space-1) var(--space-3);
+}
+
+.stage-map--tall .stage-pin {
   min-height: 2.75rem;
-  padding: var(--space-3);
   font-size: var(--font-size-sm);
 }
 
-.stage-pin__summary,
-.stage-pin__hint {
-  flex-basis: 100%;
-  line-height: var(--line-height);
+.stage-map--tall .stage-pin__details {
+  margin-left: auto;
 }
 
-.stage-pin__summary {
-  color: var(--color-text-muted);
+/* Lines of the "?" of a card and of the details area. */
+.stage-facts__line {
+  display: block;
 }
 
-.stage-pin:not(:disabled) .stage-pin__summary {
-  color: var(--color-text);
-}
-
-.stage-pin__hint {
-  font-weight: 550;
-}
-
-/* Keyboard focus and in-page scrolling keep the card clear of the sticky header. */
-.stage-pin {
-  scroll-margin: 6rem 0 var(--space-4);
-}
-
-/* Summary of the stage under the pointer or with focus. */
+/* The stage under the pointer or with focus. */
 .stages__details {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  min-height: 5.5rem;
+  min-height: 4.5rem;
   margin-top: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
@@ -440,39 +516,13 @@
   font-size: var(--font-size-sm);
 }
 
-/* Touch screens with the wide map: the summaries of all stages, since nothing shows on hover. */
-.stages__details--all {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-3) var(--space-5);
-  list-style: none;
-}
-
-.stages__details--all > li {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-/* Fingers need a taller back button. */
-@media (pointer: coarse), (max-width: 800px) {
+/* Fingers need a taller back button and taller cards. */
+@media (pointer: coarse) {
   .stages__bar > .btn {
     min-height: 2.75rem;
   }
-}
 
-/* Phone in landscape: less room above the map, so more of it shows under the header. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .stages {
-    padding-top: 0;
-  }
-
-  .stages__header {
-    gap: var(--space-2);
-    margin-bottom: var(--space-3);
-  }
-
-  .stages__header > .muted {
-    font-size: var(--font-size-sm);
+  .stage-pin {
+    min-height: 2.75rem;
   }
 }

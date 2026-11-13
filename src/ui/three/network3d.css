@@ -267,64 +267,28 @@
 }
 
 .net3d--compact .net3d__note {
-  top: calc(var(--space-2) + 2.25rem);
-  right: auto;
-  max-width: calc(100% - 2 * var(--space-2));
-}
-
-.net3d__legend-toggle {
-  position: absolute;
-  z-index: 4;
-  top: var(--space-2);
   right: var(--space-2);
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+  left: auto;
 }
 
-.net3d__legend-toggle[aria-expanded='true'] {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+/* The help holds the gestures, the legend and the sentence about the critical node. */
+.net3d__help {
+  align-self: center;
 }
 
-.net3d__legend-panel {
-  position: absolute;
-  z-index: 3;
-  top: var(--space-2);
-  right: var(--space-2);
-  left: var(--space-2);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  max-height: calc(100% - 2 * var(--space-2));
-  /* Room for the button that closes it, which stays in the corner. */
-  padding: var(--space-3) var(--space-3) var(--space-3);
-  padding-top: calc(2.75rem + var(--space-2));
-  overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-2);
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.net3d__legend-panel[hidden] {
-  display: none;
-}
-
-.net3d__legend-panel .net3d__legend {
+.net3d__help .net3d__legend {
   flex-direction: column;
   gap: var(--space-2);
   font-size: var(--font-size-sm);
 }
 
-.net3d__legend-panel .net3d__hint {
+.net3d__help .net3d__hint {
   font-size: var(--font-size-sm);
 }
 
 /* Fingers need 44 px targets. */
 @media (pointer: coarse) {
-  .net3d__toolbar button {
+  .net3d__toolbar button:not(.help__button) {
     min-width: 2.75rem;
     min-height: 2.75rem;
   }

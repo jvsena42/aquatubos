@@ -163,10 +163,10 @@ export function pipeLabelAnchors(
   return [
     anchorAt(0.5, 1),
     anchorAt(0.5, -1),
-    anchorAt(0.32, 1),
-    anchorAt(0.68, 1),
-    anchorAt(0.32, -1),
-    anchorAt(0.68, -1),
+    anchorAt(0.25, 1),
+    anchorAt(0.75, 1),
+    anchorAt(0.25, -1),
+    anchorAt(0.75, -1),
   ];
 }
 

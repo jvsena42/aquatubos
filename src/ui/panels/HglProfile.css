@@ -25,12 +25,6 @@
   min-width: 9rem;
 }
 
-.profile__summary {
-  flex: 1 1 16rem;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
-
 .profile__alert {
   color: var(--color-danger);
   font-weight: var(--font-weight-semibold);
@@ -139,61 +133,46 @@
   stroke-dasharray: 3 2;
 }
 
-.profile__notes {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-}
-
 /* Touch: the picker is 44 px tall, and 16 px text keeps iOS from zooming when it opens. */
-@media (pointer: coarse), (max-width: 760px) {
+@media (pointer: coarse) {
   .profile__picker .select {
     min-height: 2.75rem;
     font-size: var(--font-size-md);
   }
 }
 
-/*
- * Phones: the view fills the tab panel and scrolls inside it. The readout goes above the
- * chart, where the finger does not cover it, and the summary after the legend.
- */
-@media (max-width: 760px) {
-  .profile {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
-
-  .profile__readout {
-    order: -1;
-    min-height: 5.75em;
-  }
-
-  .profile__bar {
-    display: contents;
-  }
-
-  .profile__picker {
-    order: -2;
-  }
-
-  .profile__summary {
-    order: 1;
-    flex: none;
-  }
-
-  .profile__notes {
-    order: 2;
-  }
+:root[data-device='phone'] .profile__picker .select {
+  min-height: 2.75rem;
+  font-size: var(--font-size-md);
 }
 
-/* Short screens (a phone in landscape): the readout stays next to the chart, above it. */
-@media (min-width: 761px) and (max-height: 500px) {
-  .profile__bar {
-    order: -2;
-  }
+/*
+ * Phones: the view fills the tab panel and scrolls inside it. The picker and the readout go
+ * above the chart, where the finger does not cover them.
+ */
+:root[data-device='phone'] .profile {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
 
-  .profile__readout {
-    order: -1;
-  }
+:root[data-device='phone'] .profile__bar {
+  order: -2;
+  align-items: center;
+}
+
+:root[data-device='phone'] .profile__readout {
+  order: -1;
+  min-height: 4.5em;
+}
+
+/* The help holds the legend of the chart. */
+.profile__help {
+  align-self: center;
+}
+
+.profile__help .chart__legend {
+  flex-direction: column;
+  gap: var(--space-1);
 }

@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { PHONE_QUERY } from '../shell/breakpoints';
 import { COARSE_QUERY, SMALL_QUERY, useViewProfile, viewProfile } from './viewProfile';
 
 describe('viewProfile', () => {
@@ -92,8 +93,7 @@ describe('useViewProfile', () => {
     expect(media.listeners.size).toBe(0);
   });
 
-  it('counts a short landscape touch screen as small', () => {
-    expect(SMALL_QUERY).toContain('max-width: 760px');
-    expect(SMALL_QUERY).toContain('(pointer: coarse) and (max-height: 500px)');
+  it('uses the shared phone breakpoint for the small profile', () => {
+    expect(SMALL_QUERY).toBe(PHONE_QUERY);
   });
 });

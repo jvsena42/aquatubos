@@ -1,4 +1,13 @@
-import { lazy, Suspense, useId, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { useTr } from '../../i18n';
 import type { HeadLossFormula } from '../../engine/types';
 import { useAppStore } from '../../state/store';
@@ -10,27 +19,30 @@ import { HardyCrossTable } from '../panels/HardyCrossTable';
 import { HglProfile } from '../panels/HglProfile';
 import { PumpChart } from '../panels/PumpChart';
 import { ResultsTable } from '../panels/ResultsTable';
+import { useDevice, useLandscape, usePhoneLandscape } from '../shell/breakpoints';
 import { Dialog } from '../shell/Dialog';
-import { IconInfo, IconMore, IconReset, IconStale } from '../shell/icons';
-import { Menu, type MenuEntry } from '../shell/Menu';
+import { getHeaderSlot, useHeaderSlot } from '../shell/headerSlot';
+import { IconHelp, IconReset, IconStale } from '../shell/icons';
 import { tabId, tabPanelId, Tabs, type TabItem } from '../shell/Tabs';
-import { PHONE_LANDSCAPE_QUERY, PHONE_QUERY, useMediaQuery } from '../shell/useMediaQuery';
+import { SHEET_HALF } from './sheetState';
 import { StageSheet } from './StageSheet';
-import { formulaLabels, stageStrings, tabLabels, type StageTab } from './strings';
+import { FORMULAS, formulaLabels, stageStrings, tabLabels, type StageTab } from './strings';
 import './stage.css';
 
 // three.js is only downloaded when the 3D tab is opened.
 const Network3D = lazy(() => import('../three/Network3D'));
 
-const FORMULAS: HeadLossFormula[] = ['hazen-williams', 'darcy-weisbach'];
-
 /**
  * Layout of an open stage. Mount it with `key={scenario.id}` so each stage starts fresh.
  *
- * Wide screens: a bar with the actions, the HUD, the views and a side column with the
- * calculation and the checks. Phones: a frame that does not scroll, with a one-line HUD, the
- * view filling the screen, the secondary actions in a menu and the two panels in a bottom sheet
- * whose bar holds "Calcular / Verificar" (a side panel when the phone is held sideways).
+ * The stage name, the briefing button and, on phones, the HUD go into the app header (through
+ * `useHeaderSlot`), so the top of the screen is one row.
+ *
+ * Desktop: a bar with the HUD and the actions, the views and a side column with the calculation
+ * and the checks; the page scrolls.
+ * Phones and tablets: a frame that does not scroll. The view fills it and the two panels are in
+ * a bottom sheet whose bar holds "Calcular / Verificar"; held sideways (a phone) or in landscape
+ * (a tablet) the sheet is a panel beside the view. Formula and reset are in the header menu.
  */
 export function StageScreen() {
   const tr = useTr();
@@ -46,10 +58,35 @@ export function StageScreen() {
   const formulaId = useId();
   const [tab, setTab] = useState<StageTab>('network');
   const [briefingOpen, setBriefingOpen] = useState(true);
-  const phone = useMediaQuery(PHONE_QUERY);
-  const sideways = useMediaQuery(PHONE_LANDSCAPE_QUERY);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const slot = useHeaderSlot();
+  const inline = useRef<HTMLDivElement>(null);
+  // The head is rendered into an element of its own, which is then placed in the header slot
+  // (or in the stage itself where there is no header, as in component tests). Placing it in a
+  // layout effect of the commit that mounts the stage means the heading is already in the
+  // header when App moves the focus to it, and it is never re-created.
+  const [host] = useState(() => {
+    const element = document.createElement('div');
+    element.className = 'stage__head-host';
+    return element;
+  });
+  useLayoutEffect(() => {
+    // Only moved when the place changes: taking a focused heading out of the document blurs it.
+    const parent = getHeaderSlot() ?? inline.current;
+    if (parent && host.parentElement !== parent) parent.append(host);
+  }, [slot, host]);
+  useLayoutEffect(() => () => host.remove(), [host]);
+  const device = useDevice();
+  const landscape = useLandscape();
+  const sideways = usePhoneLandscape();
 
   if (!scenario) return null;
+
+  const phone = device === 'phone';
+  const tablet = device === 'tablet';
+  const framed = phone || tablet;
+  const side = phone ? sideways : tablet && landscape;
+  const half = phone ? SHEET_HALF.phone : SHEET_HALF.tablet;
 
   const available: StageTab[] = [
     'network',
@@ -65,66 +102,65 @@ export function StageScreen() {
 
   const staleNotice = stale && !solving;
 
-  const menuEntries: MenuEntry[] = [
-    {
-      kind: 'action',
-      id: 'briefing',
-      label: tr(stageStrings.briefing),
-      icon: <IconInfo />,
-      onSelect: () => setBriefingOpen(true),
-    },
-    {
-      kind: 'radio',
-      id: 'formula',
-      label: tr(stageStrings.formula),
-      value: formula,
-      options: FORMULAS.map((option) => ({ value: option, label: formulaLabels[option] })),
-      onChange: (value) => setFormula(value as HeadLossFormula),
-    },
-    {
-      kind: 'action',
-      id: 'reset',
-      label: tr(stageStrings.reset),
-      icon: <IconReset />,
-      onSelect: resetDiameters,
-    },
-  ];
+  const closeBriefing = () => {
+    setBriefingOpen(false);
+    // The dialog gives the focus back to what had it before. When that is nothing, or <main>
+    // (where App parks the focus while the stage loads; it shows no ring), the heading takes
+    // it, so the keyboard starts at the top of the stage on something with a visible ring.
+    requestAnimationFrame(() => {
+      const current = document.activeElement;
+      if (!current || current === document.body || current.tagName === 'MAIN') {
+        heading.current?.focus();
+      }
+    });
+  };
 
-  const stageClass = !phone
-    ? 'stage'
-    : sideways
-      ? 'stage stage--phone stage--side'
-      : 'stage stage--phone';
+  const stageClass = [
+    'stage',
+    framed && 'stage--frame',
+    phone && 'stage--phone',
+    tablet && 'stage--tablet',
+    framed && side && 'stage--side',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const stageStyle = framed
+    ? ({ '--sheet-half-fraction': String(half) } as CSSProperties)
+    : undefined;
+
+  // Name of the stage, its numbers on phones, and the briefing: shown in the app header.
+  const head = (
+    <div className={phone ? 'stage__head stage__head--phone' : 'stage__head'}>
+      <h1 ref={heading} className="stage__title" tabIndex={-1}>
+        <span className="stage__number">
+          {tr(stageStrings.stage(scenario.order))}
+          <span className="visually-hidden">:</span>
+        </span>{' '}
+        <span className="stage__name">{tr(scenario.title)}</span>
+      </h1>
+      {phone && <StageHud compact />}
+      <button
+        type="button"
+        className="btn btn--ghost btn--icon stage__briefing"
+        aria-label={tr(stageStrings.briefing)}
+        title={tr(stageStrings.briefing)}
+        onClick={() => setBriefingOpen(true)}
+      >
+        <IconHelp />
+      </button>
+    </div>
+  );
 
   return (
-    <div className={stageClass}>
-      {phone ? (
-        <header className="stage__head">
-          <h1 className="visually-hidden">{stageTitle}</h1>
-          <StageHud compact />
-          <Menu
-            className="stage__menu"
-            label={tr(stageStrings.moreActions)}
-            icon={<IconMore />}
-            entries={menuEntries}
-          />
-          <p className="visually-hidden" role="status">
-            {staleNotice && tr(stageStrings.stale)}
-          </p>
-        </header>
-      ) : (
-        <>
-          <header className="stage__bar">
-            <h1 className="stage__title">
-              <span className="stage__number">{tr(stageStrings.stage(scenario.order))}</span>
-              {tr(scenario.title)}
-            </h1>
+    <div className={stageClass} style={stageStyle}>
+      <div ref={inline} className="stage__head-inline" />
+      {createPortal(head, host)}
 
+      {!phone && (
+        <div className="stage__bar" role="group" aria-label={tr(stageStrings.hudBar)}>
+          <StageHud />
+          {!framed && (
             <div className="stage__actions">
-              <button type="button" className="btn" onClick={() => setBriefingOpen(true)}>
-                <IconInfo />
-                {tr(stageStrings.briefing)}
-              </button>
               <div className="stage__formula">
                 <label htmlFor={formulaId} className="visually-hidden">
                   {tr(stageStrings.formula)}
@@ -143,31 +179,27 @@ export function StageScreen() {
                 </select>
               </div>
               <button type="button" className="btn" onClick={resetDiameters}>
+                <IconReset />
                 {tr(stageStrings.reset)}
               </button>
               <button
                 type="button"
-                className="btn btn--primary"
+                className="btn btn--primary stage__verify"
                 disabled={solving}
+                data-stale={staleNotice ? 'true' : undefined}
                 onClick={() => void verify()}
               >
+                {staleNotice && <IconStale />}
                 {tr(solving ? stageStrings.solving : stageStrings.verify)}
               </button>
             </div>
-
-            <p className="stage__stale" role="status">
-              {staleNotice && (
-                <span className="badge badge--warn">
-                  <IconStale />
-                  {tr(stageStrings.stale)}
-                </span>
-              )}
-            </p>
-          </header>
-
-          <StageHud />
-        </>
+          )}
+        </div>
       )}
+
+      <p className="visually-hidden" role="status">
+        {staleNotice && tr(stageStrings.stale)}
+      </p>
 
       <div className="stage__layout">
         <section className="panel stage__main" aria-label={tr(stageStrings.views)}>
@@ -179,16 +211,20 @@ export function StageScreen() {
               active={active}
               onChange={setTab}
             />
-            {phone && active === 'network' && <NetworkModeToggle compact />}
+            {framed && active === 'network' && <NetworkModeToggle compact={phone} />}
           </div>
           <div
             role="tabpanel"
             id={tabPanelId(idBase, active)}
             aria-labelledby={tabId(idBase, active)}
             tabIndex={0}
-            className="stage__tabpanel"
+            className={
+              active === 'network' || active === '3d'
+                ? 'stage__tabpanel stage__tabpanel--flush'
+                : 'stage__tabpanel'
+            }
           >
-            {active === 'network' && <NetworkTab toggle={!phone} />}
+            {active === 'network' && <NetworkTab toggle={!framed} />}
             {active === 'table' && <ResultsTable />}
             {active === 'profile' && <HglProfile />}
             {active === 'hardyCross' && <HardyCrossTable />}
@@ -201,7 +237,7 @@ export function StageScreen() {
           </div>
         </section>
 
-        {!phone && (
+        {!framed && (
           <aside className="stage__side" aria-label={tr(stageStrings.sidePanel)}>
             <section className="panel" aria-labelledby={`${idBase}-calc`}>
               <h2 id={`${idBase}-calc`} className="panel__title">
@@ -223,14 +259,14 @@ export function StageScreen() {
         )}
       </div>
 
-      {phone && <StageSheet side={sideways} />}
+      {framed && <StageSheet side={side} half={half} />}
 
       <Dialog
         open={briefingOpen}
-        onClose={() => setBriefingOpen(false)}
+        onClose={closeBriefing}
         title={stageTitle}
         footer={
-          <button type="button" className="btn btn--primary" onClick={() => setBriefingOpen(false)}>
+          <button type="button" className="btn btn--primary" onClick={closeBriefing}>
             {tr(stageStrings.continue)}
           </button>
         }

@@ -7,6 +7,7 @@ import { getScenario } from '../../scenarios';
 import type { Diameters } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
+import { GLOSSARY } from '../glossary/glossary';
 import { ResultsTable } from './ResultsTable';
 
 function open(stageId: string, diameters?: Diameters) {
@@ -84,7 +85,7 @@ describe('ResultsTable', () => {
       'Trecho',
       'Extensão (m)',
       'Vazão (L/s)',
-      'DN (mm)',
+      'Diâmetro nominal (mm)',
       'Velocidade (m/s)',
       'Perda unitária J (m/km)',
       'Perda de carga (m)',
@@ -96,6 +97,58 @@ describe('ResultsTable', () => {
     }
     expect(table.getAllByRole('columnheader', { name: 'Montante' })).toHaveLength(4);
     expect(table.getAllByRole('columnheader', { name: 'Jusante' })).toHaveLength(4);
+  });
+
+  it('shows symbols and short words in the headers, with the names in the help', async () => {
+    const user = userEvent.setup();
+    open('stage2');
+    render(<ResultsTable />);
+    const table = within(pipeTable());
+    const shown = (name: string) => table.getAllByRole('columnheader', { name })[0]!.textContent;
+    expect(shown('Extensão (m)')).toBe('L (m)');
+    expect(shown('Vazão (L/s)')).toBe('Q (L/s)');
+    expect(shown('Velocidade (m/s)')).toBe('V (m/s)');
+    expect(shown('Perda unitária J (m/km)')).toBe('J (m/km)');
+    expect(shown('Perda de carga (m)')).toBe('hf (m)');
+    expect(shown('Cota piezométrica (m)')).toBe('CP (m)');
+    expect(shown('Pressão disponível (mca)')).toBe('Pressão (mca)');
+    expect(shown('Montante')).toBe('Mont.');
+    expect(shown('Jusante')).toBe('Jus.');
+    const nodes = within(nodeTable());
+    expect(nodes.getByRole('columnheader', { name: 'Pressão estática (mca)' })).toHaveTextContent(
+      'Estática (mca)',
+    );
+    // No glossary terms in the headers, no hint or legend under the tables.
+    expect(document.querySelector('thead .term')).toBeNull();
+    expect(screen.queryByText(/Clique ou toque em uma linha/)).not.toBeInTheDocument();
+    expect(screen.queryByText('fora do limite (impede a aprovação)')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Tabela' }));
+    const help = screen.getByRole('note', { name: 'Ajuda: Tabela' });
+    expect(help).toHaveTextContent('Clique ou toque em uma linha para selecionar');
+    const terms = [...help.querySelectorAll('dt')].map((term) => term.textContent);
+    expect(terms).toEqual([
+      'L (m)',
+      'Q (L/s)',
+      'DN (mm)',
+      'V (m/s)',
+      'J (m/km)',
+      'hf (m)',
+      'CP (m)',
+      'Cota (m)',
+      'Pressão (mca)',
+      'Cota (m)',
+      'Demanda (L/s)',
+      'CP (m)',
+      'Pressão (mca)',
+      'Estática (mca)',
+    ]);
+    expect(help).toHaveTextContent(`Perda de carga: ${GLOSSARY.headLoss.definition.pt}`);
+    expect(help).toHaveTextContent('Montante (Mont.) e jusante (Jus.) seguem o sentido real');
+    // The marks of the cells are explained here.
+    expect(within(help).getByText('fora do limite (impede a aprovação)')).toBeInTheDocument();
+    expect(within(help).getByText('fora do limite recomendado (aviso)')).toBeInTheDocument();
+    expect(within(help).getByText('escoamento contrário ao sentido desenhado')).toBeInTheDocument();
   });
 
   it('shows the node table with demand, grade and both pressures', () => {
@@ -156,7 +209,8 @@ describe('ResultsTable', () => {
     expect(within(pipeTable()).getAllByText(/Erro: acima do máximo de 3,50 m\/s/)).not.toHaveLength(
       0,
     );
-    expect(screen.getByText('fora do limite (impede a aprovação)')).toBeInTheDocument();
+    // The mark stays in the cell: an icon with the reason as text.
+    expect(row.querySelectorAll('.results__flag svg')).toHaveLength(2);
   });
 
   it('does not mark anything in a passing design without warnings', () => {
@@ -309,7 +363,10 @@ describe('ResultsTable', () => {
     useAppStore.setState({ lang: 'en' });
     render(<ResultsTable />);
     const table = screen.getByRole('table', { name: /Calculation sheet by pipe/ });
-    expect(within(table).getByRole('columnheader', { name: 'Flow (L/s)' })).toBeInTheDocument();
+    expect(within(table).getByRole('columnheader', { name: 'Flow (L/s)' })).toHaveTextContent(
+      'Q (L/s)',
+    );
+    expect(screen.getByRole('button', { name: 'Help: Table' })).toBeInTheDocument();
     expect(within(table).getAllByRole('row')[2]).toHaveTextContent('10.500');
     expect(screen.getByRole('button', { name: 'Export CSV' })).toBeInTheDocument();
   });

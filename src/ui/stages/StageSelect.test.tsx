@@ -4,8 +4,10 @@ import { useAppStore } from '../../state/store';
 import { makeEvaluation, makeProgress } from '../../test/fixtures';
 import { resetStore } from '../../test/store';
 import { evaluateInWorker } from '../../worker/client';
-import { ROAD_DY, stripLayout, wideLayout } from './mapLayout';
+import { PHONE_LANDSCAPE_QUERY, PHONE_QUERY } from '../shell/breakpoints';
+import { ROAD_DY, rowLayout, stripLayout, wideLayout } from './mapLayout';
 import { StageSelect } from './StageSelect';
+import { shortTitle, STAGE_SHORT_TITLES } from './strings';
 
 vi.mock('../../scenarios', async () => {
   const { fixtureScenarios } = await import('../../test/fixtures');
@@ -18,7 +20,10 @@ vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
 const details = () => within(screen.getByTestId('stage-details'));
 /** The stage buttons, without the back button of the screen header. */
-const stageButtons = () => within(screen.getByRole('list')).getAllByRole('button');
+const stageButtons = () =>
+  within(screen.getByRole('list'))
+    .getAllByRole('button')
+    .filter((button) => button.classList.contains('stage-pin'));
 
 describe('StageSelect', () => {
   beforeEach(() => {
@@ -26,10 +31,62 @@ describe('StageSelect', () => {
     vi.mocked(evaluateInWorker).mockImplementation(async (id) => makeEvaluation(id));
   });
 
-  it('keeps the heading and the intro', () => {
+  it('keeps the heading and moves the intro behind a "?"', async () => {
+    const user = userEvent.setup();
     render(<StageSelect />);
     expect(screen.getByRole('heading', { level: 1, name: 'Etapas' })).toBeInTheDocument();
-    expect(screen.getByText(/Concluir uma etapa libera a seguinte/)).toBeInTheDocument();
+    expect(screen.queryByText(/Concluir uma etapa libera a seguinte/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Como funciona' }));
+    expect(screen.getByRole('note')).toHaveTextContent(/Concluir uma etapa libera a seguinte/);
+  });
+
+  it('shows only number, name and status icons on a card', () => {
+    useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
+    render(<StageSelect />);
+    const visible = (button: HTMLElement) => {
+      const copy = button.cloneNode(true) as HTMLElement;
+      for (const hidden of copy.querySelectorAll('.visually-hidden')) hidden.remove();
+      return copy.textContent;
+    };
+    expect(stageButtons().map(visible)).toEqual(['1Título 1 ', '2Título 2Próxima ', '3Título 3']);
+    expect(screen.queryByText(/Melhor custo/)).not.toBeInTheDocument();
+    // Each status has an icon and a word for screen readers.
+    for (const button of stageButtons()) {
+      const status = button.querySelector('.stage-pin__status')!;
+      expect(status.querySelector('.visually-hidden')).toHaveTextContent(
+        /^(Concluída|Não iniciada|Bloqueada)$/,
+      );
+    }
+    expect(stageButtons()[0]!.querySelector('.stage-pin__status svg')).toBeInTheDocument();
+    expect(stageButtons()[2]!.querySelector('.stage-pin__status svg')).toBeInTheDocument();
+  });
+
+  it('puts a "?" beside each card, never inside the button', () => {
+    render(<StageSelect />);
+    for (const title of ['Título 1', 'Título 2', 'Título 3']) {
+      const help = screen.getByRole('button', { name: `Ajuda: ${title}` });
+      expect(help.closest('.stage-pin')).toBeNull();
+      expect(help.closest('.stage-card')!.querySelector('.stage-pin')).toBeInTheDocument();
+      expect(help).toBeEnabled();
+    }
+  });
+
+  it('gives summary, status and best cost in the "?" of a card', async () => {
+    useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
+    const user = userEvent.setup();
+    render(<StageSelect />);
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Título 1' }));
+    const first = screen.getByRole('note', { name: 'Ajuda: Título 1' });
+    expect(first).toHaveTextContent('Concluída');
+    expect(first).toHaveTextContent('Resumo 1');
+    expect(first).toHaveTextContent('Melhor custo: R$ 12.345,67');
+
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Título 3' }));
+    const third = screen.getByRole('note', { name: 'Ajuda: Título 3' });
+    expect(third).toHaveTextContent('Bloqueada');
+    expect(third).toHaveTextContent('Resumo 3');
+    expect(third).toHaveTextContent('Conclua a etapa 2 para liberar.');
+    expect(screen.getAllByRole('note')).toHaveLength(1);
   });
 
   it('has one button per stage, in play order, with number and title', () => {
@@ -155,7 +212,7 @@ describe('StageSelect', () => {
     render(<StageSelect />);
     const first = screen.getByRole('button', { name: /Etapa 1: Título 1/ });
     expect(first).toHaveTextContent('Concluída');
-    expect(first).toHaveTextContent('Melhor custo: R$ 12.345,67');
+    expect(first).not.toHaveTextContent('Melhor custo');
     expect(within(first).getByRole('img', { name: '2 de 3 estrelas' })).toBeInTheDocument();
     expect(screen.getAllByText('Concluída')).toHaveLength(1);
     expect(screen.getByRole('button', { name: /Etapa 2: Título 2/ })).toBeEnabled();
@@ -192,7 +249,11 @@ describe('StageSelect', () => {
     await user.tab();
     expect(screen.getByRole('button', { name: 'Início' })).toHaveFocus();
     await user.tab();
+    expect(screen.getByRole('button', { name: 'Ajuda: Como funciona' })).toHaveFocus();
+    await user.tab();
     expect(screen.getByRole('button', { name: /^Etapa 1: / })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Ajuda: Título 1' })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole('button', { name: /^Etapa 2: / })).toHaveFocus();
     await user.keyboard('{Enter}');
@@ -230,7 +291,10 @@ describe('StageSelect', () => {
       render(<StageSelect />);
       await user.tab();
       await user.tab();
+      await user.tab();
       expect(details().getByText('Etapa 1: Título 1')).toBeInTheDocument();
+      expect(details().getByText(/Melhor custo/)).toHaveTextContent('Melhor custo: R$ 12.345,67');
+      expect(details().queryByText('Concluída')).not.toBeInTheDocument();
       expect(details().getByText('Resumo 1')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /^Etapa 1: / })).toHaveClass('stage-pin--active');
     });
@@ -250,48 +314,54 @@ describe('StageSelect', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Stages' })).toBeInTheDocument();
     const first = screen.getByRole('button', { name: 'Stage 1: Title 1' });
     expect(first).toHaveTextContent('Completed');
-    expect(first).toHaveTextContent('Best cost: R$ 12,345.67');
+    expect(screen.getByRole('button', { name: 'Help: How it works' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Help: Title 1' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Stage 3: Title 3. Locked: complete stage 2 to unlock.' }),
     ).toBeDisabled();
   });
 
-  /** Makes the media queries that contain one of `matching` match, as on a phone or tablet. */
+  /** Makes exactly the given media queries match. */
   const stubMedia = (...matching: string[]) =>
     vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: matching.some((part) => query.includes(part)),
+      matches: matching.includes(query),
       media: query,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     }));
+  const LABELS = [
+    'Etapa 1: Título 1',
+    'Etapa 2: Título 2. Bloqueada: conclua a etapa 1 para liberar.',
+    'Etapa 3: Título 3. Bloqueada: conclua a etapa 2 para liberar.',
+  ];
 
-  describe('at phone width', () => {
-    beforeEach(() => stubMedia('max-width', 'hover: none'));
+  describe('on a phone', () => {
+    beforeEach(() => stubMedia(PHONE_QUERY, '(pointer: coarse)'));
     afterEach(() => vi.unstubAllGlobals());
 
     it('draws one strip per stage with the same buttons', () => {
       const { container } = render(<StageSelect />);
+      expect(container.querySelector('.stages')).toHaveClass('stages--tall');
       expect(container.querySelector('.stage-map')).toHaveClass('stage-map--tall');
       const strips = container.querySelectorAll('.stage-map__art');
       expect(strips).toHaveLength(3);
       for (const strip of strips) expect(strip).toHaveAttribute('viewBox', '0 0 360 140');
-      expect(stageButtons().map((button) => button.getAttribute('aria-label'))).toEqual([
-        'Etapa 1: Título 1',
-        'Etapa 2: Título 2. Bloqueada: conclua a etapa 1 para liberar.',
-        'Etapa 3: Título 3. Bloqueada: conclua a etapa 2 para liberar.',
-      ]);
+      expect(stageButtons().map((button) => button.getAttribute('aria-label'))).toEqual(LABELS);
       expect(screen.getAllByRole('listitem')).toHaveLength(3);
     });
 
-    it('shows the summary inside each card, without hover or focus', () => {
+    it('keeps the summary out of the card: it is the description and the "?"', async () => {
+      const user = userEvent.setup();
       render(<StageSelect />);
       const first = screen.getByRole('button', { name: /^Etapa 1: / });
-      expect(within(first).getByText('Resumo 1')).toHaveClass('stage-pin__summary');
+      expect(within(first).getByText('Resumo 1')).toHaveClass('visually-hidden');
       expect(first).toHaveAccessibleDescription('Não iniciada. Resumo 1. Próxima etapa a jogar');
-      const third = screen.getByRole('button', { name: /^Etapa 3: / });
-      expect(within(third).getByText('Resumo 3')).toHaveClass('stage-pin__summary');
-      expect(third).toHaveTextContent('Conclua a etapa 2 para liberar.');
       expect(screen.queryByTestId('stage-details')).not.toBeInTheDocument();
+      // On a phone the help is a dialog.
+      await user.click(screen.getByRole('button', { name: 'Ajuda: Título 3' }));
+      const help = screen.getByRole('dialog', { name: 'Título 3' });
+      expect(help).toHaveTextContent('Resumo 3');
+      expect(help).toHaveTextContent('Conclua a etapa 2 para liberar.');
     });
 
     it('opens a stage with one activation of its card or of its drawing', async () => {
@@ -320,20 +390,91 @@ describe('StageSelect', () => {
     });
   });
 
-  describe('on a wide touch screen', () => {
-    beforeEach(() => stubMedia('hover: none'));
+  describe('on a phone held sideways', () => {
+    beforeEach(() => stubMedia(PHONE_QUERY, PHONE_LANDSCAPE_QUERY, '(pointer: coarse)'));
     afterEach(() => vi.unstubAllGlobals());
 
-    it('keeps the wide map and lists the summary of every stage below it', () => {
+    it('lays the neighbourhoods out in one low row with the cards under it', () => {
       const { container } = render(<StageSelect />);
-      expect(container.querySelector('.stage-map')).not.toHaveClass('stage-map--tall');
-      expect(details().getByText('Etapa 1: Título 1')).toBeInTheDocument();
-      expect(details().getByText('Resumo 1')).toBeInTheDocument();
-      expect(details().getByText('Resumo 2')).toBeInTheDocument();
-      expect(details().getByText('Resumo 3')).toBeInTheDocument();
-      expect(details().getByText('Conclua a etapa 2 para liberar.')).toBeInTheDocument();
-      expect(stageButtons()).toHaveLength(3);
+      expect(container.querySelector('.stages')).toHaveClass('stages--row');
+      const map = container.querySelector<HTMLElement>('.stage-map')!;
+      expect(map).toHaveClass('stage-map--row');
+      // In flow, so the drawing gives the height: no aspect ratio of the wide map.
+      expect(map.style.aspectRatio).toBe('');
+      expect(container.querySelectorAll('.stage-map__art')).toHaveLength(1);
+      expect(container.querySelector('.stage-map__art')).toHaveAttribute('viewBox', '0 0 1000 150');
+      for (const item of container.querySelectorAll<HTMLElement>('.stage-map__item')) {
+        expect(item.getAttribute('style')).toBeNull();
+      }
+      expect(stageButtons().map((button) => button.getAttribute('aria-label'))).toEqual(LABELS);
+      expect(screen.queryByTestId('stage-details')).not.toBeInTheDocument();
+      expect(container.querySelector('.m-halo')).not.toBeInTheDocument();
     });
+
+    it('opens a stage from its card or from its drawing', async () => {
+      const openStage = vi.fn(async () => undefined);
+      useAppStore.setState({ openStage });
+      const user = userEvent.setup();
+      const { container } = render(<StageSelect />);
+      await user.click(screen.getByRole('button', { name: /^Etapa 1: / }));
+      await user.click(container.querySelectorAll('.m-hit')[0]!);
+      await user.click(container.querySelectorAll('.m-hit')[1]!);
+      expect(openStage).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('on a wide touch screen', () => {
+    beforeEach(() => stubMedia('(pointer: coarse)'));
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('keeps the wide map; the "?" of each card replaces the details area', () => {
+      const { container } = render(<StageSelect />);
+      expect(container.querySelector('.stages')).toHaveClass('stages--wide');
+      expect(container.querySelector('.stage-map')).toHaveClass('stage-map--wide');
+      expect(screen.queryByTestId('stage-details')).not.toBeInTheDocument();
+      expect(stageButtons()).toHaveLength(3);
+      expect(screen.getAllByRole('button', { name: /^Ajuda: Título/ })).toHaveLength(3);
+    });
+  });
+
+  describe('contracts of the end-to-end tests', () => {
+    it('keeps the names, the back button and the total', () => {
+      useAppStore.setState({ progress: { 'stage-1': makeProgress('stage-1') } });
+      render(<StageSelect />);
+      expect(screen.getByRole('heading', { name: 'Etapas' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Início' })).toBeInTheDocument();
+      expect(screen.getByTestId('stages-total')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^Etapa 1: Título 1/ })).toBeEnabled();
+      expect(screen.getByRole('button', { name: /^Etapa 3: .*Bloqueada/ })).toBeDisabled();
+      // One element per completed stage, also while a help that says the same is closed.
+      const done = screen.getAllByText('Concluída');
+      expect(done).toHaveLength(1);
+      for (const element of done) expect(element).toHaveClass('visually-hidden');
+    });
+  });
+});
+
+describe('short names', () => {
+  it('has a name of one to three words for each real stage, in both languages', () => {
+    expect(Object.keys(STAGE_SHORT_TITLES)).toEqual([
+      'stage1',
+      'stage2',
+      'stage3',
+      'stage4',
+      'stage5',
+    ]);
+    for (const name of Object.values(STAGE_SHORT_TITLES)) {
+      for (const text of [name.pt, name.en]) {
+        expect(text.split(' ').length).toBeLessThanOrEqual(3);
+      }
+    }
+    const title = { pt: 'Rede malhada (um anel)', en: 'Looped network (one ring)' };
+    expect(shortTitle({ id: 'stage3', title })).toEqual({ pt: 'Um anel', en: 'One ring' });
+  });
+
+  it('falls back to the full title for an unknown stage', () => {
+    const title = { pt: 'Etapa nova', en: 'New stage' };
+    expect(shortTitle({ id: 'stage-9', title })).toBe(title);
   });
 });
 
@@ -344,6 +485,17 @@ describe('map layouts', () => {
     expect(xs).toEqual([...xs].sort((a, b) => a - b));
     expect(xs[0]).toBeGreaterThanOrEqual(150);
     expect(xs[4]).toBeLessThanOrEqual(width - 150);
+  });
+
+  it('keeps the row of the sideways phone low, with every neighbourhood inside it', () => {
+    const { sites, width, height } = rowLayout(5);
+    expect(width / height).toBeGreaterThan(6);
+    expect(sites.map((site) => site.x)).toEqual(wideLayout(5).sites.map((site) => site.x));
+    for (const site of sites) {
+      expect(site.label).toBeUndefined();
+      expect(site.y - 60).toBeGreaterThanOrEqual(0);
+      expect(site.y + ROAD_DY + 12).toBeLessThanOrEqual(height);
+    }
   });
 
   it('alternates the sides of the strips of the phone map', () => {

@@ -114,7 +114,16 @@ describe('HglProfile', () => {
     const user = userEvent.setup();
     const { evaluation } = open('stage2');
     render(<HglProfile />);
-    expect(screen.getByText(/Passe o cursor ou toque em um nó/)).toBeInTheDocument();
+    // No instructions by default: the readout starts on the node with the lowest pressure.
+    expect(screen.queryByText(/Passe o cursor ou toque em um nó/)).not.toBeInTheDocument();
+    const lowest = evaluation.network.junctions
+      .filter((junction) => ['N1', 'N2', 'N4'].includes(junction.id))
+      .reduce((a, b) =>
+        evaluation.result.nodes[b.id]!.pressure < evaluation.result.nodes[a.id]!.pressure ? b : a,
+      ).id;
+    expect(document.querySelector('.profile__readout')).toHaveTextContent(
+      new RegExp(`^Nó ${lowest} · Distância`),
+    );
 
     const n1 = screen.getByRole('button', { name: /^Nó N1/ });
     await user.hover(n1);
@@ -125,8 +134,10 @@ describe('HglProfile', () => {
       )} m`,
     );
     await user.unhover(n1);
-    expect(readout).toHaveTextContent(/Passe o cursor/);
+    expect(readout).toHaveTextContent(new RegExp(`^Nó ${lowest} `));
 
+    // The picker, its help, then the first marker.
+    await user.tab();
     await user.tab();
     await user.tab();
     expect(screen.getByRole('button', { name: /^Reservatório R1/ })).toHaveFocus();
@@ -147,7 +158,7 @@ describe('HglProfile', () => {
     render(<HglProfile />);
     const readout = screen.getByRole('status');
     expect(readout).toHaveClass('chart__readout', 'profile__readout');
-    expect(readout).toHaveTextContent(/toque em um nó/);
+    expect(readout).not.toHaveTextContent(/toque em um nó/);
 
     // A tap is a click with no hover before it and no blur after it.
     fireEvent.click(screen.getByRole('button', { name: /^Nó N2/ }));
@@ -269,14 +280,41 @@ describe('HglProfile', () => {
     const scenario = getScenario('stage2')!;
     open('stage2', initialDiameters(scenario));
     render(<HglProfile />);
-    expect(
-      screen.getByText('3 nós do caminho estão abaixo do mínimo de 10 mca.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('3 nós abaixo de 10 mca')).toHaveClass('profile__alert');
     expect(screen.getAllByRole('button', { name: /\(abaixo do mínimo\)/ })).toHaveLength(3);
     expect(document.querySelectorAll('svg .profile__node--below')).toHaveLength(3);
     expect(dataRows()[1]![4]).toMatch(/\(abaixo do mínimo\)$/);
-    // The grade line falls far below the ground with the initial diameters.
+    // The grade line falls far below the ground with the initial diameters: said in the help.
+    expect(screen.queryByText(/desce além da escala do gráfico/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Perfil' }));
     expect(screen.getByText(/desce além da escala do gráfico/)).toBeInTheDocument();
+  });
+
+  it('keeps the instructions, the path, the legend and the terms behind the help', async () => {
+    const user = userEvent.setup();
+    open('stage2');
+    render(<HglProfile />);
+    expect(screen.queryByText('Linha piezométrica', { selector: 'li' })).not.toBeInTheDocument();
+    expect(document.querySelector('.term')).toBeNull();
+    // The path stays as the description of the chart for screen readers.
+    expect(screen.getByText(/^Caminho R1 → N1 → N2 → N4, 720 m\./)).toHaveClass('visually-hidden');
+
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Perfil' }));
+    const help = within(screen.getByRole('note', { name: 'Ajuda: Perfil' }));
+    expect(help.getByText(/^Passe o cursor ou toque em um nó/)).toBeInTheDocument();
+    expect(help.getByText(/^Caminho R1 → N1 → N2 → N4, 720 m\./)).toBeInTheDocument();
+    for (const entry of [
+      'Linha piezométrica',
+      'Nível estático',
+      'Terreno + 10 mca (pressão mínima)',
+      'Terreno',
+      'Tubulação',
+      'Nó',
+      'Nó abaixo da pressão mínima',
+    ]) {
+      expect(help.getByText(entry, { selector: 'li' })).toBeInTheDocument();
+    }
+    expect(help.getAllByRole('button')).toHaveLength(3);
   });
 
   it('shows the pump of stage 5 as a jump at distance zero', () => {
@@ -309,6 +347,7 @@ describe('HglProfile', () => {
       screen.getByRole('group', { name: 'Longitudinal profile from R1 to N4' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Profile to node' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Help: Profile' }));
     expect(screen.getByText('Hydraulic grade line', { selector: 'li' })).toBeInTheDocument();
     expect(dataRows()[0]).toEqual(['R1', '0', '146.00', '150.00', '4.00', '150.00']);
   });

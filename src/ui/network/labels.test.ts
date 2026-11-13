@@ -1,5 +1,8 @@
 import {
+  gridRects,
+  nearestOnRect,
   placeLabels,
+  ringRects,
   rectsOverlap,
   segmentRectDistance,
   textWidth,
@@ -169,5 +172,126 @@ describe('placeLabels', () => {
 
   it('ignores requests without options', () => {
     expect(placeLabels([{ id: 'none', priority: 1, options: [] }], { bounds }).size).toBe(0);
+  });
+});
+
+describe('labels that must be shown', () => {
+  it('goes to a fallback place when every option is taken, and stays short there', () => {
+    const taken = label('node', 5, rect(10, 10, 60));
+    const pipe: LabelRequest<string> = {
+      ...label('pipe', 1, rect(10, 10, 80), rect(20, 10, 30)),
+      fallback: () => [
+        { rect: rect(40, 12, 30), detail: 0, data: 'pipe:taken' },
+        { rect: rect(100, 60, 30), detail: 0, data: 'pipe:far' },
+      ],
+    };
+    const placed = placeLabels([taken, pipe], { bounds });
+    expect(placed.get('node')?.data).toBe('node:0');
+    expect(placed.get('pipe')?.data).toBe('pipe:far');
+  });
+
+  it('does not ask for the fallback places of a label that fits', () => {
+    const fallback = vi.fn(() => []);
+    placeLabels([{ ...label('a', 1, rect(10, 10)), fallback }], { bounds });
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('lets a fallback place cover a pipe only when nothing else is left', () => {
+    const segments = [{ a: { x: 0, y: 67 }, b: { x: 200, y: 67 }, half: 3 }];
+    const request = (...far: Rect[]): LabelRequest<string> => ({
+      ...label('pipe', 1, rect(-50, 0)),
+      fallback: () => far.map((r, index) => ({ rect: r, detail: 0, data: `far:${index}` })),
+    });
+    // The first fallback place is on the pipe, the second is free: the second.
+    expect(
+      placeLabels([request(rect(10, 60), rect(10, 20))], { bounds, segments }).get('pipe')?.data,
+    ).toBe('far:1');
+    // Only the place on the pipe exists: better than no label.
+    expect(placeLabels([request(rect(10, 60))], { bounds, segments }).get('pipe')?.data).toBe(
+      'far:0',
+    );
+    // Never over a blocked rect or another label, and never outside the bounds.
+    expect(
+      placeLabels([request(rect(10, 60), rect(190, 20))], {
+        bounds,
+        segments,
+        rects: [rect(0, 55, 30, 30)],
+      }).has('pipe'),
+    ).toBe(false);
+  });
+
+  it('moves a neighbour to another of its places before using a leader line', () => {
+    // The node took the only place of the pipe, and has a second place of its own.
+    const node: LabelRequest<string> = {
+      id: 'node',
+      priority: 5,
+      options: [
+        { rect: rect(10, 10), detail: 0, data: 'node:first' },
+        { rect: rect(10, 60), detail: 0, data: 'node:second' },
+      ],
+    };
+    const pipe: LabelRequest<string> = {
+      ...label('pipe', 1, rect(20, 12)),
+      fallback: () => [{ rect: rect(150, 80), detail: 0, data: 'pipe:far' }],
+    };
+    const placed = placeLabels([node, pipe], { bounds });
+    expect(placed.get('pipe')?.data).toBe('pipe:0');
+    expect(placed.get('node')?.data).toBe('node:second');
+  });
+
+  it('moves a less important label so that a more important one can show more text', () => {
+    // The pipe id sits where the pressure of the node would go; the pipe has another side.
+    const node = label('node', 5, rect(10, 10, 100), rect(10, 10, 20));
+    const pipe: LabelRequest<string> = {
+      id: 'pipe',
+      priority: 1,
+      options: [
+        { rect: rect(60, 10, 20), detail: 0, data: 'pipe:above' },
+        { rect: rect(60, 40, 20), detail: 0, data: 'pipe:below' },
+      ],
+    };
+    const placed = placeLabels([node, pipe], { bounds });
+    expect(placed.get('node')?.data).toBe('node:1');
+    expect(placed.get('pipe')?.data).toBe('pipe:below');
+    // The other way round nothing moves: a pipe does not push a node for its DN.
+    const wide = label('pipe', 1, rect(10, 10, 100), rect(10, 10, 20));
+    const fixed: LabelRequest<string> = { ...pipe, id: 'node', priority: 5 };
+    const kept = placeLabels([fixed, wide], { bounds });
+    expect(kept.get('node')?.data).toBe('pipe:above');
+    expect(kept.get('pipe')?.data).toBe('pipe:0');
+  });
+
+  it('offers rings of places around a point, nearest first', () => {
+    const size = { width: 20, height: 10 };
+    const rects = ringRects({ x: 100, y: 50 }, size, [10, 30]);
+    expect(rects).toHaveLength(16);
+    // Below, above, right, left at 10 px of clearance.
+    expect(rects[0]).toEqual({ x: 90, y: 60, ...size });
+    expect(rects[1]).toEqual({ x: 90, y: 30, ...size });
+    expect(rects[2]).toEqual({ x: 110, y: 45, ...size });
+    expect(rects[3]).toEqual({ x: 70, y: 45, ...size });
+    expect(rects[8]).toEqual({ x: 90, y: 80, ...size });
+  });
+
+  it('offers every place of a grid over the canvas, nearest first and within reach', () => {
+    const size = { width: 20, height: 10 };
+    const rects = gridRects({ x: 100, y: 50 }, size, bounds, 10, 60);
+    const distance = (r: Rect) => Math.hypot(r.x + 10 - 100, r.y + 5 - 50);
+    expect(rects.length).toBeGreaterThan(50);
+    expect(distance(rects[0]!)).toBeLessThanOrEqual(5);
+    for (const [index, r] of rects.entries()) {
+      expect(r.x).toBeGreaterThanOrEqual(0);
+      expect(r.x + r.width).toBeLessThanOrEqual(200);
+      expect(r.y + r.height).toBeLessThanOrEqual(100);
+      expect(distance(r)).toBeLessThanOrEqual(60);
+      if (index > 0) expect(distance(r)).toBeGreaterThanOrEqual(distance(rects[index - 1]!));
+    }
+  });
+
+  it('finds where a leader line meets a label', () => {
+    const box = rect(10, 10, 40, 20);
+    expect(nearestOnRect({ x: 0, y: 0 }, box)).toEqual({ x: 10, y: 10 });
+    expect(nearestOnRect({ x: 30, y: 100 }, box)).toEqual({ x: 30, y: 30 });
+    expect(nearestOnRect({ x: 20, y: 15 }, box)).toEqual({ x: 20, y: 15 });
   });
 });

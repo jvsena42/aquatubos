@@ -2,20 +2,26 @@ import type { LocalizedText } from '../../engine/types';
 import type { FlowRegime } from './calcModel';
 
 export const calcStrings = {
-  hint: {
-    pt: 'Selecione um trecho ou um nó no desenho da rede para ver o cálculo passo a passo, com os números usados pelo programa.',
-    en: 'Select a pipe or a node in the network drawing to see the step-by-step calculation, with the numbers the program used.',
-  },
   summary: { pt: 'Resumo da rede', en: 'Network summary' },
   totalDemand: { pt: 'Demanda total', en: 'Total demand' },
   pipeCount: { pt: 'Trechos', en: 'Pipes' },
   totalLength: { pt: 'Comprimento total', en: 'Total length' },
   currentCost: { pt: 'Custo atual', en: 'Current cost' },
   clear: { pt: 'Limpar seleção', en: 'Clear selection' },
-  needsCalculation: {
-    pt: 'Os resultados precisam ser recalculados. Use “Calcular / Verificar” para ver o cálculo deste elemento.',
-    en: 'The results need recalculating. Use “Calculate / Verify” to see the calculation of this element.',
-  },
+  needsCalculation: { pt: 'Recalcular', en: 'Recalculate' },
+  showCalculation: { pt: 'Ver cálculo', en: 'Show calculation' },
+  changeDn: { pt: 'Alterar', en: 'Change' },
+  changeDnLabel: (id: string): LocalizedText => ({
+    pt: `Alterar o diâmetro do trecho ${id}`,
+    en: `Change the diameter of pipe ${id}`,
+  }),
+  results: { pt: 'Resultados', en: 'Results' },
+  costShort: { pt: 'Custo', en: 'Cost' },
+  pressure: { pt: 'Pressão', en: 'Pressure' },
+  staticShort: { pt: 'Estática', en: 'Static' },
+  levelShort: { pt: 'Nível', en: 'Level' },
+  flowShort: { pt: 'Vazão', en: 'Flow' },
+  headShort: { pt: 'Altura', en: 'Head' },
   solving: { pt: 'Calculando…', en: 'Calculating…' },
 
   pipe: (id: string): LocalizedText => ({ pt: `Trecho ${id}`, en: `Pipe ${id}` }),

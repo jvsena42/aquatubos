@@ -5,10 +5,8 @@ export const stageStrings = {
   formula: { pt: 'Fórmula de perda de carga', en: 'Head loss formula' },
   verify: { pt: 'Calcular / Verificar', en: 'Calculate / Verify' },
   solving: { pt: 'Calculando…', en: 'Calculating…' },
-  stale: {
-    pt: 'O projeto mudou desde o último cálculo. Calcule novamente.',
-    en: 'The design changed since the last calculation. Calculate again.',
-  },
+  /** Announced to screen readers; on screen the Calcular button carries a stale mark. */
+  stale: { pt: 'Resultado desatualizado: recalcule.', en: 'Result out of date: recalculate.' },
   reset: { pt: 'Restaurar diâmetros', en: 'Reset diameters' },
   briefing: { pt: 'Enunciado', en: 'Briefing' },
   objectives: { pt: 'Objetivos', en: 'Objectives' },
@@ -17,8 +15,8 @@ export const stageStrings = {
   calcPanel: { pt: 'Cálculo', en: 'Calculation' },
   checksPanel: { pt: 'Verificações', en: 'Checks' },
   sidePanel: { pt: 'Cálculo e verificações', en: 'Calculation and checks' },
-  // Phone layout
-  moreActions: { pt: 'Mais ações', en: 'More actions' },
+  hudBar: { pt: 'Situação e ações da etapa', en: 'Stage status and actions' },
+  // Phone and tablet layout
   reverify: { pt: 'Recalcular', en: 'Recalculate' },
   sheetSection: { pt: 'Seção do painel', en: 'Panel section' },
   sheetExpand: { pt: 'Painel de cálculo: expandir', en: 'Calculation panel: expand' },
@@ -35,6 +33,8 @@ export const stageStrings = {
   passedNotice: { pt: 'Etapa aprovada', en: 'Stage passed' },
   loading3d: { pt: 'Carregando a visualização 3D…', en: 'Loading the 3D view…' },
 } as const;
+
+export const FORMULAS: readonly HeadLossFormula[] = ['hazen-williams', 'darcy-weisbach'];
 
 export const formulaLabels: Record<HeadLossFormula, string> = {
   'hazen-williams': 'Hazen-Williams',

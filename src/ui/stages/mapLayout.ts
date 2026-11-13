@@ -3,8 +3,8 @@ export interface Site {
   /** Centre of the scenery. */
   x: number;
   y: number;
-  /** CSS box of the label, in percentages of the map. */
-  label: { left: string; width: string; top?: string; bottom?: string };
+  /** CSS box of the label, in percentages of the map; absent when labels are in flow. */
+  label?: { left: string; width: string; top?: string; bottom?: string };
 }
 
 export interface MapLayout {
@@ -34,6 +34,24 @@ export function wideLayout(count: number): MapLayout {
         width: '30%',
         ...(up ? { bottom: percent(height - 136, height) } : { top: percent(362, height) }),
       },
+    });
+  }
+  return { width, height, sites };
+}
+
+/**
+ * Phone held sideways: the same road in a low band, so the whole map fits the height of the
+ * screen. The cards are a row under the drawing, one column per neighbourhood (see
+ * `.stage-map--row` in stages.css, which centres the columns on these x).
+ */
+export function rowLayout(count: number): MapLayout {
+  const width = 1000;
+  const height = 150;
+  const sites: Site[] = [];
+  for (let i = 0; i < count; i++) {
+    sites.push({
+      x: count > 1 ? 160 + (680 * i) / (count - 1) : width / 2,
+      y: i % 2 === 0 ? 62 : 74,
     });
   }
   return { width, height, sites };

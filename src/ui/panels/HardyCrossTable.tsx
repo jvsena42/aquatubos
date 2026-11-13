@@ -8,6 +8,8 @@ import { useAppStore } from '../../state/store';
 import { ResultBody, ResultHint } from '../charts/ResultState';
 import { ScrollTable } from '../charts/ScrollTable';
 import { Term } from '../glossary/Term';
+import { TermScope } from '../glossary/TermScope';
+import { HelpButton } from '../shell/Help';
 import { IconCheck, IconWarning } from '../shell/icons';
 import { formulaLabels } from '../stage/strings';
 import { hardyCrossStrings as s } from './HardyCrossTable.strings';
@@ -220,183 +222,185 @@ export function HardyCrossTable() {
   );
 
   return (
-    <ResultBody className="hc">
-      <section className="hc__intro">
-        <h3>
-          <Term id="hardyCross">{tr(s.method)} Hardy Cross</Term>
-        </h3>
-        <p>
-          {tr(s.introBefore)}
-          <Term id="loop">{tr(s.introLoop)}</Term>
-          {tr(s.introAfter)}
-        </p>
-        <p className="hc__formula num">ΔQ = −Σh / Σ(n·|h|/|Q|)</p>
-        <p>
-          {tr(
-            s.exponent(fmt(exponent, Number.isInteger(exponent) ? 0 : 3), formulaLabels[formula]),
-          )}
-        </p>
-      </section>
-
-      <section className="hc__status">
-        <p role="status">
-          {result.converged ? (
-            <span className="badge badge--ok">
-              <IconCheck />
-              {tr(s.converged(total))}
-            </span>
-          ) : (
-            <span className="badge badge--warn">
-              <IconWarning />
-              {tr(s.notConverged(total))}
-            </span>
-          )}{' '}
-          <span className="muted hc__tolerance">
-            {tr(s.tolerance(fmt(m3sToLps(DEFAULT_HARDY_CROSS_OPTIONS.tolerance), 4)))}
-          </span>
-        </p>
-        <div className="hc__convergence">
-          <h4 id={`${selectId}-conv`}>{tr(s.convergenceTitle)}</h4>
-          <ol aria-labelledby={`${selectId}-conv`}>
-            {iterations.map((iteration, i) => (
-              <li key={iteration.iteration}>
-                <button
-                  type="button"
-                  className="hc__chip"
-                  aria-current={!showAll && i === current ? 'step' : undefined}
-                  title={tr(s.goTo(iteration.iteration))}
-                  onClick={() => {
-                    setShowAll(false);
-                    setIndex(i);
-                  }}
-                >
-                  <span className="hc__chip-n">{iteration.iteration}</span>
-                  <span className="num">{small(m3sToLps(iteration.maxDeltaQ))}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section className="hc__steps">
-        <div className="hc__stepper" role="group" aria-label={tr(s.stepper)}>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(s.first)}
-            title={tr(s.first)}
-            disabled={showAll || current === 0}
-            onClick={() => setIndex(0)}
-          >
-            <span aria-hidden="true">«</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(s.previous)}
-            title={tr(s.previous)}
-            disabled={showAll || current === 0}
-            onClick={() => setIndex(current - 1)}
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          <label htmlFor={selectId} className="visually-hidden">
-            {tr(s.stepper)}
-          </label>
-          <select
-            id={selectId}
-            className="select hc__select"
-            value={current}
-            disabled={showAll}
-            onChange={(event) => setIndex(Number(event.target.value))}
-          >
-            {iterations.map((iteration, i) => (
-              <option key={iteration.iteration} value={i}>
-                {tr(s.iterationOf(iteration.iteration, total))}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(s.next)}
-            title={tr(s.next)}
-            disabled={showAll || current === total - 1}
-            onClick={() => setIndex(current + 1)}
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn--sm btn--icon"
-            aria-label={tr(s.last)}
-            title={tr(s.last)}
-            disabled={showAll || current === total - 1}
-            onClick={() => setIndex(total - 1)}
-          >
-            <span aria-hidden="true">»</span>
-          </button>
-          <label className="hc__all">
-            <input
-              type="checkbox"
-              checked={showAll}
-              onChange={(event) => setShowAll(event.target.checked)}
-            />
-            {tr(s.showAll)}
-          </label>
-        </div>
-
-        {showAll ? iterations.map(renderIteration) : renderIteration(iterations[current]!)}
-
-        <details className="hc__signs" open>
-          <summary>{tr(s.signsTitle)}</summary>
-          <p>{tr(s.signs)}</p>
-        </details>
-      </section>
-
-      <section className="hc__compare">
-        <h3>{tr(s.compareTitle)}</h3>
-        <ScrollTable className="hc__wrap hc__wrap--compare" label={tr(s.compareTitle)}>
-          <table className="table hc__table">
-            <caption className="visually-hidden">{tr(s.compareTitle)}</caption>
-            <thead>
-              <tr>
-                <th scope="col" className="sticky-col">
-                  {tr(s.pipe)}
-                </th>
-                <th scope="col" className="num">
-                  {tr(s.initial)} <span className="hc__unit">(L/s)</span>
-                </th>
-                <th scope="col" className="num">
-                  {tr(s.hardyCross)} <span className="hc__unit">(L/s)</span>
-                </th>
-                <th scope="col" className="num">
-                  {tr(s.solver)} <span className="hc__unit">(L/s)</span>
-                </th>
-                <th scope="col" className="num">
-                  {tr(s.difference)} <span className="hc__unit">(L/s)</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.map((row) => (
-                <tr key={row.id} className={row.inLoop ? undefined : 'hc__outside'}>
-                  <th scope="row" className="sticky-col">
-                    <span className="num">{row.id}</span>
-                  </th>
-                  <td className="num">{fmt(row.initial, 3)}</td>
-                  <td className="num">{fmt(row.hardyCross, 3)}</td>
-                  <td className="num">{fmt(row.solver, 3)}</td>
-                  <td className="num">{fmt(row.difference, 4)}</td>
-                </tr>
+    <TermScope>
+      <ResultBody className="hc">
+        <section className="hc__status">
+          <div className="hc__status-row">
+            <p role="status">
+              {result.converged ? (
+                <span className="badge badge--ok">
+                  <IconCheck />
+                  {tr(s.converged(total))}
+                </span>
+              ) : (
+                <span className="badge badge--warn">
+                  <IconWarning />
+                  {tr(s.notConverged(total))}
+                </span>
+              )}
+            </p>
+            <HelpButton topic="Hardy Cross" className="hc__help">
+              <p>
+                <Term id="hardyCross">{tr(s.method)} Hardy Cross</Term>
+                {tr(s.introBefore)}
+                <Term id="loop">{tr(s.introLoop)}</Term>
+                {tr(s.introAfter)}
+              </p>
+              <p className="hc__formula num">ΔQ = −Σh / Σ(n·|h|/|Q|)</p>
+              <p>
+                {tr(
+                  s.exponent(
+                    fmt(exponent, Number.isInteger(exponent) ? 0 : 3),
+                    formulaLabels[formula],
+                  ),
+                )}{' '}
+                {tr(s.tolerance(fmt(m3sToLps(DEFAULT_HARDY_CROSS_OPTIONS.tolerance), 4)))}
+              </p>
+              <p>
+                <strong>{tr(s.signsTitle)}.</strong> {tr(s.signs)}
+              </p>
+              <p>
+                <strong>{tr(s.compareTitle)}.</strong> {tr(s.compareNote)}
+              </p>
+            </HelpButton>
+          </div>
+          <div className="hc__convergence">
+            <h4 id={`${selectId}-conv`}>{tr(s.convergenceTitle)}</h4>
+            <ol aria-labelledby={`${selectId}-conv`}>
+              {iterations.map((iteration, i) => (
+                <li key={iteration.iteration}>
+                  <button
+                    type="button"
+                    className="hc__chip"
+                    aria-current={!showAll && i === current ? 'step' : undefined}
+                    title={tr(s.goTo(iteration.iteration))}
+                    onClick={() => {
+                      setShowAll(false);
+                      setIndex(i);
+                    }}
+                  >
+                    <span className="hc__chip-n">{iteration.iteration}</span>
+                    <span className="num">{small(m3sToLps(iteration.maxDeltaQ))}</span>
+                  </button>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </ScrollTable>
-        <p className="hc__agree">{tr(s.maxDifference(small(maxDifference)))}</p>
-        <p className="muted hc__note">{tr(s.compareNote)}</p>
-      </section>
-    </ResultBody>
+            </ol>
+          </div>
+        </section>
+
+        <section className="hc__steps">
+          <div className="hc__stepper" role="group" aria-label={tr(s.stepper)}>
+            <button
+              type="button"
+              className="btn btn--sm btn--icon"
+              aria-label={tr(s.first)}
+              title={tr(s.first)}
+              disabled={showAll || current === 0}
+              onClick={() => setIndex(0)}
+            >
+              <span aria-hidden="true">«</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn--sm btn--icon"
+              aria-label={tr(s.previous)}
+              title={tr(s.previous)}
+              disabled={showAll || current === 0}
+              onClick={() => setIndex(current - 1)}
+            >
+              <span aria-hidden="true">‹</span>
+            </button>
+            <label htmlFor={selectId} className="visually-hidden">
+              {tr(s.stepper)}
+            </label>
+            <select
+              id={selectId}
+              className="select hc__select"
+              value={current}
+              disabled={showAll}
+              onChange={(event) => setIndex(Number(event.target.value))}
+            >
+              {iterations.map((iteration, i) => (
+                <option key={iteration.iteration} value={i}>
+                  {tr(s.iterationOf(iteration.iteration, total))}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn--sm btn--icon"
+              aria-label={tr(s.next)}
+              title={tr(s.next)}
+              disabled={showAll || current === total - 1}
+              onClick={() => setIndex(current + 1)}
+            >
+              <span aria-hidden="true">›</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn--sm btn--icon"
+              aria-label={tr(s.last)}
+              title={tr(s.last)}
+              disabled={showAll || current === total - 1}
+              onClick={() => setIndex(total - 1)}
+            >
+              <span aria-hidden="true">»</span>
+            </button>
+            <label className="hc__all">
+              <input
+                type="checkbox"
+                checked={showAll}
+                onChange={(event) => setShowAll(event.target.checked)}
+              />
+              {tr(s.showAll)}
+            </label>
+          </div>
+
+          {showAll ? iterations.map(renderIteration) : renderIteration(iterations[current]!)}
+        </section>
+
+        <section className="hc__compare">
+          <h3>{tr(s.compareTitle)}</h3>
+          <ScrollTable className="hc__wrap hc__wrap--compare" label={tr(s.compareTitle)}>
+            <table className="table hc__table">
+              <caption className="visually-hidden">{tr(s.compareTitle)}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" className="sticky-col">
+                    {tr(s.pipe)}
+                  </th>
+                  <th scope="col" className="num">
+                    {tr(s.initial)} <span className="hc__unit">(L/s)</span>
+                  </th>
+                  <th scope="col" className="num">
+                    {tr(s.hardyCross)} <span className="hc__unit">(L/s)</span>
+                  </th>
+                  <th scope="col" className="num">
+                    {tr(s.solver)} <span className="hc__unit">(L/s)</span>
+                  </th>
+                  <th scope="col" className="num">
+                    {tr(s.difference)} <span className="hc__unit">(L/s)</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((row) => (
+                  <tr key={row.id} className={row.inLoop ? undefined : 'hc__outside'}>
+                    <th scope="row" className="sticky-col">
+                      <span className="num">{row.id}</span>
+                    </th>
+                    <td className="num">{fmt(row.initial, 3)}</td>
+                    <td className="num">{fmt(row.hardyCross, 3)}</td>
+                    <td className="num">{fmt(row.solver, 3)}</td>
+                    <td className="num">{fmt(row.difference, 4)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ScrollTable>
+          <p className="hc__agree">{tr(s.maxDifference(small(maxDifference)))}</p>
+        </section>
+      </ResultBody>
+    </TermScope>
   );
 }

@@ -6,10 +6,12 @@ import './shell/shell.css';
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTr } from '../i18n';
 import { useAppStore } from '../state/store';
+import { useDevice, useDeviceAttributes } from './shell/breakpoints';
 import { Header } from './shell/Header';
+import { IconInstall, InstallHint, useInstallAction } from './shell/InstallApp';
+import type { MenuEntry } from './shell/Menu';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
-import { PHONE_QUERY, useMediaQuery } from './shell/useMediaQuery';
 import { HomeScreen } from './home/HomeScreen';
 import { StageSelect } from './stages/StageSelect';
 
@@ -23,27 +25,36 @@ const HTML_LANG = { pt: 'pt-BR', en: 'en' } as const;
 /**
  * Moves focus to the main heading of the screen that was just shown, so keyboard and screen
  * reader users land on it. While the screen is still loading, focus waits on <main> and moves to
- * the heading when it appears. Returns a cleanup function.
+ * the heading when it appears. The heading of a stage is in the app header (see headerSlot.ts),
+ * so the search covers the whole app. Returns a cleanup function.
  */
 function focusScreenHeading(main: HTMLElement): () => void {
+  const app = main.parentElement ?? main;
   const focusHeading = (): boolean => {
-    const heading = main.querySelector('h1');
+    const heading = app.querySelector('h1');
     if (!heading) return false;
     if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
     // A modal dialog that is already open (the stage briefing) keeps the focus.
-    if (!document.querySelector('dialog[open]')) heading.focus();
+    if (!document.querySelector('dialog[open]')) {
+      // No scrolling on focus: the browser would align the heading with the top edge, under
+      // the sticky header, and shift the page while the player is already aiming at a button.
+      heading.focus({ preventScroll: true });
+      window.scrollTo?.({ top: 0 });
+    }
     return true;
   };
   if (focusHeading()) return () => undefined;
-  main.focus();
+  main.focus({ preventScroll: true });
   const observer = new MutationObserver(() => {
     if (focusHeading()) observer.disconnect();
   });
-  observer.observe(main, { childList: true, subtree: true });
+  observer.observe(app, { childList: true, subtree: true });
   return () => observer.disconnect();
 }
 
 export function App() {
+  useDeviceAttributes();
+  const install = useInstallAction();
   const tr = useTr();
   const hydrate = useAppStore((s) => s.hydrate);
   const hydrated = useAppStore((s) => s.hydrated);
@@ -83,21 +94,34 @@ export function App() {
   }, [screenKey]);
 
   const bleed = hydrated && !scenarioId && screen === 'home';
-  // On phones an open stage is a fixed frame the size of the viewport (see shell.css).
-  const phone = useMediaQuery(PHONE_QUERY);
-  const shell = phone && hydrated && scenarioId !== null;
+  // On phones and tablets an open stage is a fixed frame the size of the viewport (shell.css).
+  const device = useDevice();
+  const shell = device !== 'desktop' && hydrated && scenarioId !== null;
   const mainClass = shell
     ? 'app__main app__main--shell'
     : bleed
       ? 'app__main app__main--bleed'
       : 'app__main';
 
+  // "Instalar app" appears in the menu only where installing is possible and not done yet.
+  const installItems: MenuEntry[] = install.available
+    ? [
+        {
+          kind: 'action',
+          id: 'install',
+          label: install.label,
+          icon: <IconInstall />,
+          onSelect: install.start,
+        },
+      ]
+    : [];
+
   return (
     <div className={shell ? 'app app--shell' : 'app'}>
       <a className="skip-link" href="#main">
         {tr(shellStrings.skipToContent)}
       </a>
-      <Header />
+      <Header extraItems={installItems} />
       <main id="main" ref={mainRef} className={mainClass} tabIndex={-1}>
         <div key={screenKey} className="screen">
           {!hydrated ? (
@@ -122,6 +146,8 @@ export function App() {
         </div>
       </main>
       <PwaNotice />
+      <InstallHint />
+      {install.dialog}
     </div>
   );
 }

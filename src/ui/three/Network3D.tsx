@@ -1,7 +1,9 @@
-import { Component, useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Component, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { NBR_CHECK_LIMITS } from '../../engine/config/nbr12218';
 import { useFormat, useTr } from '../../i18n';
 import { useAppStore } from '../../state/store';
+import { TermScope } from '../glossary/TermScope';
+import { HelpButton } from '../shell/Help';
 import { DEFAULT_EXAGGERATION, EXAGGERATIONS, type Exaggeration } from './geometry';
 import { buildSceneModel } from './model';
 import { buildLabels, type Label, type LabelTexts } from './labels';
@@ -50,11 +52,9 @@ export default function Network3D() {
   const [showHgl, setShowHgl] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
   const [resetCount, setResetCount] = useState(0);
-  const [legendOpen, setLegendOpen] = useState(false);
   const colors = useThemeColors();
   const profile = useViewProfile();
   const { compact, touch } = profile;
-  const legendId = useId();
 
   // A result of another stage (or none) is ignored: the scene then shows the network only.
   const current =
@@ -76,11 +76,11 @@ export default function Network3D() {
       pipe: (dn) => `DN ${dn}`,
       node: (id, pressure) => (pressure === null ? id : `${id} · ${format(pressure, 1)} ${unit}`),
       nodeCompact: (id, pressure) => (pressure === null ? id : `${id} · ${format(pressure, 1)}`),
-      reservoir: (id, level) => `${id} · ${tr(strings3d.waterLevel(format(level, 1)))}`,
-      pump: (id) => `${id} · ${tr(strings3d.pump)}`,
+      reservoir: (id, level) => `${id} · ${format(level, 1)} m`,
+      pump: (id) => id,
     };
     return buildLabels(model, texts, { compact, selection, criticalId });
-  }, [model, showLabels, format, unit, tr, compact, selection, criticalId]);
+  }, [model, showLabels, format, unit, compact, selection, criticalId]);
 
   const labelElements = useRef(new Map<string, HTMLElement>());
   const setLabelElement = useCallback((id: string, element: HTMLElement | null) => {
@@ -102,6 +102,17 @@ export default function Network3D() {
         ),
       )
     : tr(strings3d.noResult);
+  // One short line under the toolbar; the sentence is in the help and for screen readers.
+  const brief = critical
+    ? tr(
+        strings3d.summaryShort(
+          critical.id,
+          format(critical.pressure, 1),
+          format(minimum, 0),
+          critical.pressure >= minimum,
+        ),
+      )
+    : tr(strings3d.noResultShort);
 
   const legend = (
     <ul className="net3d__legend" aria-label={tr(strings3d.legend)}>
@@ -142,130 +153,130 @@ export default function Network3D() {
   );
 
   return (
-    <div className={`net3d${compact ? ' net3d--compact' : ''}`}>
-      {webgl && (
-        <div className="net3d__toolbar" role="group" aria-label={tr(strings3d.controls)}>
-          <div className="net3d__field">
-            <span className="muted" aria-hidden>
-              {tr(compact ? strings3d.exaggerationShort : strings3d.exaggeration)}
-            </span>
-            <div className="segmented" role="group" aria-label={tr(strings3d.exaggeration)}>
-              {EXAGGERATIONS.map((factor) => (
-                <button
-                  key={factor}
-                  type="button"
-                  aria-pressed={exaggeration === factor}
-                  aria-label={tr(strings3d.exaggerationOption(factor))}
-                  onClick={() => setExaggeration(factor)}
-                >
-                  {factor}×
-                </button>
-              ))}
+    <TermScope>
+      <div className={`net3d${compact ? ' net3d--compact' : ''}`}>
+        {webgl && (
+          <div className="net3d__toolbar" role="group" aria-label={tr(strings3d.controls)}>
+            <div className="net3d__field">
+              <span className="muted" aria-hidden>
+                {tr(strings3d.exaggerationShort)}
+              </span>
+              <div className="segmented" role="group" aria-label={tr(strings3d.exaggeration)}>
+                {EXAGGERATIONS.map((factor) => (
+                  <button
+                    key={factor}
+                    type="button"
+                    aria-pressed={exaggeration === factor}
+                    aria-label={tr(strings3d.exaggerationOption(factor))}
+                    onClick={() => setExaggeration(factor)}
+                  >
+                    {factor}×
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="segmented net3d__toggles">
+            <div className="segmented net3d__toggles">
+              <button
+                type="button"
+                aria-pressed={showHgl}
+                disabled={!hasResult}
+                aria-label={tr(strings3d.hgl)}
+                title={tr(strings3d.hgl)}
+                onClick={() => setShowHgl((on) => !on)}
+              >
+                {tr(strings3d.hglShort)}
+              </button>
+              <button
+                type="button"
+                aria-pressed={showLabels}
+                onClick={() => setShowLabels((on) => !on)}
+              >
+                {tr(strings3d.labels)}
+              </button>
+            </div>
             <button
               type="button"
-              aria-pressed={showHgl}
-              disabled={!hasResult}
-              onClick={() => setShowHgl((on) => !on)}
+              className="btn btn--sm net3d__reset"
+              aria-label={tr(strings3d.resetView)}
+              onClick={() => setResetCount((count) => count + 1)}
             >
-              {tr(strings3d.hgl)}
+              {tr(strings3d.resetShort)}
             </button>
-            <button
-              type="button"
-              aria-pressed={showLabels}
-              onClick={() => setShowLabels((on) => !on)}
-            >
-              {tr(strings3d.labels)}
-            </button>
+            <HelpButton topic={tr(strings3d.helpTopic)} className="net3d__help">
+              {hint}
+              {legend}
+              <p>{summary}</p>
+            </HelpButton>
           </div>
-          <button
-            type="button"
-            className="btn btn--sm net3d__reset"
-            aria-label={compact ? tr(strings3d.resetView) : undefined}
-            onClick={() => setResetCount((count) => count + 1)}
-          >
-            {tr(compact ? strings3d.resetShort : strings3d.resetView)}
-          </button>
-        </div>
-      )}
-
-      <div className="net3d__viewport">
-        {webgl ? (
-          <SceneBoundary onError={() => setFailed(true)}>
-            <div className="net3d__canvas">
-              <Scene3D
-                model={model}
-                profile={profile}
-                colors={colors}
-                selection={selection}
-                onSelect={select}
-                showHgl={showHgl}
-                stale={stale}
-                resetCount={resetCount}
-                ariaLabel={tr(strings3d.canvasLabel(tr(scenario.title), hasResult))}
-                labels={labels}
-                labelElements={labelElements}
-              />
-            </div>
-            <div className={`net3d__labels${stale ? ' net3d__labels--stale' : ''}`} aria-hidden>
-              {labels.map((label) => (
-                <span
-                  key={label.id}
-                  ref={(element) => setLabelElement(label.id, element)}
-                  className={`net3d__label net3d__label--${label.kind}${
-                    selection?.type === label.kind && selection.id === label.element
-                      ? ' net3d__label--selected'
-                      : ''
-                  }`}
-                >
-                  {label.short === undefined ? (
-                    label.text
-                  ) : (
-                    <>
-                      <span className="net3d__label-full">{label.text}</span>
-                      <span className="net3d__label-short">{label.short}</span>
-                    </>
-                  )}
-                </span>
-              ))}
-            </div>
-            <p className="net3d__scale">{tr(strings3d.scaleNote(exaggeration))}</p>
-            {stale && hasResult && (
-              <p className="net3d__note" role="status">
-                {tr(compact ? strings3d.staleShort : strings3d.stale)}
-              </p>
-            )}
-            {/* On a small screen the legend and the gesture help open over the scene on demand. */}
-            {compact && (
-              <>
-                <button
-                  type="button"
-                  className="btn btn--sm net3d__legend-toggle"
-                  aria-expanded={legendOpen}
-                  aria-controls={legendId}
-                  onClick={() => setLegendOpen((on) => !on)}
-                >
-                  {tr(strings3d.legend)}
-                </button>
-                <div id={legendId} className="net3d__legend-panel" hidden={!legendOpen}>
-                  {legend}
-                  {hint}
-                </div>
-              </>
-            )}
-          </SceneBoundary>
-        ) : (
-          <p className="net3d__fallback" role="status">
-            {tr(strings3d.noWebgl)}
-          </p>
         )}
-      </div>
 
-      {webgl && !compact && legend}
-      <p className="net3d__summary">{summary}</p>
-      {webgl && !compact && hint}
-    </div>
+        <div className="net3d__viewport">
+          {webgl ? (
+            <SceneBoundary onError={() => setFailed(true)}>
+              <div className="net3d__canvas">
+                <Scene3D
+                  model={model}
+                  profile={profile}
+                  colors={colors}
+                  selection={selection}
+                  onSelect={select}
+                  showHgl={showHgl}
+                  stale={stale}
+                  resetCount={resetCount}
+                  ariaLabel={tr(strings3d.canvasLabel(tr(scenario.title), hasResult))}
+                  labels={labels}
+                  labelElements={labelElements}
+                />
+              </div>
+              <div className={`net3d__labels${stale ? ' net3d__labels--stale' : ''}`} aria-hidden>
+                {labels.map((label) => (
+                  <span
+                    key={label.id}
+                    ref={(element) => setLabelElement(label.id, element)}
+                    className={`net3d__label net3d__label--${label.kind}${
+                      selection?.type === label.kind && selection.id === label.element
+                        ? ' net3d__label--selected'
+                        : ''
+                    }`}
+                  >
+                    {label.short === undefined ? (
+                      label.text
+                    ) : (
+                      <>
+                        <span className="net3d__label-full">{label.text}</span>
+                        <span className="net3d__label-short">{label.short}</span>
+                      </>
+                    )}
+                  </span>
+                ))}
+              </div>
+              <p className="net3d__scale">{tr(strings3d.scaleNote(exaggeration))}</p>
+              {stale && hasResult && (
+                <p className="net3d__note" role="status" title={tr(strings3d.stale)}>
+                  <span aria-hidden="true">{tr(strings3d.staleShort)}</span>
+                  <span className="visually-hidden">{tr(strings3d.stale)}</span>
+                </p>
+              )}
+            </SceneBoundary>
+          ) : (
+            <p className="net3d__fallback" role="status">
+              {tr(strings3d.noWebgl)}
+            </p>
+          )}
+        </div>
+
+        {/* Without WebGL this line is the text alternative of the scene: the whole sentence. */}
+        <p className="net3d__summary">
+          {webgl ? (
+            <>
+              <span aria-hidden="true">{brief}</span>
+              <span className="visually-hidden">{summary}</span>
+            </>
+          ) : (
+            summary
+          )}
+        </p>
+      </div>
+    </TermScope>
   );
 }

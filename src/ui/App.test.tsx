@@ -6,6 +6,9 @@ import { makeEvaluation, makeProgress } from '../test/fixtures';
 import { resetStore } from '../test/store';
 import { evaluateInWorker } from '../worker/client';
 import { App } from './App';
+import { Header } from './shell/Header';
+
+const STALE = 'Resultado desatualizado: recalcule.';
 
 vi.mock('../scenarios', async () => {
   const { fixtureScenarios } = await import('../test/fixtures');
@@ -21,6 +24,25 @@ async function renderApp() {
   render(<App />);
   await screen.findByRole('heading', { level: 1 });
   return user;
+}
+
+type User = ReturnType<typeof userEvent.setup>;
+
+/** Chooses an item of the header menu; it is named "Menu" in both languages. */
+async function chooseInMenu(user: User, role: 'menuitem' | 'menuitemradio', name: string) {
+  await user.click(screen.getByRole('button', { name: 'Menu' }));
+  await user.click(within(screen.getByRole('menu', { name: 'Menu' })).getByRole(role, { name }));
+}
+
+/** The checked option of a radio group of the header menu, read with the menu open. */
+async function checkedInMenu(user: User, group: string): Promise<string | null> {
+  await user.click(screen.getByRole('button', { name: 'Menu' }));
+  const checked = within(screen.getByRole('group', { name: group })).getByRole('menuitemradio', {
+    checked: true,
+  });
+  const text = checked.textContent;
+  await user.keyboard('{Escape}');
+  return text;
 }
 
 describe('App', () => {
@@ -39,44 +61,107 @@ describe('App', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
-  it('switches the visible text and the document language with the language toggle', async () => {
+  it('switches the visible text and the document language from the menu', async () => {
     const user = await renderApp();
-    await user.click(screen.getByRole('button', { name: 'Português' }));
+    await chooseInMenu(user, 'menuitemradio', 'Português');
     expect(screen.getByRole('heading', { level: 1, name: 'Etapas' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('pt-BR');
 
-    await user.click(screen.getByRole('button', { name: 'English' }));
+    await chooseInMenu(user, 'menuitemradio', 'English');
     expect(screen.getByRole('heading', { level: 1, name: 'Stages' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await checkedInMenu(user, 'Language')).toBe('English');
     expect(screen.getByText('Title 1')).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('en');
     await waitFor(async () => expect((await loadPreferences()).lang).toBe('en'));
   });
 
-  it('sets and removes data-theme with the theme toggle', async () => {
+  it('sets and removes data-theme from the menu', async () => {
     const user = await renderApp();
-    await user.click(screen.getByRole('button', { name: 'Português' }));
-    const theme = within(screen.getByRole('group', { name: 'Tema' }));
+    await chooseInMenu(user, 'menuitemradio', 'Português');
 
-    await user.click(theme.getByRole('button', { name: 'Escuro' }));
+    await chooseInMenu(user, 'menuitemradio', 'Escuro');
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
-    await user.click(theme.getByRole('button', { name: 'Claro' }));
+    expect(await checkedInMenu(user, 'Tema')).toBe('Escuro');
+    await chooseInMenu(user, 'menuitemradio', 'Claro');
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
-    await user.click(theme.getByRole('button', { name: 'Sistema' }));
+    await chooseInMenu(user, 'menuitemradio', 'Sistema');
     expect(document.documentElement).not.toHaveAttribute('data-theme');
-    expect(theme.getByRole('button', { name: 'Sistema' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await checkedInMenu(user, 'Tema')).toBe('Sistema');
   });
 
-  it('opens the glossary from the header', async () => {
+  it('has only the logo and one menu button in the header', async () => {
     const user = await renderApp();
-    await user.click(screen.getByRole('button', { name: 'Português' }));
-    await user.click(screen.getByRole('button', { name: 'Glossário' }));
-    expect(screen.getByRole('dialog', { name: 'Glossário' })).toBeInTheDocument();
+    await chooseInMenu(user, 'menuitemradio', 'Português');
+    const header = document.querySelector('.header') as HTMLElement;
+    expect(
+      within(header)
+        .getAllByRole('button')
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['Aquatubos, tela inicial', 'Menu']);
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-haspopup', 'menu');
+
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    const menu = screen.getByRole('menu', { name: 'Menu' });
+    expect(
+      [...menu.querySelectorAll('[role^="menuitem"]')].map((item) => item.textContent),
+    ).toEqual([
+      'Como jogar',
+      'Glossário',
+      'Português',
+      'English',
+      'Sistema',
+      'Claro',
+      'Escuro',
+      'Sobre',
+    ]);
+    // Every item is reachable with the arrow keys, in order, and Escape returns the focus.
+    expect(within(menu).getByRole('menuitem', { name: 'Como jogar' })).toHaveFocus();
+    for (const name of ['Glossário', 'Português', 'English', 'Sistema', 'Claro', 'Escuro']) {
+      await user.keyboard('{ArrowDown}');
+      expect(within(menu).getByText(name).closest('button')).toHaveFocus();
+    }
+    await user.keyboard('{End}');
+    expect(within(menu).getByRole('menuitem', { name: 'Sobre' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveFocus();
+  });
+
+  it('opens how to play, the glossary and about from the menu', async () => {
+    const user = await renderApp();
+    await chooseInMenu(user, 'menuitemradio', 'Português');
+    await chooseInMenu(user, 'menuitem', 'Glossário');
+    const glossary = screen.getByRole('dialog', { name: 'Glossário' });
+    await user.click(within(glossary).getByRole('button', { name: 'Fechar' }));
+
+    await chooseInMenu(user, 'menuitem', 'Como jogar');
+    const howTo = screen.getByRole('dialog', { name: 'Como jogar' });
+    await user.click(within(howTo).getAllByRole('button', { name: 'Fechar' })[0]!);
+
+    await chooseInMenu(user, 'menuitem', 'Sobre');
+    expect(screen.getByRole('dialog', { name: 'Sobre o Aquatubos' })).toBeInTheDocument();
+  });
+
+  it('places extra menu items between the theme and about', async () => {
+    const user = userEvent.setup();
+    const install = vi.fn();
+    render(
+      <Header
+        extraItems={[{ kind: 'action', id: 'install', label: 'Instalar app', onSelect: install }]}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Menu' }));
+    const items = [...document.querySelectorAll('[role^="menuitem"]')].map(
+      (item) => item.textContent,
+    );
+    expect(items.slice(-3)).toEqual(['Escuro', 'Instalar app', 'Sobre']);
+    await user.click(screen.getByRole('menuitem', { name: 'Instalar app' }));
+    expect(install).toHaveBeenCalledTimes(1);
   });
 
   it('opens a stage with its briefing and goes back to the stage list', async () => {
     const user = await renderApp();
-    await user.click(screen.getByRole('button', { name: 'Português' }));
+    await chooseInMenu(user, 'menuitemradio', 'Português');
     await user.click(screen.getByRole('button', { name: /Etapa 1: Título 1/ }));
 
     const briefing = await screen.findByRole('dialog', { name: 'Etapa 1: Título 1' });
@@ -182,10 +267,10 @@ describe('App from the title screen', () => {
 
   it('keeps language and theme reachable on the title screen', async () => {
     const user = await renderApp();
-    await user.click(screen.getByRole('button', { name: 'English' }));
+    await chooseInMenu(user, 'menuitemradio', 'English');
     expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
     expect(screen.getByText("Design the town's water network")).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Dark' }));
+    await chooseInMenu(user, 'menuitemradio', 'Dark');
     expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
     await savePreferences({ lang: 'pt', theme: 'system' });
   });
@@ -268,21 +353,23 @@ describe('StageScreen', () => {
 
   it('marks the result as stale when the formula changes and verifies again', async () => {
     const user = await openStage(1);
-    expect(screen.queryByText(/O projeto mudou desde/)).not.toBeInTheDocument();
+    expect(screen.queryByText(STALE)).not.toBeInTheDocument();
+    const verify = screen.getByRole('button', { name: 'Calcular / Verificar' });
+    expect(verify).not.toHaveAttribute('data-stale');
 
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Fórmula de perda de carga' }),
       'darcy-weisbach',
     );
     expect(useAppStore.getState().formula).toBe('darcy-weisbach');
-    expect(screen.getByText(/O projeto mudou desde/)).toBeInTheDocument();
+    // The button keeps its name and gets a stale mark; the words are for screen readers.
+    expect(screen.getByText(STALE)).toHaveAttribute('role', 'status');
+    expect(verify).toHaveAttribute('data-stale', 'true');
 
     vi.mocked(evaluateInWorker).mockClear();
     await user.click(screen.getByRole('button', { name: 'Calcular / Verificar' }));
     expect(evaluateInWorker).toHaveBeenCalledWith('stage-1', { T1: 75 }, 'darcy-weisbach');
-    await waitFor(() =>
-      expect(screen.queryByText(/O projeto mudou desde/)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.queryByText(STALE)).not.toBeInTheDocument());
   });
 
   it('disables the verify button while solving', async () => {

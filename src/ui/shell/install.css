@@ -1,0 +1,52 @@
+.install__steps {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: install-step;
+}
+
+.install__steps li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 600;
+  counter-increment: install-step;
+}
+
+.install__steps li::before {
+  content: counter(install-step);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.install__glyph {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+}
+
+.install__note {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+/* The install hint sits at the bottom left so it never overlaps the offline/update notice. */
+.install-hint {
+  right: auto;
+  left: max(var(--space-4), env(safe-area-inset-left, 0px));
+}

@@ -11,8 +11,8 @@ import { resetStore } from '../../test/store';
 import { distanceToSegment } from '../network/hit';
 import { mockMatchMedia } from '../network/mockMatchMedia';
 import { NetworkView } from '../network/NetworkView';
-import { COARSE_QUERY, PHONE_QUERY } from '../network/useMediaQuery';
-import { TownView } from './TownView';
+import { COARSE_QUERY, PHONE_QUERY } from '../shell/breakpoints';
+import { housePreview, previewStatuses, TownView } from './TownView';
 
 vi.mock('../../worker/client', () => ({ evaluateInWorker: vi.fn() }));
 
@@ -256,10 +256,88 @@ describe('TownView', () => {
     }
     expect(document.querySelector('.town__svg .town__badge--low')).toBeNull();
     expect(root()).toHaveAttribute('data-feedback', 'none');
+  });
+
+  it('shows the three house states in the legend, each with its badge', async () => {
+    const user = userEvent.setup();
+    // Stage 1 has no static pressure check and no result yet: the three states are there anyway.
+    const scenario = stage('stage1');
+    useAppStore.setState({ scenario, diameters: initialDiameters(scenario), evaluation: null });
+    render(<TownView />);
     const legend = within(screen.getByRole('list', { name: 'Legenda' }));
-    expect(legend.getByText('Casas atendidas')).toBeInTheDocument();
-    expect(legend.getByText('Torneiras secas: dinâmica abaixo de 10 mca')).toBeInTheDocument();
-    expect(legend.getByText('Risco de rompimento: estática acima de 40 mca')).toBeInTheDocument();
+    for (const [status, name] of [
+      ['ok', 'Casas atendidas'],
+      ['low', 'Torneiras secas: dinâmica abaixo de 10 mca'],
+      ['high', 'Risco de rompimento: estática acima de 40 mca'],
+    ] as const) {
+      const symbol = legend.getByRole('img', { name });
+      expect(symbol.querySelector(`.town__badge--${status}`)).not.toBeNull();
+      expect(symbol).toHaveTextContent('');
+    }
+    // The texts are in the help of the legend, next to the same badges.
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Legenda' }));
+    const help = screen.getByRole('note', { name: 'Ajuda: Legenda' });
+    expect(help).toHaveTextContent('Risco de rompimento: estática acima de 40 mca');
+    expect(help.querySelector('.town__badge--high')).not.toBeNull();
+    expect(help.querySelector('.town__badge--low')).not.toBeNull();
+    expect(help.querySelector('.town__badge--ok')).not.toBeNull();
+  });
+
+  it('shows the burst-risk state for a real static pressure above 40 mca', () => {
+    // Stage 2 with node N3 lowered to 80 m: water level 135 m − 80 m = 55 mca at rest.
+    const base = stage('stage2');
+    const scenario: Scenario = {
+      ...base,
+      nodes: base.nodes.map((n) => (n.id === 'N3' ? { ...n, elevation: 80 } : n)),
+    };
+    const diameters = base.reference.diameters;
+    const evaluation = evaluateStage(scenario, diameters, scenario.formula);
+    expect(evaluation.report.staticPressure.N3).toBeGreaterThan(40);
+    useAppStore.setState({ scenario, diameters, formula: scenario.formula, evaluation });
+    render(<TownView />);
+
+    const cluster = element('node', 'N3');
+    expect(cluster).toHaveAttribute('data-status', 'high');
+    expect(cluster).toHaveAccessibleName(
+      /^Nó N3, \d+ casas, .*pressão estática acima da máxima, risco de rompimento$/,
+    );
+    const chip = document.querySelector('[data-label-kind="node"][data-label-for="N3"]')!;
+    expect(chip).toHaveClass('town__pill--high');
+    expect(chip.querySelector('.town__badge--high')).not.toBeNull();
+    expect(chip.querySelector('.town__badge--ok, .town__badge--low')).toBeNull();
+    // The other nodes are not marked, and the worst node for the HUD is this one.
+    expect(element('node', 'N1')).toHaveAttribute('data-status', 'ok');
+    expect(housesSummary(scenario, evaluation).worstNodeId).toBe('N3');
+  });
+
+  it('previews the three house states with ?debug=high-static, and only then', () => {
+    expect(housePreview('')).toBe(false);
+    expect(housePreview('?debug=other')).toBe(false);
+    expect(housePreview('?debug=high-static')).toBe(true);
+    const scenario = stage('stage2');
+    const statuses = previewStatuses(scenario);
+    const demand = scenario.nodes.filter((n) => n.demandLps > 0).map((n) => statuses[n.id]);
+    expect(demand.slice(0, 3)).toEqual(['high', 'low', 'ok']);
+
+    solved('stage2');
+    const view = render(<TownView />);
+    expect(root()).not.toHaveAttribute('data-preview');
+    expect(document.querySelector('[data-element="node"][data-status="high"]')).toBeNull();
+    view.unmount();
+
+    window.history.replaceState(null, '', '?debug=high-static');
+    try {
+      render(<TownView />);
+      expect(root()).toHaveAttribute('data-preview', 'house-states');
+      for (const status of ['high', 'low', 'ok']) {
+        expect(
+          document.querySelector(`[data-element="node"][data-status="${status}"]`),
+        ).not.toBeNull();
+        expect(document.querySelector(`.town__svg .town__badge--${status}`)).not.toBeNull();
+      }
+    } finally {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
   });
 
   it('marks houses whose static pressure is above the maximum', () => {
@@ -322,30 +400,50 @@ describe('TownView', () => {
     expect(document.querySelectorAll('.town__arrow')).toHaveLength(5);
   });
 
-  it('changes the diameter of the selected pipe and marks the results as outdated', async () => {
+  it('has no diameter picker on a desktop and follows a new diameter', async () => {
     const user = userEvent.setup();
     openStage('stage3');
     render(<TownView />);
-    expect(screen.getByText('Selecione um trecho para alterar o diâmetro.')).toBeInTheDocument();
     const widthOf = () =>
       Number(element('pipe', 'T2').querySelector('.town__pipe-line')!.getAttribute('stroke-width'));
     const before = widthOf();
 
     (element('pipe', 'T2') as HTMLElement).focus();
     await user.keyboard('{Enter}');
-    const picker = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
-    await user.click(within(picker).getByRole('button', { name: /^DN 150,/ }));
+    expect(useAppStore.getState().selection).toEqual({ type: 'pipe', id: 'T2' });
+    // The picker is in the calculation panel next to the map, not under it.
+    expect(screen.queryByRole('group', { name: /^Diâmetro nominal/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Selecione um trecho')).not.toBeInTheDocument();
+    act(() => useAppStore.getState().setDiameter('T2', 150));
 
-    expect(useAppStore.getState().diameters.T2).toBe(150);
     expect(useAppStore.getState().stale).toBe(true);
     expect(widthOf()).toBeGreaterThan(before);
     expect(root()).toHaveClass('town--stale');
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Resultados do cálculo anterior. Calcule novamente.',
-    );
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('Desatualizado');
+    expect(status).toHaveTextContent('Resultados do cálculo anterior. Calcule novamente.');
+    expect(status.closest('.town__canvas')).toBeNull();
     expect(element('pipe', 'T2')).toHaveAccessibleName(/resultados desatualizados$/);
     expect(element('node', 'B')).toHaveAccessibleName(/resultados desatualizados$/);
-    expect(document.querySelector('[data-label-for="T2"]')).toHaveTextContent('T2 · DN 150');
+    // Selected: id, DN and flow. The others: id and DN, without words.
+    const label = (id: string) => document.querySelector(`[data-label-for="${id}"]`)!;
+    expect(label('T2')).toHaveTextContent(/^T2 · DN 150 · [\d,]+ L\/s$/);
+    expect(label('T2')).toHaveAttribute('data-label-kind', 'pipe');
+    expect(label('T1')).toHaveTextContent(/^T1 · DN \d+$/);
+    expect(label('R1')).toHaveAttribute('data-label-kind', 'reservoir');
+    expect(label('R1')).toHaveTextContent(/^R1 [\d,]+ m$/);
+    expect(label('A')).toHaveAttribute('data-label-kind', 'node');
+  });
+
+  it('marks a pipe outside the velocity limits with an icon on the street', () => {
+    solved('stage4');
+    render(<TownView />);
+    const slow = [...document.querySelectorAll('[data-element="pipe"][data-status="low"]')];
+    expect(slow.length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('.town__overlay .netview__pipe-mark')).toHaveLength(
+      slow.length,
+    );
+    expect(document.querySelector('.town__overlay')).not.toHaveTextContent(/V baixa|low V/);
   });
 
   describe('feedback after Calcular / Verificar', () => {
@@ -616,20 +714,30 @@ describe('TownView', () => {
       expect(root()).toHaveClass('town--detail-far');
     });
 
-    it('opens the legend from a button over the map and shows the picker with prices', async () => {
-      const user = userEvent.setup();
+    it('has the legend help in the control strip and the diameter bar under the map', async () => {
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       solved('stage1');
       render(<TownView />);
       expect(screen.queryByText('Casas atendidas')).not.toBeInTheDocument();
-      const button = screen.getByRole('button', { name: 'Legenda' });
-      expect(button.closest('.town__canvas')).not.toBeNull();
-      await user.click(button);
-      expect(screen.getByRole('list', { name: 'Legenda' })).toHaveTextContent('Casas atendidas');
+      expect(screen.getByText('Selecione um trecho')).toBeInTheDocument();
+      const strip = screen.getByRole('group', { name: 'Controles do mapa' });
+      expect(strip.closest('.town__canvas')).not.toBeNull();
+      expect(strip.querySelectorAll('[data-overlay-control]')).toHaveLength(4);
+      await user.click(within(strip).getByRole('button', { name: 'Ajuda: Legenda' }));
+      expect(screen.getByRole('dialog', { name: 'Legenda' })).toHaveTextContent('Casas atendidas');
+      await user.click(screen.getByRole('button', { name: 'Fechar' }));
 
       await user.click(element('pipe', 'T2').querySelector('.town__hit')!);
       const picker = screen.getByRole('group', { name: 'Diâmetro nominal do trecho T2' });
-      expect(picker.closest('.dn-picker')).toHaveClass('dn-picker--prices');
+      expect(picker).toHaveAttribute('id', 'dn-bar');
+      expect(picker.closest('.town__canvas')).toBeNull();
+      expect(picker.closest('.dn-picker')).toHaveClass('dn-picker--bar');
       expect(within(picker).getAllByRole('button')).toHaveLength(7);
+      await user.click(within(picker).getByRole('button', { name: /^DN 150,/ }));
+      expect(useAppStore.getState().diameters.T2).toBe(150);
+      expect(document.querySelector('#dn-bar [aria-pressed="true"]')).toHaveAccessibleName(
+        /^DN 150,/,
+      );
     });
   });
 
@@ -643,8 +751,8 @@ describe('TownView', () => {
     );
     expect(element('pipe', 'T1')).toHaveAccessibleName(/^Pipe T1, DN 100 mm, flow 9\.50 L\/s/);
     expect(element('reservoir', 'R1')).toHaveAccessibleName(/elevated tank$/);
-    expect(screen.getByText('Select a pipe to change its diameter.')).toBeInTheDocument();
-    expect(screen.getByText('Houses served')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Houses served' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Help: Legend' })).toBeInTheDocument();
     expect(document.querySelector('[data-label-for="N3"]')).toHaveTextContent('N3 12.9 mca');
   });
 });

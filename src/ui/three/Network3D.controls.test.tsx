@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { initialDiameters } from '../../game/buildNetwork';
 import { evaluateStage } from '../../game/evaluate';
@@ -69,7 +69,23 @@ describe('Network3D controls', () => {
     expect(screen.getByRole('img')).toHaveAccessibleName(
       /^Vista 3D da rede de Terreno acidentado: terreno, tubos, nós coloridos pela pressão/,
     );
-    expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+    // Short visible texts, full accessible names; the legend is behind the help.
+    expect(controls.getByRole('button', { name: 'Linha piezométrica' })).toHaveTextContent(
+      /^Piezométrica$/,
+    );
+    expect(controls.getByRole('button', { name: 'Recentrar vista' })).toHaveTextContent(
+      /^Recentrar$/,
+    );
+    expect(screen.getByText('Vertical')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Legenda' })).toBeNull();
+    expect(screen.queryByText(/^Arraste para girar\./)).toBeNull();
+    fireEvent.click(controls.getByRole('button', { name: 'Ajuda: Vista 3D' }));
+    const help = within(screen.getByRole('note', { name: 'Ajuda: Vista 3D' }));
+    expect(help.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
+    expect(help.getByText(/^Arraste para girar\./)).toBeInTheDocument();
+    expect(
+      help.getByText('Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).'),
+    ).toBeInTheDocument();
   });
 
   it('renders the controls with English labels', () => {
@@ -110,7 +126,7 @@ describe('Network3D controls', () => {
     render(<Network3D />);
     expect(screen.getByRole('img')).toHaveAttribute('data-hgl', 'true');
     expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
-    expect(screen.getByText('R1 · NA 150,0 m')).toBeInTheDocument();
+    expect(screen.getByText('R1 · 150,0 m')).toBeInTheDocument();
     expect(screen.getAllByText('DN 100')).toHaveLength(2);
 
     await user.click(screen.getByRole('button', { name: 'Linha piezométrica' }));

@@ -50,7 +50,22 @@ describe('PumpChart', () => {
     expect(chart.operating.head).toBeCloseTo(evaluation.result.pumps.B1!.head, 12);
     render(<PumpChart />);
 
-    expect(screen.getByText('A bomba atende')).toBeInTheDocument();
+    // One short line: the verdict and the margin. The rest is behind the help.
+    const verdict = document.querySelector('.pump__verdict')!;
+    expect(verdict).toHaveClass('pump__verdict--ok');
+    expect(verdict.querySelector('.badge')).toHaveTextContent('Bomba atende');
+    expect(verdict.querySelector('.pump__margin-text')).toHaveTextContent(`folga +${pt(margin)} m`);
+    expect(screen.queryByText('Vazão na bomba')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^H = /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nesta etapa as demandas são fixas/)).not.toBeInTheDocument();
+    expect(document.querySelector('.term')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Bomba' }));
+    const help = within(screen.getByRole('note', { name: 'Ajuda: Bomba' }));
+    expect(help.getByText(/Nesta etapa as demandas são fixas/)).toBeInTheDocument();
+    expect(help.getByText(/^Toque no gráfico ou passe o cursor/)).toBeInTheDocument();
+    expect(help.getByText('Curva do sistema', { selector: 'li' })).toBeInTheDocument();
+    expect(help.getAllByRole('button')).toHaveLength(3);
     expect(fact('Vazão na bomba')).toBe('12,00 L/s');
     expect(fact('Altura fornecida pela bomba')).toBe(`${pt(chart.operating.head)} m`);
     expect(fact('Altura necessária nessa vazão')).toBe(`${pt(chart.requiredHead)} m`);
@@ -79,10 +94,15 @@ describe('PumpChart', () => {
     expect(margin).toBeLessThan(0);
     render(<PumpChart />);
 
-    expect(screen.getByText('A bomba não atende')).toBeInTheDocument();
+    const verdict = document.querySelector('.pump__verdict')!;
+    expect(verdict.querySelector('.badge')).toHaveTextContent('Bomba não atende');
+    expect(verdict.querySelector('.pump__margin-text')).toHaveTextContent(
+      `faltam ${pt(-margin)} m`,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Bomba' }));
     expect(fact('Folga (fornecida − necessária)')).toBe(`−${pt(-margin)} m`);
     expect(
-      screen.getByText(
+      within(screen.getByRole('note')).getByText(
         new RegExp(
           `mas a rede precisa de ${pt(chart.requiredHead)} m\\. Faltam ${pt(
             -margin,
@@ -99,6 +119,7 @@ describe('PumpChart', () => {
     const { evaluation } = open('stage5');
     const { a, b, c } = evaluation.pumpChart!.curve;
     render(<PumpChart />);
+    fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Bomba' }));
     const equation = screen.getByText(/^H = /);
     expect(equation.textContent).toBe(`H = ${pt(a)} − ${pt(b, 0)}·Q${pt(c, 3)}`);
     expect(equation.querySelector('sup')).toHaveTextContent(pt(c, 3));
@@ -136,12 +157,18 @@ describe('PumpChart', () => {
       return slider;
     }
 
-    it('starts with a hint in a persistent readout', () => {
-      open('stage5');
+    it('starts on the operating point in a persistent readout', () => {
+      const { evaluation } = open('stage5');
+      const chart = evaluation.pumpChart!;
       render(<PumpChart />);
       const readout = screen.getByRole('status');
       expect(readout).toHaveClass('chart__readout', 'pump__readout');
-      expect(readout).toHaveTextContent(/Toque no gráfico/);
+      expect(readout).toHaveTextContent(
+        `Vazão 12,00 L/s · Bomba ${pt(chart.operating.head)} m · Sistema ${pt(
+          chart.requiredHead,
+        )} m · Ponto de operação`,
+      );
+      expect(readout).not.toHaveTextContent(/Toque no gráfico/);
       expect(document.querySelector('.pump__read')).toBeNull();
     });
 
@@ -284,7 +311,8 @@ describe('PumpChart', () => {
     open('stage5');
     useAppStore.setState({ lang: 'en' });
     render(<PumpChart />);
-    expect(screen.getByText('The pump is sufficient')).toBeInTheDocument();
+    expect(screen.getByText('Pump is sufficient')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Help: Pump' }));
     expect(
       screen.getByRole('img', { name: 'Curve of pump B1 and system curve' }),
     ).toBeInTheDocument();

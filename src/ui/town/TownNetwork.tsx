@@ -7,10 +7,10 @@ import type { Diameters, Scenario } from '../../scenarios/types';
 import type { Selection } from '../../state/store';
 import { describePipe, describePump, describeReservoir, NO_FLOW } from '../network/describe';
 import { useNum } from '../network/format';
-import { strokeForDn } from '../network/geometry';
 import { MOUSE_TARGET } from '../network/hit';
 import type { LimitStatus } from '../network/status';
 import { HEAD_UNIT, networkStrings, pressureStatusLabels } from '../network/strings';
+import { pipeWidth } from './townLabels';
 import { House, PumpSprite, ReservoirSprite, shadowPath } from './sprites';
 import { serviceLabels, townStrings as text } from './strings';
 
@@ -20,11 +20,6 @@ const DASH_PERIOD = 14;
 export const FILL_SECONDS = 1;
 export const LIGHT_START = 0.95;
 export const LIGHT_SECONDS = 0.75;
-
-/** Width on screen (px) of a pipe of nominal diameter `dn` at `scale` px per metre. */
-export function pipeWidth(dn: number, scale: number): number {
-  return strokeForDn(dn) * Math.min(1.4, Math.max(0.5, scale / 0.75));
-}
 
 /** Delay (s) after which the houses of each node light up in the success sequence. */
 export function lightDelays(scenario: Scenario, order: FillOrder): Record<string, number> {

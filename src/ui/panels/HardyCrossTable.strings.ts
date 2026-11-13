@@ -6,8 +6,8 @@ export const hardyCrossStrings = {
     en: 'The Hardy Cross method balances head losses around loops. This network has no loops (it is branched): the flow of each pipe is already set by the sum of the downstream demands, with no iterations.',
   },
   introBefore: {
-    pt: 'Em cada iteração, calcula-se para cada ',
-    en: 'In each iteration, for each ',
+    pt: ': em cada iteração, calcula-se para cada ',
+    en: ': in each iteration, for each ',
   },
   introLoop: { pt: 'anel', en: 'loop' },
   introAfter: {

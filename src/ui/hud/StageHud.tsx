@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormat, useTr } from '../../i18n';
 import { designCost } from '../../game/evaluate';
 import { housesSummary } from '../../game/houses';
 import { STAR_THRESHOLDS } from '../../game/stars';
-import type { Scenario } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
-import { IconChevronDown, IconError } from '../shell/icons';
+import { HelpButton } from '../shell/Help';
+import { IconError } from '../shell/icons';
 import { Stars } from '../shell/Stars';
 import { money } from '../shell/strings';
 import { hudStrings } from './strings';
@@ -66,40 +66,38 @@ function IconHouse() {
   );
 }
 
-/** Closes a popover on a tap outside `wrapper` or on Escape, while it is open. */
-function useDismiss(
-  open: boolean,
-  wrapper: RefObject<HTMLElement | null>,
-  close: () => void,
-): void {
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Node && !wrapper.current?.contains(event.target)) close();
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open, wrapper, close]);
+function IconCost() {
+  return (
+    <svg
+      className="icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.5 0-2.6.8-2.6 2s1 1.7 2.6 2 2.7.8 2.7 2-1.2 2-2.7 2c-1.2 0-2.2-.5-2.7-1.3" />
+      <path d="M12 6.3V8M12 16v1.7" />
+    </svg>
+  );
 }
 
 interface StageHudProps {
   /**
-   * Phone form: one line with houses, cost and stars that opens the full figures and the
-   * objectives when tapped.
+   * Phone form: houses, cost and stars as one line of icons and numbers with a single help
+   * button, for the app bar.
    */
   compact?: boolean;
 }
 
 /**
- * Game status of the open stage, above the map: houses served, cost (against the budget when
- * the stage has one), the stars the current design earns and the first objective.
+ * Game status of the open stage as icons and numbers: houses served, cost (with a bar against
+ * the budget when the stage has one) and the stars the current design earns. What each number
+ * means, the budget, the reference cost, the next star and the objectives are behind "?".
  */
 export function StageHud({ compact = false }: StageHudProps) {
   const tr = useTr();
@@ -123,19 +121,13 @@ export function StageHud({ compact = false }: StageHudProps) {
   const celebrate = verifiedNow && verifiedAt !== mountedAt && evaluation.passed && !reducedMotion;
   const shownServed = useCountUp(houses.served, celebrate ? verifiedAt : null);
 
-  const detailsId = useId();
-  const compactRef = useRef<HTMLElement>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const closeDetails = useCallback(() => setDetailsOpen(false), []);
-  useDismiss(detailsOpen, compactRef, closeDetails);
-
   if (!scenario) return null;
 
   const cost = designCost(scenario, diameters);
   const budget = scenario.budget;
   const reference = scenario.reference.cost;
   const overBudget = budget !== null && cost > budget;
-  const brl = (value: number) => money(fmt(value, 2));
+  const brl = (value: number, digits = 2) => money(fmt(value, digits));
 
   const stars = evaluation?.stars ?? 0;
   const starsHint = !evaluation
@@ -181,96 +173,88 @@ export function StageHud({ compact = false }: StageHudProps) {
     }
   }
 
-  const staleNote = stale && evaluation && (
+  const isStale = stale && evaluation !== null;
+  const staleNote = isStale && (
     <span className="visually-hidden"> ({tr(hudStrings.staleNote)})</span>
   );
+  const percent = (ratio: number) => fmt((ratio - 1) * 100, 0);
 
-  const items = (
+  // Help texts. Blocks, not paragraphs: the help popover is phrasing content.
+  const housesHelp = (
     <>
-      <div
-        className="hud__item hud__item--houses"
-        data-stale={stale && evaluation ? 'true' : undefined}
-      >
-        <span className="hud__label">
-          <IconHouse />
-          {tr(hudStrings.houses)}
-        </span>
-        <span className="hud__value num hud__dimmable">
-          {evaluation ? shownServed : '–'} / {houses.total}
-          {staleNote}
-        </span>
-        <span className="hud__bar hud__dimmable" aria-hidden="true">
-          <span
-            className={
-              evaluation && houses.served === houses.total
-                ? 'hud__bar-fill hud__bar-fill--ok'
-                : 'hud__bar-fill'
-            }
-            style={{
-              width: `${houses.total > 0 && evaluation ? (shownServed / houses.total) * 100 : 0}%`,
-            }}
-          />
-        </span>
-      </div>
-
-      <div
-        className={
-          overBudget ? 'hud__item hud__item--cost hud__item--over' : 'hud__item hud__item--cost'
-        }
-      >
-        <span className="hud__label">{tr(hudStrings.cost)}</span>
-        <span className="hud__value num">{brl(cost)}</span>
-        {budget !== null ? (
-          <>
-            <BudgetBar
-              cost={cost}
-              budget={budget}
-              reference={completed ? reference : null}
-              label={tr(hudStrings.barLabel)}
-            />
-            <span className="hud__note">
-              {overBudget ? (
-                <span className="hud__over">
-                  <IconError />
-                  {tr(hudStrings.overBudget(brl(cost - budget)))}
-                </span>
-              ) : (
-                <span>{tr(hudStrings.budget(brl(budget)))}</span>
-              )}
-              {completed && <span>{tr(hudStrings.reference(brl(reference)))}</span>}
-            </span>
-          </>
-        ) : (
-          completed && (
-            <span className="hud__note">
-              <span>
-                {tr(hudStrings.reference(brl(reference)))} ({referenceComparison})
-              </span>
-            </span>
-          )
-        )}
-      </div>
-
-      <div
-        className="hud__item hud__item--stars"
-        data-stale={stale && evaluation ? 'true' : undefined}
-      >
-        <span className="hud__label">{tr(hudStrings.stars)}</span>
-        <span
-          key={verifiedAt ?? 0}
-          className={
-            celebrate
-              ? 'hud__value hud__dimmable hud__stars hud__stars--reveal'
-              : 'hud__value hud__dimmable hud__stars'
-          }
-        >
-          <Stars value={stars} />
-          {staleNote}
-        </span>
-        <span className="hud__note hud__dimmable">{starsHint}</span>
-      </div>
+      <span className="hud__help-line">{tr(hudStrings.housesHelp)}</span>
+      {isStale && <span className="hud__help-line">{tr(hudStrings.staleNote)}.</span>}
     </>
   );
+  const costHelp = (
+    <>
+      <span className="hud__help-line">{tr(hudStrings.costHelp)}</span>
+      {compact && <span className="hud__help-line">{tr(hudStrings.costNow(brl(cost)))}</span>}
+      {budget !== null && (
+        <span className="hud__help-line" data-help="budget">
+          {overBudget
+            ? `${tr(hudStrings.budget(brl(budget)))}. ${tr(hudStrings.overBudget(brl(cost - budget)))}.`
+            : `${tr(hudStrings.budget(brl(budget)))}: ${tr(hudStrings.withinBudget(brl(budget - cost)))}.`}
+        </span>
+      )}
+      {completed && (
+        <span className="hud__help-line" data-help="reference">
+          {tr(hudStrings.reference(brl(reference)))} ({referenceComparison}).
+        </span>
+      )}
+    </>
+  );
+  const starsHelp = (
+    <>
+      <span className="hud__help-line">
+        {tr(hudStrings.starsHelp(percent(STAR_THRESHOLDS.three), percent(STAR_THRESHOLDS.two)))}
+      </span>
+      <span className="hud__help-line" data-help="next-star">
+        {starsHint}
+      </span>
+    </>
+  );
+  const objectives = (
+    <span className="hud__help-line" data-help="objectives">
+      <strong>{tr(hudStrings.objectivesTitle)}</strong>
+      <span className="hud__objectives" role="list">
+        {scenario.objectives.map((objective, index) => (
+          <span key={index} role="listitem">
+            {tr(objective)}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+
+  const housesValue = (
+    <span className="hud__value num hud__dimmable">
+      {evaluation ? shownServed : '–'}
+      {compact ? '/' : ' / '}
+      {houses.total}
+    </span>
+  );
+  const budgetBar = budget !== null && (
+    <BudgetBar
+      cost={cost}
+      budget={budget}
+      reference={completed ? reference : null}
+      label={tr(hudStrings.barLabel)}
+    />
+  );
+  const starsValue = (
+    <span
+      key={verifiedAt ?? 0}
+      className={
+        celebrate
+          ? 'hud__value hud__dimmable hud__stars hud__stars--reveal'
+          : 'hud__value hud__dimmable hud__stars'
+      }
+    >
+      <Stars value={stars} />
+    </span>
+  );
+  const costLabel = tr(overBudget ? hudStrings.costOverBudget : hudStrings.cost);
 
   const live = (
     <p className="visually-hidden" aria-live="polite" data-testid="hud-live">
@@ -278,69 +262,74 @@ export function StageHud({ compact = false }: StageHudProps) {
     </p>
   );
 
-  if (compact) {
-    return (
-      <section className="hud hud--compact" aria-label={tr(hudStrings.label)} ref={compactRef}>
-        <button
-          type="button"
-          className="hud__summary"
-          aria-expanded={detailsOpen}
-          aria-controls={detailsId}
-          onClick={() => setDetailsOpen((value) => !value)}
-        >
-          <span className="hud__chip" data-stale={stale && evaluation ? 'true' : undefined}>
-            <IconHouse />
-            <span className="visually-hidden">{tr(hudStrings.houses)}:</span>
-            <span className="num hud__dimmable">
-              {evaluation ? shownServed : '–'} / {houses.total}
-            </span>
-            {staleNote}
-          </span>
-          <span className={overBudget ? 'hud__chip hud__chip--over' : 'hud__chip'}>
-            {overBudget && <IconError />}
-            <span className="visually-hidden">
-              {tr(overBudget ? hudStrings.costOverBudget : hudStrings.cost)}:
-            </span>
-            <span className="num">{brl(cost)}</span>
-          </span>
-          <span
-            key={verifiedAt ?? 0}
-            className={
-              celebrate
-                ? 'hud__chip hud__chip--stars hud__stars--reveal'
-                : 'hud__chip hud__chip--stars'
-            }
-            data-stale={stale && evaluation ? 'true' : undefined}
-          >
-            <span className="hud__dimmable">
-              <Stars value={stars} />
-            </span>
-          </span>
-          <span className="visually-hidden">{tr(hudStrings.details)}</span>
-          <span className="hud__chevron">
-            <IconChevronDown />
-          </span>
-        </button>
-        <div id={detailsId} className="hud__details" hidden={!detailsOpen}>
-          <div className="hud__details-items">{items}</div>
-          <div className="hud__details-objectives">
-            <strong>{tr(hudStrings.objectivesTitle)}</strong>
-            <ol>
-              {scenario.objectives.map((objective, index) => (
-                <li key={index}>{tr(objective)}</li>
-              ))}
-            </ol>
-          </div>
-        </div>
-        {live}
-      </section>
-    );
-  }
-
   return (
-    <section className="hud" aria-label={tr(hudStrings.label)}>
-      {items}
-      <Objectives scenario={scenario} />
+    <section className={compact ? 'hud hud--compact' : 'hud'} aria-label={tr(hudStrings.label)}>
+      <div
+        className="hud__item hud__item--houses"
+        data-stale={isStale ? 'true' : undefined}
+        title={tr(hudStrings.houses)}
+      >
+        <IconHouse />
+        <span className="visually-hidden">{tr(hudStrings.houses)}:</span>
+        {housesValue}
+        {staleNote}
+        {!compact && (
+          <span className="hud__bar hud__dimmable" aria-hidden="true">
+            <span
+              className={
+                evaluation && houses.served === houses.total
+                  ? 'hud__bar-fill hud__bar-fill--ok'
+                  : 'hud__bar-fill'
+              }
+              style={{
+                width: `${houses.total > 0 && evaluation ? (shownServed / houses.total) * 100 : 0}%`,
+              }}
+            />
+          </span>
+        )}
+        {!compact && (
+          <HelpButton topic={tr(hudStrings.houses)}>
+            {housesHelp}
+            {objectives}
+          </HelpButton>
+        )}
+      </div>
+
+      <div
+        className={
+          overBudget ? 'hud__item hud__item--cost hud__item--over' : 'hud__item hud__item--cost'
+        }
+        title={costLabel}
+      >
+        {overBudget ? <IconError /> : <IconCost />}
+        <span className="visually-hidden">{costLabel}:</span>
+        <span className="hud__value num">{brl(cost, compact ? 0 : 2)}</span>
+        {budgetBar}
+        {!compact && <HelpButton topic={tr(hudStrings.cost)}>{costHelp}</HelpButton>}
+      </div>
+
+      <div
+        className="hud__item hud__item--stars"
+        data-stale={isStale ? 'true' : undefined}
+        title={tr(hudStrings.stars)}
+      >
+        <span className="visually-hidden">{tr(hudStrings.stars)}:</span>
+        {starsValue}
+        {staleNote}
+        {!compact && <HelpButton topic={tr(hudStrings.stars)}>{starsHelp}</HelpButton>}
+      </div>
+
+      {compact && (
+        <HelpButton topic={tr(hudStrings.label)} className="hud__help">
+          <strong className="hud__help-title">{tr(hudStrings.houses)}</strong>
+          {housesHelp}
+          <strong className="hud__help-title">{tr(hudStrings.cost)}</strong>
+          {costHelp}
+          <strong className="hud__help-title">{tr(hudStrings.stars)}</strong>
+          {starsHelp}
+          {objectives}
+        </HelpButton>
+      )}
 
       {live}
     </section>
@@ -371,47 +360,5 @@ function BudgetBar({ cost, budget, reference, label }: BudgetBarProps) {
       )}
       <span className="hud__bar-budget" style={{ left: percent(budget) }} />
     </span>
-  );
-}
-
-/** First objective in one line and a small popover with the full list. */
-function Objectives({ scenario }: { scenario: Scenario }) {
-  const tr = useTr();
-  const listId = useId();
-  const wrapper = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const first = scenario.objectives[0];
-
-  const close = useCallback(() => setOpen(false), []);
-  useDismiss(open, wrapper, close);
-
-  if (!first) return null;
-
-  return (
-    <div className="hud__item hud__item--objective" ref={wrapper}>
-      <span className="hud__label">{tr(hudStrings.objective)}</span>
-      <span className="hud__objective">{tr(first)}</span>
-      {scenario.objectives.length > 1 && (
-        <>
-          <button
-            type="button"
-            className="hud__more"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((value) => !value)}
-          >
-            {tr(hudStrings.allObjectives(scenario.objectives.length))}
-          </button>
-          <div id={listId} className="hud__popover" hidden={!open}>
-            <strong>{tr(hudStrings.objectivesTitle)}</strong>
-            <ol>
-              {scenario.objectives.map((objective, index) => (
-                <li key={index}>{tr(objective)}</li>
-              ))}
-            </ol>
-          </div>
-        </>
-      )}
-    </div>
   );
 }

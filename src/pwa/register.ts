@@ -1,10 +1,10 @@
 import { registerSW } from 'virtual:pwa-register';
-import { usePwaStatus } from './ui/shell/pwaStatus';
+import { usePwaStatus } from '../ui/shell/pwaStatus';
 
 /**
- * Registers the service worker that makes the app work offline. With
- * `registerType: 'autoUpdate'` a new version activates by itself and reloads the page; the
- * "update available" notice only appears if the registration is switched to prompt mode.
+ * Registers the service worker that makes the app work offline. The registration is in prompt
+ * mode (`registerType: 'prompt'` in vite.config.ts): a new version waits until the player
+ * presses "Atualizar" in the notice, so a stage in progress is never reloaded under them.
  */
 export function registerServiceWorker(): void {
   const updateSW = registerSW({

@@ -45,44 +45,88 @@
   font-size: var(--font-size-sm);
 }
 
-.dn-picker--compact .dn-picker__options {
-  display: inline-flex;
-  max-width: 100%;
-  overflow-x: auto;
+/*
+ * Phone bar: one row of keys of 44 by 44 px that scrolls sideways, DN over its price per metre.
+ * The keys keep their size on a narrow screen; a fade at an edge says that more keys are there.
+ */
+.dn-picker--bar {
+  position: relative;
 }
 
-.dn-picker--compact .dn-picker__options > button {
-  flex: none;
-  min-width: 2.5rem;
-  padding: var(--space-1) var(--space-2);
-}
-
-/* Phones: one row of keys at least 44 px tall, DN over its price per metre. */
-.dn-picker--prices .dn-picker__options {
+.dn-picker--bar .dn-picker__options {
   display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  overflow-x: auto;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  touch-action: pan-x;
 }
 
-.dn-picker--prices .dn-picker__options > button {
-  flex: 1 0 2.5rem;
-  min-width: 2.5rem;
-  min-height: 2.875rem;
-  padding: var(--space-1) 0;
+.dn-picker--bar .dn-picker__options::-webkit-scrollbar {
+  display: none;
+}
+
+.dn-picker--bar .dn-picker__options > button {
+  flex: 1 0 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
   touch-action: manipulation;
 }
 
-.dn-picker--prices .dn-picker__price {
+.dn-picker--bar .dn-picker__price {
   font-size: 0.6875rem;
 }
 
-@media (pointer: coarse), (max-width: 760px), (max-height: 500px) {
-  .dn-picker:not(.dn-picker--compact) .dn-picker__options > button {
+.dn-picker--bar::before,
+.dn-picker--bar::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  z-index: 1;
+  width: var(--space-5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.dn-picker--bar::before {
+  left: 1px;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: linear-gradient(to left, transparent, var(--color-surface-2));
+}
+
+.dn-picker--bar::after {
+  right: 1px;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: linear-gradient(to right, transparent, var(--color-surface-2));
+}
+
+.dn-picker--bar[data-fade-start='true']::before,
+.dn-picker--bar[data-fade-end='true']::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dn-picker--bar::before,
+  .dn-picker--bar::after {
+    transition: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .dn-picker:not(.dn-picker--bar) .dn-picker__options > button {
     min-height: 2.75rem;
     touch-action: manipulation;
   }
+}
 
-  .dn-picker--compact:not(.dn-picker--prices) .dn-picker__options > button {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-  }
+:root[data-device='phone'] .dn-picker:not(.dn-picker--bar) .dn-picker__options > button {
+  min-height: 2.75rem;
+  touch-action: manipulation;
 }

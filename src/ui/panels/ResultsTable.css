@@ -114,15 +114,48 @@
   vertical-align: -0.15em;
 }
 
+/* Inside the help: the columns by name and what the marks mean. */
+.results__help {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.results__help > div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--space-2);
+}
+
+.results__help dt {
+  font-family: var(--font-mono);
+  font-weight: var(--font-weight-semibold);
+}
+
+.results__help dd {
+  margin: 0;
+}
+
+.results__help-title {
+  display: block;
+}
+
 .results__legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
+  flex-direction: column;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
+}
+
+/* The help popover is wide enough for the definitions and scrolls when it is long. */
+.results__helpbtn .help__popover {
+  width: min(28rem, 80vw);
+  max-width: none;
+  max-height: min(28rem, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .results__legend-item {
@@ -152,64 +185,67 @@
   font-size: var(--font-size-sm);
 }
 
-@media (pointer: coarse), (max-width: 760px) {
+@media (pointer: coarse) {
   .results__bar .btn,
   .results__switch > button {
     min-height: 2.75rem;
   }
 }
 
+:root[data-device='phone'] .results__bar .btn,
+:root[data-device='phone'] .results__switch > button {
+  min-height: 2.75rem;
+}
+
 /*
  * Phones: the view fills the tab panel and one table at a time fills the view, so the only
  * scrolling is inside the table, with its header row and first column in place.
  */
-@media (max-width: 760px) {
-  .results {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: auto;
-    overscroll-behavior: contain;
-  }
+:root[data-device='phone'] .results {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
 
-  .results > .result-content {
-    flex: 1 1 auto;
-    min-height: 0;
-    gap: var(--space-2);
-  }
+:root[data-device='phone'] .results > .result-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: var(--space-2);
+}
 
-  .results__section {
-    flex: 0 1 auto;
-    min-height: 0;
-  }
+:root[data-device='phone'] .results__section {
+  flex: 0 1 auto;
+  min-height: 0;
+}
 
-  .results--pipes .results__section--pipes,
-  .results--nodes .results__section--nodes {
-    min-height: 14rem;
-  }
+:root[data-device='phone'] .results--pipes .results__section--pipes,
+:root[data-device='phone'] .results--nodes .results__section--nodes {
+  min-height: 14rem;
+}
 
-  .results__switch {
-    display: inline-flex;
-  }
+:root[data-device='phone'] .results__switch {
+  display: inline-flex;
+}
 
-  .results__bar h3,
-  .results__section--nodes .results__bar,
-  .results--nodes .results__section--pipes .results__wrap,
-  .results--pipes .results__section--nodes {
-    display: none;
-  }
+:root[data-device='phone'] .results__bar h3,
+:root[data-device='phone'] .results__section--nodes .results__bar,
+:root[data-device='phone'] .results--nodes .results__section--pipes .results__wrap,
+:root[data-device='phone'] .results--pipes .results__section--nodes {
+  display: none;
+}
 
-  .results__wrap > .hscroll__scroller {
-    max-height: none;
-  }
+:root[data-device='phone'] .results__wrap > .hscroll__scroller {
+  max-height: none;
+}
 
-  .results__notes,
-  .results__legend {
-    flex: none;
-  }
+:root[data-device='phone'] .results__notes,
+:root[data-device='phone'] .results__legend {
+  flex: none;
+}
 
-  /* Keeps the sticky first column narrow. */
-  .results__kind {
-    display: block;
-    margin-left: 0;
-  }
+/* Keeps the sticky first column narrow. */
+:root[data-device='phone'] .results__kind {
+  display: block;
+  margin-left: 0;
 }

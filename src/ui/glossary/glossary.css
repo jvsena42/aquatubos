@@ -26,16 +26,32 @@
   text-decoration-style: solid;
 }
 
+/* A later occurrence of a term inside a TermScope: plain text. */
+.term--repeat {
+  position: static;
+}
+
 /*
- * A word in a sentence is a small target for a finger. Vertical padding on an inline box does
- * not move the lines, but it is part of what a tap hits: 10 px on each side makes the target
- * about 36 px high. Not 44: lines of small text are 21 px apart, and with more padding a term
- * on the next line would take the taps aimed at the middle of the word above it.
+ * A word in a sentence is a small target for a finger. On touch screens the term gets an
+ * invisible area of at least 44 by 44 px centred on the word. It is a positioned pseudo-element,
+ * so it changes neither the line height nor the layout. The areas of terms on adjacent lines
+ * overlap; the word itself is raised above them, so a tap on a word always goes to that word and
+ * a tap between two lines goes to one of the two.
  */
 @media (pointer: coarse) {
+  .term:not(.term--repeat)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+
   .term__trigger {
-    padding-block: 0.625rem;
-    outline-offset: -0.5rem;
+    position: relative;
+    z-index: 1;
   }
 }
 

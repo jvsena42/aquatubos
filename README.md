@@ -51,6 +51,10 @@ the calculation, results table.
 | ----------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
 | ![Title screen on a phone](docs/screenshots/home-phone-light.png) | ![Stage map on a phone](docs/screenshots/stage-map-phone.png) | ![Town view on a phone](docs/screenshots/town-phone.png) | ![Bottom sheet half open](docs/screenshots/town-phone-sheet.png) | ![Results table on a phone](docs/screenshots/table-phone.png) |
 
+The three house states (served, dry taps, burst risk) with the legend help open:
+
+![House states and legend](docs/screenshots/house-states.png)
+
 More: [title screen, dark](docs/screenshots/home-dark.png),
 [title screen on a phone, dark](docs/screenshots/home-phone-dark.png),
 [stage map, light](docs/screenshots/stage-map-light.png). Regenerate with `npm run screenshots`.
@@ -74,8 +78,9 @@ cheapest design that passes (found by exhaustive search or branch and bound): wi
 
 ## What is on screen
 
-- **Title screen:** what the game is, Jogar / Continuar, how to play, glossary, about, and a
-  summary of stars, completed stages and best total cost.
+- **Title screen:** the logo, one button (Jogar / Continuar) and progress chips (stars, stages,
+  best total cost). How to play, glossary, language, theme, install and about are in the header
+  menu.
 - **Stage map:** five neighbourhoods along a water main; locked stages are greyed, the next one
   is marked.
 - **Town view (default):** an illustrated town generated from the stage geometry. Streets follow
@@ -95,14 +100,33 @@ cheapest design that passes (found by exhaustive search or branch and bound): wi
   and a **3D view** of terrain, pipes and the hydraulic grade surface, loaded on demand.
 - A glossary of the technical terms, in both languages.
 
-### On a phone
+### On a phone or tablet
 
-The stage screen becomes an app frame: the map fills the screen, the calculation and the checks
-live in a bottom sheet (closed, half, full), stage actions move to a menu and
-Calcular / Verificar stays at the bottom within thumb reach. Maps pan with one finger and zoom
-with a pinch; pipes and houses have 44 px touch targets; tables keep their first column while
-scrolling sideways; nothing depends on hover. Tested in Chromium device emulation at 360, 390
-and 430 px portrait, 844×390 landscape and 768×1024, in light and dark.
+The stage screen becomes an app frame that does not scroll: the map fills the screen, the
+calculation and the checks live in a bottom sheet (closed, half, full), the diameter keys sit in
+one row under the map and Calcular / Verificar stays at the bottom within thumb reach. Tablets
+get the same frame, with a side panel in landscape. Maps pan with one finger and zoom with a
+pinch; pipes and houses have 44 px touch targets; tables keep their first column while scrolling
+sideways; nothing depends on hover. Every screen has one header menu (how to play, glossary,
+language, theme, install, about) and explanations sit behind small "?" buttons.
+
+Tested with Playwright at 360, 390 and 430 px portrait, 844×390 landscape, 768×1024 and
+1024×768, in light and dark, in Chromium device emulation, and the phone flow also in WebKit.
+
+## Install
+
+Aquatubos is a PWA: once installed it opens like an app and works without internet.
+
+- **Computer (Chrome or Edge):** open the site, then Menu → "Instalar app", or the install icon
+  at the right of the address bar.
+- **Android (Chrome):** open the site, then Menu → "Instalar app", or the browser menu → "Instalar
+  app" / "Adicionar à tela inicial".
+- **iPhone or iPad:** open the site in Safari, tap Compartilhar (the square with an arrow), then
+  "Adicionar à Tela de Início". Menu → "Instalar app" shows these steps.
+
+The menu item appears only where the browser allows installing and disappears once the app is
+installed. Firefox on a computer cannot install PWAs. When a new version is published the app
+shows "Atualizar"; your progress is kept.
 
 ## Engineering basis
 

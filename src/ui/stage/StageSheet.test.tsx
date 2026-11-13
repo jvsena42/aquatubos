@@ -80,7 +80,7 @@ describe('StageSheet', () => {
     it('says when there is no result yet and when it is out of date', () => {
       useAppStore.setState({ scenario: stage1, diameters: { T1: 50 }, evaluation: null });
       render(<StageSheet side={false} />);
-      expect(handle()).toHaveAccessibleDescription('Verificações: Ainda não verificado');
+      expect(handle()).toHaveAccessibleDescription('Verificações: Não verificado');
       act(() => useAppStore.setState({ evaluation: failing(), stale: true }));
       expect(handle()).toHaveAccessibleDescription('Verificações: Desatualizado');
     });
@@ -183,7 +183,7 @@ describe('StageSheet', () => {
       render(<StageSheet side={false} />);
       await user.click(handle());
       expect(pressed()).toHaveTextContent('Verificações');
-      await user.click(screen.getByRole('button', { name: /Velocidade máxima/ }));
+      await user.click(screen.getByRole('button', { name: /Velocidade máx\..*Trecho T1/ }));
       expect(pressed()).toHaveTextContent('Cálculo');
       expect(screen.getByRole('heading', { name: 'Trecho T1' })).toBeInTheDocument();
     });

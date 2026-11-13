@@ -1,5 +1,16 @@
-/** Resting heights of the bottom sheet: the bar only, half of the viewport, up to the header. */
+/**
+ * Resting heights of the bottom sheet: the bar only, a part of the viewport (`SHEET_HALF`), up
+ * to the header.
+ */
 export type Detent = 'peek' | 'half' | 'full';
+
+/**
+ * Height of the `half` detent as a fraction of the viewport height, per device. It is the one
+ * source: StageScreen writes it to the `--sheet-half-fraction` CSS variable (the sheet height
+ * and the space the view keeps above it follow from that) and the drag code reads it here.
+ * Phones stay under 40 % so the map keeps at least 40 % of the screen above the open sheet.
+ */
+export const SHEET_HALF = { phone: 0.36, tablet: 0.36 } as const;
 
 export type SheetSection = 'calc' | 'checks';
 

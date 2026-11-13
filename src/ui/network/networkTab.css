@@ -10,7 +10,7 @@
   align-self: flex-start;
 }
 
-/* Phone tab row: two icon buttons of full touch size, next to the tabs. */
+/* Phone tab row: two icon buttons next to the tabs; the touch area comes from .segmented. */
 .network-tab__toggle--compact {
   flex-shrink: 0;
   align-self: center;
@@ -21,7 +21,7 @@
   align-items: center;
   justify-content: center;
   min-width: 2.75rem;
-  min-height: 2.5rem;
+  min-height: 1.875rem;
   padding: 0;
   font-size: var(--font-size-md);
 }

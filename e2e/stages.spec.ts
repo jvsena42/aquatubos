@@ -116,27 +116,33 @@ test('plays the five stages with the reference diameters', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('opens how to play, about and the glossary from the title screen', async ({ page }) => {
+test('reaches how to play, glossary and about from the menu', async ({ page }) => {
   await page.goto('./');
-  const main = page.locator('main');
-  for (const [button, dialog] of [
+  // The title screen has one primary button; everything else lives in the header menu.
+  await expect(
+    page.locator('main').getByRole('button', { name: 'Jogar', exact: true }),
+  ).toBeVisible();
+  for (const [item, dialog] of [
     ['Como jogar', 'Como jogar'],
-    ['Sobre', 'Sobre o Aquatubos'],
     ['Glossário', 'Glossário'],
+    ['Sobre', 'Sobre o Aquatubos'],
   ] as const) {
-    await main.getByRole('button', { name: button, exact: true }).click();
+    await page.getByRole('button', { name: 'Menu' }).click();
+    await page.getByRole('menuitem', { name: item, exact: true }).click();
     await expect(page.getByRole('dialog', { name: dialog })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toBeHidden();
   }
 });
 
-test('switches language and theme', async ({ page }) => {
+test('switches language and theme from the menu', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('button', { name: 'Jogar', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'English' }).click();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitemradio', { name: 'English' }).click();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await page.getByRole('button', { name: 'Dark' }).click();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitemradio', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
