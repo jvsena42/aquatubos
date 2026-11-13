@@ -13,7 +13,6 @@
   min-width: 0;
 }
 
-.hc__intro,
 .hc__status,
 .hc__steps,
 .hc__compare {
@@ -23,10 +22,6 @@
   min-width: 0;
 }
 
-.hc__intro {
-  font-size: var(--font-size-sm);
-}
-
 .hc__formula {
   align-self: flex-start;
   padding: var(--space-2) var(--space-4);
@@ -34,10 +29,6 @@
   border-radius: var(--radius-md);
   background: var(--color-surface-2);
   font-size: var(--font-size-md);
-}
-
-.hc__tolerance {
-  font-size: var(--font-size-sm);
 }
 
 .hc__convergence h4 {
@@ -235,27 +226,9 @@
   color: var(--color-text-muted);
 }
 
-.hc__signs {
-  font-size: var(--font-size-sm);
-}
-
-.hc__signs summary {
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-
-.hc__signs p {
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-}
-
 .hc__agree {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-}
-
-.hc__note {
-  font-size: var(--font-size-xs);
 }
 
 /* Touch: every control of the stepper is at least 44 px. */
@@ -285,10 +258,6 @@
   .hc__chip {
     min-width: 2.75rem;
     font-size: var(--font-size-sm);
-  }
-
-  .hc__signs summary {
-    padding-block: var(--space-3);
   }
 
   .hc__convergence ol {
@@ -321,10 +290,6 @@
 :root[data-device='phone'] .hc__chip {
   min-width: 2.75rem;
   font-size: var(--font-size-sm);
-}
-
-:root[data-device='phone'] .hc__signs summary {
-  padding-block: var(--space-3);
 }
 
 :root[data-device='phone'] .hc__convergence ol {
@@ -371,4 +336,23 @@
   max-width: 5.5rem;
   white-space: normal;
   line-height: 1.3;
+}
+
+.hc__status-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hc__status-row p {
+  margin: 0;
+}
+
+/* The help holds the method, the formula and the sign convention: wide, and it scrolls. */
+.hc__help .help__popover {
+  width: min(30rem, 80vw);
+  max-width: none;
+  max-height: min(28rem, 60vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

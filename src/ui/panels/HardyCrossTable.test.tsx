@@ -42,16 +42,41 @@ describe('HardyCrossTable', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('states the correction formula and the exponent of the formula in use', () => {
+  it('shows the status, the stepper and the tables, and no explanation by default', () => {
     open('stage3');
     render(<HardyCrossTable />);
-    expect(screen.getByText('ΔQ = −Σh / Σ(n·|h|/|Q|)')).toBeInTheDocument();
-    expect(screen.getByText(/^n = 1,852 \(Hazen-Williams\)/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/^Convergiu em \d+ iterações$/);
+    expect(screen.getByRole('group', { name: 'Iteração mostrada' })).toBeInTheDocument();
+    expect(screen.getAllByRole('table').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText('ΔQ = −Σh / Σ(n·|h|/|Q|)')).not.toBeInTheDocument();
+    expect(screen.queryByText(/O sentido do anel é o horário/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Critério de parada/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/método do gradiente global/)).not.toBeInTheDocument();
+    expect(document.querySelector('details')).toBeNull();
   });
 
-  it('uses n = 2 with Darcy-Weisbach', () => {
+  it('explains the method, the formula, the exponent and the signs in the help', async () => {
+    const user = userEvent.setup();
+    open('stage3');
+    render(<HardyCrossTable />);
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Hardy Cross' }));
+    const help = within(screen.getByRole('note', { name: 'Ajuda: Hardy Cross' }));
+    expect(help.getByText('ΔQ = −Σh / Σ(n·|h|/|Q|)')).toBeInTheDocument();
+    expect(help.getByText(/^n = 1,852 \(Hazen-Williams\)/)).toHaveTextContent(
+      /Critério de parada: maior \|ΔQ\| menor que [\d,]+ L\/s\.$/,
+    );
+    expect(help.getByText(/O sentido do anel é o horário/)).toBeInTheDocument();
+    expect(help.getByText(/método do gradiente global/)).toBeInTheDocument();
+    // The glossary terms of the explanation are inside the help.
+    expect(help.getByRole('button', { name: 'Método Hardy Cross' })).toBeInTheDocument();
+    expect(help.getByRole('button', { name: 'anel' })).toBeInTheDocument();
+  });
+
+  it('uses n = 2 with Darcy-Weisbach', async () => {
+    const user = userEvent.setup();
     open('stage3', 'darcy-weisbach');
     render(<HardyCrossTable />);
+    await user.click(screen.getByRole('button', { name: 'Ajuda: Hardy Cross' }));
     expect(screen.getByText(/^n = 2 \(Darcy-Weisbach\)/)).toBeInTheDocument();
   });
 
@@ -294,6 +319,7 @@ describe('HardyCrossTable', () => {
     useAppStore.setState({ lang: 'en' });
     render(<HardyCrossTable />);
     expect(screen.getByRole('table', { name: 'Loop I, Iteration 1' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Help: Hardy Cross' }));
     expect(screen.getByText(/^n = 1\.852 \(Hazen-Williams\)/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next iteration' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Corrected Q (L/s)' })).toBeInTheDocument();
