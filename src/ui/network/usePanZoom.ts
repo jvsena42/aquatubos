@@ -5,16 +5,33 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type MouseEvent,
   type PointerEvent,
   type RefObject,
   type SetStateAction,
 } from 'react';
 import { INITIAL_VIEW, zoomAt, type Point, type Size, type View } from './geometry';
+import {
+  DOUBLE_TAP_ZOOM,
+  exceedsSlop,
+  isDoubleTap,
+  panView,
+  pinchView,
+  tapSlop,
+  type Tap,
+} from './gestures';
+import { hitReach } from './hit';
 
 /** Used until the container is measured (and in tests, where there is no layout). */
 export const DEFAULT_SIZE: Size = { width: 800, height: 480 };
-/** Pointer travel in px after which a press is a drag and not a click. */
-const DRAG_THRESHOLD = 4;
+
+/** A tap on the drawing that is neither the end of a drag nor the second tap of a double tap. */
+export interface DrawingTap {
+  /** Where, in px from the top left of the drawing; null where there is no layout (tests). */
+  point: Point | null;
+  /** How far (px) from the tap an element may be and still be selected. */
+  reach: number;
+}
 
 export interface PanZoom {
   canvasRef: RefObject<HTMLDivElement | null>;
@@ -29,6 +46,11 @@ export interface PanZoom {
   reset: () => void;
   /** True once after a drag or pinch, so the click that ends it does not select. */
   consumeDrag: () => boolean;
+  /**
+   * Reads a click on the drawing. Returns null when it ends a drag or pinch, or when it is the
+   * second tap of a double tap (which zooms in about the tap); otherwise the tap to resolve.
+   */
+  consumeTap: (event: MouseEvent<SVGSVGElement>) => DrawingTap | null;
   /** Pointer handlers for the svg element. */
   handlers: {
     onPointerDown: (event: PointerEvent<SVGSVGElement>) => void;
@@ -48,7 +70,9 @@ export function usePanZoom(): PanZoom {
   const [size, setSize] = useState<Size>(DEFAULT_SIZE);
   const [view, setView] = useState<View>(INITIAL_VIEW);
   const pointers = useRef(new Map<number, Point>());
-  const gesture = useRef({ start: { x: 0, y: 0 }, moved: false });
+  const gesture = useRef({ start: { x: 0, y: 0 }, moved: false, slop: tapSlop('mouse') });
+  const pointerType = useRef('mouse');
+  const lastTap = useRef<Tap | null>(null);
   const sizeRef = useRef(size);
 
   useLayoutEffect(() => {
@@ -97,9 +121,17 @@ export function usePanZoom(): PanZoom {
 
   const onPointerDown = useCallback((event: PointerEvent<SVGSVGElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    // A mouse is one pointer: whatever is still tracked lost its release.
+    if (event.pointerType === 'mouse') pointers.current.clear();
     const point = localPoint(event);
     pointers.current.set(event.pointerId, point);
-    if (pointers.current.size === 1) gesture.current = { start: point, moved: false };
+    pointerType.current = event.pointerType || 'mouse';
+    if (pointers.current.size === 1) {
+      gesture.current = { start: point, moved: false, slop: tapSlop(pointerType.current) };
+    } else {
+      // A second finger makes it a pinch even if no finger moves.
+      gesture.current.moved = true;
+    }
   }, []);
 
   const onPointerMove = useCallback((event: PointerEvent<SVGSVGElement>) => {
@@ -110,35 +142,25 @@ export function usePanZoom(): PanZoom {
     pointers.current.set(event.pointerId, point);
 
     if (others.length === 0) {
-      const { start } = gesture.current;
+      const { start, slop } = gesture.current;
       if (!gesture.current.moved) {
-        if (Math.hypot(point.x - start.x, point.y - start.y) < DRAG_THRESHOLD) return;
+        if (!exceedsSlop(start, point, slop)) {
+          // Not a drag yet. Keeping the press point leaves the drawing under the finger once the
+          // pan starts.
+          pointers.current.set(event.pointerId, previous);
+          return;
+        }
         gesture.current.moved = true;
         event.currentTarget.setPointerCapture?.(event.pointerId);
       }
-      const dx = point.x - previous.x;
-      const dy = point.y - previous.y;
-      setView((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
+      setView((v) => panView(v, previous, point));
       return;
     }
 
     // Pinch: zoom by the change in distance between two fingers and follow their midpoint.
     const other = others[0]![1];
-    const before = Math.hypot(previous.x - other.x, previous.y - other.y);
-    const after = Math.hypot(point.x - other.x, point.y - other.y);
-    const midBefore = { x: (previous.x + other.x) / 2, y: (previous.y + other.y) / 2 };
-    const midAfter = { x: (point.x + other.x) / 2, y: (point.y + other.y) / 2 };
     gesture.current.moved = true;
-    if (before > 0 && after > 0) {
-      setView((v) => {
-        const panned = {
-          ...v,
-          x: v.x + midAfter.x - midBefore.x,
-          y: v.y + midAfter.y - midBefore.y,
-        };
-        return zoomAt(panned, after / before, midAfter, sizeRef.current);
-      });
-    }
+    setView((v) => pinchView(v, previous, point, other, sizeRef.current));
   }, []);
 
   const onPointerEnd = useCallback((event: PointerEvent<SVGSVGElement>) => {
@@ -158,6 +180,29 @@ export function usePanZoom(): PanZoom {
     return moved;
   }, []);
 
+  const consumeTap = useCallback(
+    (event: MouseEvent<SVGSVGElement>): DrawingTap | null => {
+      if (consumeDrag()) {
+        lastTap.current = null;
+        return null;
+      }
+      const rect = event.currentTarget.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return { point: null, reach: hitReach(pointerType.current) };
+      }
+      const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const tap = { point, time: event.timeStamp };
+      if (isDoubleTap(lastTap.current, tap)) {
+        lastTap.current = null;
+        setView((v) => zoomAt(v, DOUBLE_TAP_ZOOM, point, sizeRef.current));
+        return null;
+      }
+      lastTap.current = tap;
+      return { point, reach: hitReach(pointerType.current) };
+    },
+    [consumeDrag],
+  );
+
   return {
     canvasRef,
     svgRef,
@@ -167,6 +212,7 @@ export function usePanZoom(): PanZoom {
     zoomBy,
     reset,
     consumeDrag,
+    consumeTap,
     handlers: {
       onPointerDown,
       onPointerMove,
