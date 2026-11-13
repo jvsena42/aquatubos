@@ -1,0 +1,88 @@
+.help {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.help__button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--color-border-strong, var(--color-border));
+  border-radius: var(--radius-full, 999px);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.help__button:hover,
+.help__button[aria-expanded='true'] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.help__button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* 44 px hit area on touch screens without changing the visible size or the layout. */
+@media (pointer: coarse) {
+  .help__button::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+  }
+}
+
+.help__popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  z-index: 30;
+  display: block;
+  width: max-content;
+  max-width: min(22rem, 80vw);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  line-height: var(--line-height);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+.help__popover--start {
+  left: 0;
+}
+
+.help__popover--end {
+  right: 0;
+}
+
+.help__title {
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.help__content {
+  display: block;
+}
+
+.help__content > * + * {
+  margin-top: var(--space-2);
+}
