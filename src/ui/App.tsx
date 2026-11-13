@@ -9,6 +9,7 @@ import { useAppStore } from '../state/store';
 import { Header } from './shell/Header';
 import { PwaNotice } from './shell/PwaNotice';
 import { shellStrings } from './shell/strings';
+import { PHONE_QUERY, useMediaQuery } from './shell/useMediaQuery';
 import { HomeScreen } from './home/HomeScreen';
 import { StageSelect } from './stages/StageSelect';
 
@@ -82,19 +83,22 @@ export function App() {
   }, [screenKey]);
 
   const bleed = hydrated && !scenarioId && screen === 'home';
+  // On phones an open stage is a fixed frame the size of the viewport (see shell.css).
+  const phone = useMediaQuery(PHONE_QUERY);
+  const shell = phone && hydrated && scenarioId !== null;
+  const mainClass = shell
+    ? 'app__main app__main--shell'
+    : bleed
+      ? 'app__main app__main--bleed'
+      : 'app__main';
 
   return (
-    <div className="app">
+    <div className={shell ? 'app app--shell' : 'app'}>
       <a className="skip-link" href="#main">
         {tr(shellStrings.skipToContent)}
       </a>
       <Header />
-      <main
-        id="main"
-        ref={mainRef}
-        className={bleed ? 'app__main app__main--bleed' : 'app__main'}
-        tabIndex={-1}
-      >
+      <main id="main" ref={mainRef} className={mainClass} tabIndex={-1}>
         <div key={screenKey} className="screen">
           {!hydrated ? (
             <p className="app__loading" role="status">
