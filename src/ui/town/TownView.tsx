@@ -31,7 +31,7 @@ import { pipeStatuses } from '../network/status';
 import { networkStrings } from '../network/strings';
 import { useCoarsePointer, usePhone } from '../network/useMediaQuery';
 import { usePanZoom } from '../network/usePanZoom';
-import { SelectionBar, ZoomControls } from '../network/ViewControls';
+import { SelectionBar, ZoomControls, zoomControlsArea } from '../network/ViewControls';
 import { detailClass } from './detail';
 import { StatusBadge } from './sprites';
 import { townStrings as text } from './strings';
@@ -301,8 +301,11 @@ export function TownView() {
     : !evaluation && !solving
       ? networkStrings.notSolvedHint
       : null;
-  const blocked: Rect[] = [{ x: size.width - 116, y: 0, width: 116, height: 44 }];
-  if (hint) blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - 136), height: 38 });
+  const controls = zoomControlsArea(coarse || phone);
+  const blocked: Rect[] = [{ x: size.width - controls.width, y: 0, ...controls }];
+  if (hint) {
+    blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - controls.width - 20), height: 38 });
+  }
   const celebrating = feedback?.kind === 'success' && !reducedMotion;
   const rootClass = ['town', detailClass(scale), stale && 'town--stale'].filter(Boolean).join(' ');
   const limits = NBR_CHECK_LIMITS;

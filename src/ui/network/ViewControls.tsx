@@ -5,6 +5,14 @@ import { usePhone } from './useMediaQuery';
 import { useNum } from './format';
 import { networkStrings as text } from './strings';
 
+/**
+ * Area (px) at the top right of a drawing taken by the zoom controls, which labels must keep
+ * clear: three buttons of 32 px, or of 44 px where the pointer is a finger.
+ */
+export function zoomControlsArea(touch: boolean): { width: number; height: number } {
+  return touch ? { width: 152, height: 56 } : { width: 116, height: 44 };
+}
+
 interface ZoomControlsProps {
   onZoom: (factor: number) => void;
   onFit: () => void;

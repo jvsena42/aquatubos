@@ -7,13 +7,22 @@ import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
 import { mockMatchMedia } from './mockMatchMedia';
 import { PHONE_QUERY } from './useMediaQuery';
-import { SelectionBar } from './ViewControls';
+import { SelectionBar, zoomControlsArea } from './ViewControls';
 
 function openStage() {
   const scenario = getScenario('stage4')!;
   useAppStore.setState({ scenario, diameters: initialDiameters(scenario) });
   return scenario;
 }
+
+describe('zoomControlsArea', () => {
+  it('reserves room for three 44 px buttons on touch', () => {
+    // 3 × 44 px + 2 gaps of 4 px + 8 px from the edge = 148 px.
+    expect(zoomControlsArea(true).width).toBeGreaterThanOrEqual(148);
+    expect(zoomControlsArea(true).height).toBeGreaterThanOrEqual(52);
+    expect(zoomControlsArea(false)).toEqual({ width: 116, height: 44 });
+  });
+});
 
 describe('SelectionBar', () => {
   let restore = () => {};

@@ -23,9 +23,9 @@ import { placeLabels, textWidth, type LabelRequest, type Rect, type ThickSegment
 import { Legend } from './Legend';
 import { nodeStatuses, pipeStatuses } from './status';
 import { HEAD_UNIT, networkStrings as text, pressureStatusLabels } from './strings';
-import { usePhone } from './useMediaQuery';
+import { useCoarsePointer, usePhone } from './useMediaQuery';
 import { usePanZoom } from './usePanZoom';
-import { SelectionBar, ZoomControls } from './ViewControls';
+import { SelectionBar, ZoomControls, zoomControlsArea } from './ViewControls';
 import './network.css';
 
 type ElementType = NonNullable<Selection>['type'];
@@ -116,6 +116,7 @@ export function NetworkView() {
 
   const helpId = useId();
   const phone = usePhone();
+  const coarse = useCoarsePointer();
   const { canvasRef, svgRef, size, view, zoomBy, reset, consumeTap, handlers } = usePanZoom();
 
   const world = useMemo(() => (scenario ? worldPositions(scenario) : {}), [scenario]);
@@ -215,8 +216,11 @@ export function NetworkView() {
   // Labels: every element offers a few places and amounts of text; the placer keeps what does
   // not collide and drops text from the least important labels first.
   const requests: LabelRequest<PlacedLabel>[] = [];
-  const blocked: Rect[] = [{ x: size.width - 116, y: 0, width: 116, height: 44 }];
-  if (hint) blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - 136), height: 38 });
+  const controls = zoomControlsArea(coarse || phone);
+  const blocked: Rect[] = [{ x: size.width - controls.width, y: 0, ...controls }];
+  if (hint) {
+    blocked.push({ x: 0, y: 0, width: Math.max(0, size.width - controls.width - 20), height: 38 });
+  }
   const segments: ThickSegment[] = [];
   const request = (
     type: ElementType,

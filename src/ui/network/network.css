@@ -288,6 +288,9 @@ rect.netview__hit {
     min-width: 2.75rem;
     min-height: 2.75rem;
   }
+  .netview__hint {
+    max-width: calc(100% - 10.75rem);
+  }
 }
 
 .netview__zoom .icon,
@@ -446,6 +449,6 @@ rect.netview__hit {
 /* Phones: the drawing takes what the panel gives it, also when that is little (landscape). */
 @media (max-width: 760px), (max-height: 500px) {
   .netview__canvas {
-    min-height: 9rem;
+    min-height: 8rem;
   }
 }
