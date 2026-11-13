@@ -106,3 +106,139 @@
   height: 12px;
   overflow: visible;
 }
+
+/* Persistent readout of the point chosen in a chart by tap, click, hover or keyboard. */
+.chart__readout {
+  min-height: 2.75em;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  font-size: var(--font-size-sm);
+}
+
+.chart__readout-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+/*
+ * Scrolling frame of a wide table (ScrollTable). The header row and the first column stay in
+ * view; a fade on a side says there are more columns that way.
+ */
+.hscroll {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.hscroll__scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* Contains the visually hidden texts, which are absolutely positioned. */
+  position: relative;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.hscroll__scroller:focus-visible {
+  outline-offset: -2px;
+}
+
+.hscroll thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.hscroll .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+/* Collapsed borders do not travel with a sticky cell, so each cell keeps its own. */
+.hscroll .table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.hscroll :is(tbody, tfoot) .sticky-col {
+  background: var(--color-surface);
+  box-shadow: inset -1px 0 0 var(--color-border);
+}
+
+.hscroll thead .sticky-col {
+  box-shadow:
+    inset -1px 0 0 var(--color-border),
+    inset 0 -1px 0 var(--color-border);
+}
+
+.hscroll tbody tr:hover .sticky-col {
+  background: var(--color-surface-2);
+}
+
+.hscroll tr[aria-selected='true'] .sticky-col {
+  background: var(--color-info-bg);
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    inset -1px 0 0 var(--color-border);
+}
+
+.hscroll::before,
+.hscroll::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+/* Columns hidden under the sticky first column: a shadow falls from its edge. */
+.hscroll::before {
+  left: calc(1px + var(--hscroll-sticky, 0px));
+  width: var(--space-3);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-text) 22%, transparent),
+    transparent
+  );
+}
+
+/* Columns hidden after the right edge: the table fades out. */
+.hscroll::after {
+  right: 1px;
+  width: var(--space-6);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--color-text) 18%, var(--color-surface))
+  );
+}
+
+.hscroll[data-fade-start='true']::before,
+.hscroll[data-fade-end='true']::after {
+  opacity: 1;
+}
+
+/* Rows are tap targets on touch screens. */
+@media (pointer: coarse), (max-width: 760px) {
+  .hscroll .table tbody :is(th, td) {
+    height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hscroll::before,
+  .hscroll::after {
+    transition: none;
+  }
+}
