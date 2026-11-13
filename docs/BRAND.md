@@ -271,6 +271,108 @@ control.
 
 When a colour changes, recompute the ratios and update this table.
 
+## Illustration style
+
+The town view of the network tab and the stage map are drawn in SVG by hand, from the same few
+shapes as the logo: circles, rectangles and straight lines, flat fills and thin outlines. The view
+is a plan seen from straight above; depth comes only from a short ground shadow and from roofs in
+two tones. It should read as a calm map, not as a cartoon. The components are in `src/ui/town/`
+and the layout comes from the generator in `src/game/town/`.
+
+### Palette
+
+Decorative fills. None of them is a text colour, and none carries meaning on its own.
+
+| Token                       | Light                | Dark              | Role                                                    |
+| --------------------------- | -------------------- | ----------------- | ------------------------------------------------------- |
+| `--color-map-ground`        | #eef2e6              | #142033           | Ground, canvas background                               |
+| `--color-map-contour`       | #b7c2a4              | #34485e           | Hill shading: mixed into the ground, more per band      |
+| `--color-map-grass`         | #cfe3c0              | #1d3a34           | Park lawn, highlight on trees                           |
+| `--color-map-tree`          | #6fa77a              | #3f7d5c           | Tree crowns, park outline                               |
+| `--color-map-street`        | #dfe4ea              | #26374b           | Street and plaza surface, casing of the pipe line       |
+| `--color-map-street-edge`   | #b9c3ce              | #3b5068           | Kerb line of streets and plazas                         |
+| `--color-map-building`      | #f7f4ee              | #2b3d52           | Scenery buildings, paving, walls of tank and pump house |
+| `--color-map-building-edge` | #8795a3              | #6f8298           | Outline of every building and house                     |
+| `--color-map-roof`          | #c98f6b              | #9a6a4f           | Roof of most houses                                     |
+| `--color-map-roof-alt`      | #7f9bb5              | #4f6f8e           | Roof of about one house in three, landmark roofs        |
+| `--color-map-window`        | #9fb0c3              | #50647a           | Roof windows, unlit                                     |
+| `--color-map-window-lit`    | #f5cf45              | #f5cf45           | Roof windows of houses with service                     |
+| `--color-map-water`         | #a5dfeb              | #1c5f7a           | Water in tanks, reservoirs and the park pond            |
+| `--color-map-shadow`        | rgb(15 27 42 / 0.16) | rgb(0 0 0 / 0.32) | Ground shadows and the shaded half of a roof            |
+| `--color-map-locked`        | #b6bfc9              | #44566a           | Locked stages on the stage map                          |
+
+Everything that carries a result uses the hydraulic colours instead: pipe lines take
+`--color-pipe` or the velocity colours, service status takes the pressure colours, and the
+reservoir and pump house are outlined in `--color-reservoir`.
+
+### Strokes and corners
+
+- Outlines of scenery are 1 px on screen at any zoom (`vector-effect: non-scaling-stroke`).
+  Reservoir and pump house walls are 2.5 px, so the two elements of the network stand out from
+  the scenery.
+- Joins and caps are round. Streets end in a round cap, and a round plaza joins them at every
+  node.
+- Buildings have a corner radius of 1.5 m in plan (about 1 px), the park and the ground
+  reservoir a large one. Labels are rounded rectangles (5 px) for pipes, reservoirs and pumps and
+  pills for nodes.
+- The light comes from the top left. Shadows are the footprint moved 3.5 m right and 4.5 m down,
+  in `--color-map-shadow`. No blur, no gradients.
+
+### Elements
+
+- **Street:** a line as wide as the street in `--color-map-street` over a slightly wider one in
+  `--color-map-street-edge`. Pipe streets are 34 m wide, the lane of a pump link 22 m.
+- **Pipe:** a line along the middle of its street, coloured by velocity status and as wide as
+  the DN asks, with light dashes that travel downstream and one arrowhead.
+- **House:** a rectangle with a hip roof seen from above. The whole roof takes the roof colour;
+  the two planes that face away from the light are covered with `--color-map-shadow`; thin lines
+  mark the ridge and the hips; two small windows sit on the lit long plane. Four shapes per
+  house.
+- **Scenery building:** a flat roof, drawn as a rectangle in `--color-map-building` with a faint
+  inner parapet line. Landmarks (school, church, market, square) are one outline in a pale
+  `--color-map-roof-alt` plus one or two marks.
+- **Tree:** a circle in `--color-map-tree` (some lighter) with a smaller, lighter circle towards
+  the light and a round shadow.
+- **Park:** a square with very round corners in `--color-map-grass`, two crossing paths and a
+  round pond.
+- **Elevated tank (water tower):** a circle with a 2.5 px `--color-reservoir` wall, a smaller
+  circle of water and a centre cap. Its shadow falls much farther than a house shadow and four
+  short lines join tank and shadow: that distance is what says "tall".
+- **Ground reservoir:** a square basin with round corners and the same wall, water inside with
+  two wave lines, and a short shadow.
+- **Pump house:** a small flat-roofed building with the reservoir wall, and on its roof the pump
+  symbol of the schematic (circle with a triangle that points downstream).
+
+### Status badges
+
+The service of the houses of a node is shown three ways at once: a badge next to the node, a tint
+on the roofs and the accessible name. The badge alone is enough to tell the states apart, because
+shape and glyph differ as well as colour.
+
+| Status                           | Badge shape    | Glyph            | Colour                  | Houses                         |
+| -------------------------------- | -------------- | ---------------- | ----------------------- | ------------------------------ |
+| Served                           | Disc           | Water drop       | `--color-pressure-ok`   | Windows lit, roofs unchanged   |
+| Dynamic pressure below the limit | Rounded square | Tap with a slash | `--color-pressure-low`  | Roofs tinted red, windows dark |
+| Static pressure above the limit  | Diamond        | Burst pipe       | `--color-pressure-high` | Roofs tinted purple            |
+| No result yet                    | None           | None             | None                    | Neutral                        |
+
+The glyph is drawn in `--color-surface` on the status colour, in a 20 px box. When the results
+are outdated the badges, tints and pipe colours fade and the windows go dark.
+
+### Do and don't
+
+- Do build new elements from circles, rectangles and straight lines, with at most five or six
+  shapes each.
+- Do keep the light direction and the shadow offset.
+- Do take every colour from a token, and mix two tokens with `color-mix` when a variant is
+  needed.
+- Don't add faces, characters, vehicles or anything that moves on its own. The only motion is
+  the water: flow dashes, the fill after a successful check and the pulse on failing houses,
+  all off with `prefers-reduced-motion`.
+- Don't use gradients, blur, textures or raster images.
+- Don't use the status colours for scenery, or the scenery colours for a result.
+- Don't show a status by tint alone: the badge goes with it.
+
 ## Typography
 
 | Token         | Family                      | Use                                                  |
