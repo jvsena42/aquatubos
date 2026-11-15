@@ -25,8 +25,8 @@ export const GLOSSARY = {
   unitHeadLoss: {
     term: { pt: 'Perda de carga unitária (J)', en: 'Unit head loss (J)' },
     definition: {
-      pt: 'Perda de carga dividida pelo comprimento do trecho: J = hf / L, em m/m. É a declividade da linha piezométrica no trecho.',
-      en: 'Head loss divided by the pipe length: J = hf / L, in m/m. It is the slope of the hydraulic grade line along the pipe.',
+      pt: 'Perda de carga dividida pelo comprimento do trecho: J = hf / L, em m/m. É a declividade da linha piezométrica no trecho. A ABNT NBR 12218:2017 limita J a 10 m/km.',
+      en: 'Head loss divided by the pipe length: J = hf / L, in m/m. It is the slope of the hydraulic grade line along the pipe. ABNT NBR 12218:2017 limits J to 10 m/km.',
     },
   },
   hgl: {

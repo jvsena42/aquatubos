@@ -64,7 +64,7 @@ describe('ResultsTable', () => {
       'N3',
       '260,0',
       '4,000',
-      '75',
+      '100',
       pt(result.velocity, 2),
       pt(result.unitHeadLoss * 1000, 2),
       pt(result.headLoss, 2),
@@ -209,8 +209,9 @@ describe('ResultsTable', () => {
     expect(within(pipeTable()).getAllByText(/Erro: acima do máximo de 3,50 m\/s/)).not.toHaveLength(
       0,
     );
+    expect(within(row).getByText(/Erro: acima do máximo de 10,00 m\/km/)).toBeInTheDocument();
     // The mark stays in the cell: an icon with the reason as text.
-    expect(row.querySelectorAll('.results__flag svg')).toHaveLength(2);
+    expect(row.querySelectorAll('.results__flag svg')).toHaveLength(3);
   });
 
   it('does not mark anything in a passing design without warnings', () => {
@@ -406,12 +407,12 @@ describe('ResultsTable', () => {
       expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
       const pt = new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes);
       expect(pt.startsWith(`${CSV_BOM}Trecho;Nó montante;Nó jusante;Extensão (m)`)).toBe(true);
-      expect(pt).toContain('\r\nT1;R1;A;250,0;10,500;100;');
+      expect(pt).toContain('\r\nT1;R1;A;250,0;10,500;150;');
 
       act(() => useAppStore.setState({ lang: 'en' }));
       await user.click(screen.getByRole('button', { name: 'Export CSV' }));
       const en = await blobs[1]!.text();
-      expect(en).toContain('\r\nT1,R1,A,250.0,10.500,100,');
+      expect(en).toContain('\r\nT1,R1,A,250.0,10.500,150,');
     });
   });
 });

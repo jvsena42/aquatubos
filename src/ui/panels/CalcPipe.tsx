@@ -12,7 +12,7 @@ import type { ScenarioPipe } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { Term } from '../glossary/Term';
 import { DnPicker } from '../network/DnPicker';
-import { classifyVelocity } from '../network/status';
+import { classifyVelocity, isAboveMaxUnitHeadLoss } from '../network/status';
 import { networkStrings } from '../network/strings';
 import { usePhone } from '../shell/breakpoints';
 import { money } from '../shell/strings';
@@ -109,7 +109,12 @@ export function CalcPipe({ pipe }: { pipe: ScenarioPipe }) {
             >
               {num(calc.velocity, 2)} m/s
             </Result>
-            <Result label="J" name={tr(text.stepUnitLoss)} id="j">
+            <Result
+              label="J"
+              name={tr(text.stepUnitLoss)}
+              id="j"
+              status={<UnitLossStatus unitLoss={calc.unitHeadLoss} mark />}
+            >
               {sig(calc.unitHeadLoss * 1000, 3)} m/km
             </Result>
             <Result
@@ -203,6 +208,21 @@ function VelocityStatus({ velocity, mark = false }: { velocity: number; mark?: b
   );
 }
 
+/** Unit head loss (m/m) against the maximum of the stage, as a badge or as an icon mark. */
+function UnitLossStatus({ unitLoss, mark = false }: { unitLoss: number; mark?: boolean }) {
+  const tr = useTr();
+  const { num } = useCalcFormat();
+  const setting: CheckSetting = useAppStore((s) => s.scenario?.checks.maxUnitHeadLoss ?? 'off');
+  const Badge = mark ? StatusMark : LimitBadge;
+  const maximum = `${num(NBR_CHECK_LIMITS.maxUnitHeadLoss * 1000, 0)} m/km`;
+  const above = isAboveMaxUnitHeadLoss(unitLoss);
+  return (
+    <Badge ok={!above} setting={setting}>
+      {above ? tr(text.aboveMax(maximum)) : tr(text.within(tr(text.max(maximum))))}
+    </Badge>
+  );
+}
+
 function PipeSteps({ calc }: { calc: PipeCalc }) {
   const tr = useTr();
   const { num, plain, sig, sci } = useCalcFormat();
@@ -279,6 +299,9 @@ function PipeSteps({ calc }: { calc: PipeCalc }) {
               </Eq>
               <Eq>J = {unitLossValues}</Eq>
               <p className="calc__note">{tr(text.hazenWilliams)}</p>
+              <p className="calc__status">
+                <UnitLossStatus unitLoss={calc.unitHeadLoss} />
+              </p>
             </Step>
             <Step title={<Term id="headLoss">{tr(text.stepHeadLoss)}</Term>}>
               <Eq>
@@ -334,6 +357,9 @@ function PipeSteps({ calc }: { calc: PipeCalc }) {
               <Eq>
                 J = h<sub>f</sub> / L = {hf} / {length} = {unitLossValues}
               </Eq>
+              <p className="calc__status">
+                <UnitLossStatus unitLoss={calc.unitHeadLoss} />
+              </p>
             </Step>
           </>
         )}

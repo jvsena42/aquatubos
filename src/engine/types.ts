@@ -203,6 +203,7 @@ export type CheckId =
   | 'maxStaticPressure'
   | 'minVelocity'
   | 'maxVelocity'
+  | 'maxUnitHeadLoss'
   | 'minDiameter'
   | 'convergence';
 
@@ -222,6 +223,8 @@ export interface CheckLimits {
   minVelocity: number;
   /** m/s */
   maxVelocity: number;
+  /** m/m (head loss per metre of pipe) */
+  maxUnitHeadLoss: number;
   /** m (nominal) */
   minDiameter: number;
 }

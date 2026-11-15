@@ -33,7 +33,7 @@ describe('buildLabels on a wide screen', () => {
     expect(labels.filter((l) => l.kind === 'pipe').map((l) => l.text)).toEqual(
       stage5.pipes.map((p) => `DN ${p.dn}`),
     );
-    expect(labels.find((l) => l.id === 'node-N4')!.text).toBe('N4 · 10.0 mca');
+    expect(labels.find((l) => l.id === 'node-N4')!.text).toBe('N4 · 10.2 mca');
     expect(labels.find((l) => l.id === 'reservoir-R1')!.text).toBe('R1 · NA 100.0 m');
     expect(labels.find((l) => l.id === 'pump-B1')!.text).toBe('B1 · Bomba');
   });
@@ -61,7 +61,7 @@ describe('buildLabels on a small screen', () => {
     expect(labels.length).toBe(wide.length - stage5.pipes.length);
     expect(labels.some((l) => l.kind === 'pipe')).toBe(false);
     expect(labels.find((l) => l.id === 'node-N4')).toMatchObject({
-      text: 'N4 · 10.0',
+      text: 'N4 · 10.2',
       short: 'N4',
     });
     expect(labels.find((l) => l.id === 'reservoir-R1')!.text).toBe('R1');
@@ -91,7 +91,7 @@ describe('buildLabels on a small screen', () => {
       selection: { type: 'node', id: 'N3' },
     });
     const selected = node.find((l) => l.id === 'node-N3')!;
-    expect(selected.text).toBe('N3 · 18.7 mca');
+    expect(selected.text).toBe('N3 · 18.4 mca');
     expect(selected.short).toBeUndefined();
     expect(selected.priority).toBe(LABEL_PRIORITY.selected);
     expect(Math.max(...node.map((l) => l.priority))).toBe(selected.priority);

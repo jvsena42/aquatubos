@@ -35,6 +35,10 @@
     {
       "pt": "Velocidade máxima de 3,5 m/s",
       "en": "Maximum velocity of 3.5 m/s"
+    },
+    {
+      "pt": "Perda de carga unitária máxima de 10 m/km",
+      "en": "Maximum unit head loss of 10 m/km"
     }
   ],
   "formula": "hazen-williams",
@@ -163,6 +167,7 @@
     "maxStaticPressure": "error",
     "minVelocity": "warning",
     "maxVelocity": "error",
+    "maxUnitHeadLoss": "error",
     "minDiameter": "error"
   },
   "budget": null,
@@ -177,12 +182,12 @@
     "diameters": {
       "T1": 150,
       "T2": 100,
-      "T3": 75,
+      "T3": 100,
       "T4": 75,
-      "T5": 50,
+      "T5": 75,
       "T6": 50
     },
-    "cost": 81640,
+    "cost": 89980,
     "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
   }
 }

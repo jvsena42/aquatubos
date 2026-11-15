@@ -19,6 +19,11 @@ export function classifyVelocity(
   return 'ok';
 }
 
+/** True when the unit head loss (m/m) is above the maximum. */
+export function isAboveMaxUnitHeadLoss(unitLoss: number, limits: CheckLimits = NBR_CHECK_LIMITS) {
+  return unitLoss > limits.maxUnitHeadLoss + TOLERANCE;
+}
+
 export function isBelowMinPressure(pressure: number, limits: CheckLimits = NBR_CHECK_LIMITS) {
   return pressure < limits.minDynamicPressure - TOLERANCE;
 }
@@ -64,7 +69,10 @@ export function nodeStatuses(
   return statuses;
 }
 
-/** Velocity status of every pipe of an evaluation, following the checks active in the stage. */
+/**
+ * Status of every pipe of an evaluation, following the checks active in the stage: velocity
+ * against its limits, and `high` also when the unit head loss is above the maximum.
+ */
 export function pipeStatuses(
   evaluation: StageEvaluation | null,
   settings: CheckSettings,
@@ -73,13 +81,18 @@ export function pipeStatuses(
   if (!evaluation) return statuses;
   const checkMin = settings.minVelocity !== 'off';
   const checkMax = settings.maxVelocity !== 'off';
+  const checkLoss = settings.maxUnitHeadLoss !== 'off';
   for (const pipe of evaluation.network.pipes) {
-    const velocity = evaluation.result.pipes[pipe.id]?.velocity;
-    if (velocity === undefined || (!checkMin && !checkMax)) {
+    const result = evaluation.result.pipes[pipe.id];
+    if (result === undefined || (!checkMin && !checkMax && !checkLoss)) {
       statuses[pipe.id] = 'none';
       continue;
     }
-    const raw = classifyVelocity(Math.abs(velocity));
+    if (checkLoss && isAboveMaxUnitHeadLoss(result.unitHeadLoss)) {
+      statuses[pipe.id] = 'high';
+      continue;
+    }
+    const raw = classifyVelocity(Math.abs(result.velocity));
     statuses[pipe.id] = (raw === 'low' && !checkMin) || (raw === 'high' && !checkMax) ? 'ok' : raw;
   }
   return statuses;

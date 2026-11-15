@@ -11,10 +11,12 @@ export const NBR_12218 = {
   minDynamicPressure: 10,
   /** Maximum static pressure head, m (400 kPa ≈ 40 mca). */
   maxStaticPressure: 40,
-  /** Minimum velocity, m/s. */
-  minVelocity: 0.6,
+  /** Minimum velocity, m/s (0.6 m/s in the 1994 edition). */
+  minVelocity: 0.4,
   /** Maximum velocity, m/s. */
   maxVelocity: 3.5,
+  /** Maximum unit head loss, m/m (10 m/km). */
+  maxUnitHeadLoss: 0.01,
   /** Minimum nominal diameter, m (DN 50). */
   minDiameter: 0.05,
   /** Coefficient of the day of highest consumption. */
@@ -28,5 +30,6 @@ export const NBR_CHECK_LIMITS: CheckLimits = {
   maxStaticPressure: NBR_12218.maxStaticPressure,
   minVelocity: NBR_12218.minVelocity,
   maxVelocity: NBR_12218.maxVelocity,
+  maxUnitHeadLoss: NBR_12218.maxUnitHeadLoss,
   minDiameter: NBR_12218.minDiameter,
 };

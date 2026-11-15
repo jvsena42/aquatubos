@@ -135,7 +135,7 @@ describe('TownView', () => {
     solved('stage1');
     const view = render(<TownView />);
     expect(element('pipe', 'T2')).toHaveAccessibleName(
-      'Trecho T2, DN 75 mm, vazão 6,00 L/s, velocidade 1,36 m/s, escoamento de N1 para N2',
+      'Trecho T2, DN 75 mm, vazão 6,00 L/s, velocidade 1,36 m/s, J 26,06 m/km, escoamento de N1 para N2',
     );
     expect(element('node', 'N3')).toHaveAccessibleName(
       'Nó N3, 8 casas, demanda 2,50 L/s, pressão 12,9 mca, atendido',

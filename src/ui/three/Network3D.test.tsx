@@ -28,7 +28,7 @@ describe('Network3D without WebGL', () => {
     expect(container.querySelector('canvas')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
     expect(
-      screen.getByText('Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).'),
+      screen.getByText('Nó crítico: N4, com pressão dinâmica de 14,5 mca (mínimo de 10 mca).'),
     ).toBeInTheDocument();
   });
 
@@ -38,7 +38,7 @@ describe('Network3D without WebGL', () => {
     render(<Network3D />);
     expect(screen.getByRole('status')).toHaveTextContent('This browser could not start WebGL');
     expect(
-      screen.getByText('Critical node: N4, with a dynamic pressure of 10.6 mca (minimum 10 mca).'),
+      screen.getByText('Critical node: N4, with a dynamic pressure of 14.5 mca (minimum 10 mca).'),
     ).toBeInTheDocument();
   });
 

@@ -13,7 +13,7 @@ interface Tools {
   num: (value: number, digits?: number) => string;
 }
 
-/** Accessible name of a pipe: id, DN and, after a calculation, flow, velocity and status. */
+/** Accessible name of a pipe: id, DN and, after a calculation, flow, velocity, unit head loss and status. */
 export function describePipe(
   { tr, num }: Tools,
   pipe: ScenarioPipe,
@@ -30,6 +30,7 @@ export function describePipe(
     pipe.fixed && tr(text.fixedDiameter),
     result && `${tr(text.flow)} ${num(m3sToLps(Math.abs(flow)))} L/s`,
     result && `${tr(text.velocity)} ${num(Math.abs(result.velocity))} m/s`,
+    result && `J ${num(result.unitHeadLoss * 1000)} m/km`,
     result &&
       (Math.abs(flow) > NO_FLOW
         ? tr(reverse ? text.flowFromTo(pipe.to, pipe.from) : text.flowFromTo(pipe.from, pipe.to))

@@ -230,6 +230,12 @@ export function ResultsTable() {
           selectedPipe.velocityFlag,
         ),
         ...flagNote(
+          tr(s.unitHeadLoss),
+          fmt(selectedPipe.unitHeadLoss, 2),
+          'm/km',
+          selectedPipe.unitHeadLossFlag,
+        ),
+        ...flagNote(
           `${tr(s.pressure)} (${tr(s.upstream)})`,
           fmt(selectedPipe.pressureUp, 2),
           mca,
@@ -357,7 +363,11 @@ export function ResultsTable() {
                     <td className="num">{fmt(row.flow, 3)}</td>
                     <td className="num">{fmt(row.dn, 0)}</td>
                     <ValueCell value={fmt(row.velocity, 2)} flag={row.velocityFlag} unit="m/s" />
-                    <td className="num">{fmt(row.unitHeadLoss, 2)}</td>
+                    <ValueCell
+                      value={fmt(row.unitHeadLoss, 2)}
+                      flag={row.unitHeadLossFlag}
+                      unit="m/km"
+                    />
                     <td className="num">{fmt(row.headLoss, 2)}</td>
                     <td className="num">{fmt(row.headUp, 2)}</td>
                     <td className="num">{fmt(row.headDown, 2)}</td>

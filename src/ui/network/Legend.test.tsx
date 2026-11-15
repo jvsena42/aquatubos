@@ -22,6 +22,7 @@ describe('LegendIcons', () => {
       'pipe-low',
       'pipe-ok',
       'pipe-high',
+      'pipe-high-loss',
       'direction',
       'width',
     ]);
@@ -35,6 +36,7 @@ describe('LegendIcons', () => {
       within(list).getByRole('img', { name: 'Dinâmica abaixo de 10 mca' }),
     ).toBeInTheDocument();
     expect(within(list).getByRole('img', { name: 'V acima de 3,5 m/s' })).toBeInTheDocument();
+    expect(within(list).getByRole('img', { name: 'J acima de 10 m/km' })).toBeInTheDocument();
   });
 
   it('marks the pipes outside the velocity limits with the icon of the map', () => {
@@ -54,7 +56,22 @@ describe('LegendIcons', () => {
     );
     const keys = () =>
       [...document.querySelectorAll('[data-entry]')].map((item) => item.getAttribute('data-entry'));
-    expect(keys()).toEqual(['node-ok', 'node-low', 'pipe-ok', 'pipe-high', 'direction', 'width']);
+    expect(keys()).toEqual([
+      'node-ok',
+      'node-low',
+      'pipe-ok',
+      'pipe-high',
+      'pipe-high-loss',
+      'direction',
+      'width',
+    ]);
+    view.rerender(
+      <LegendIcons
+        checks={{ ...checks, minVelocity: 'off', maxVelocity: 'off', maxUnitHeadLoss: 'error' }}
+        evaluated
+      />,
+    );
+    expect(screen.getByRole('img', { name: 'Trecho adequado' })).toBeInTheDocument();
     view.rerender(<LegendIcons checks={checks} evaluated={false} />);
     expect(keys()).toEqual(['width']);
   });
@@ -94,9 +111,10 @@ describe('LegendHelp', () => {
       'Pressão adequada',
       'Dinâmica abaixo de 10 mca',
       'Estática acima de 40 mca',
-      'V abaixo de 0,6 m/s',
-      'V de 0,6 a 3,5 m/s',
+      'V abaixo de 0,4 m/s',
+      'V de 0,4 a 3,5 m/s',
       'V acima de 3,5 m/s',
+      'J acima de 10 m/km',
       'Sentido do escoamento',
       'Espessura proporcional ao DN',
     ]) {

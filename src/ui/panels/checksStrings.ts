@@ -45,6 +45,7 @@ export const checkLabels: Record<CheckId, LocalizedText> = {
   maxStaticPressure: { pt: 'Pressão estática máx.', en: 'Max. static pressure' },
   minVelocity: { pt: 'Velocidade mín.', en: 'Min. velocity' },
   maxVelocity: { pt: 'Velocidade máx.', en: 'Max. velocity' },
+  maxUnitHeadLoss: { pt: 'Perda de carga máx.', en: 'Max. head loss' },
   minDiameter: { pt: 'Diâmetro mín.', en: 'Min. diameter' },
   convergence: { pt: 'Convergência', en: 'Convergence' },
 };

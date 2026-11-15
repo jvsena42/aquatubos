@@ -178,7 +178,7 @@ describe('CSV', () => {
     );
     const cells = lines[1]!.split(';');
     expect(cells).toHaveLength(PIPE_COLUMNS.length);
-    expect(cells.slice(0, 6)).toEqual(['T1', 'R1', 'N1', '250,0', '10,500', '100']);
+    expect(cells.slice(0, 6)).toEqual(['T1', 'R1', 'N1', '250,0', '10,500', '150']);
     expect(cells[9]).toBe('150,00');
     expect(cells[11]).toBe('146,00');
     expect(cells[14]).toBe(evaluation.result.nodes.N1!.pressure.toFixed(2).replace('.', ','));
