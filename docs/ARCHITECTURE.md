@@ -358,14 +358,21 @@ The limits live only in `config/nbr12218.ts`, labelled ABNT NBR 12218:2017:
 | ------------------------ | ------- |
 | Minimum dynamic pressure | 10 mca  |
 | Maximum static pressure  | 40 mca  |
-| Minimum velocity         | 0.6 m/s |
+| Minimum velocity         | 0.4 m/s |
 | Maximum velocity         | 3.5 m/s |
+| Maximum unit head loss   | 10 m/km |
 | Minimum nominal diameter | 50 mm   |
+
+The minimum velocity of 0.6 m/s and the absence of a head loss check came from the previous
+edition of the standard; they were updated to the 2017 values.
 
 Each scenario sets every check to `error`, `warning` or `off`. `runChecks` returns one issue per
 violation with the element, the computed value, the limit and an explanation in Portuguese and
 English. A design passes when it has no `error` issue. Minimum velocity is a warning in the
-stages, because dead-end pipes with small demands cannot reach 0.6 m/s at DN 50.
+stages, because dead-end pipes with small demands cannot reach 0.4 m/s at DN 50, and the
+10 m/km head loss limit often forces a larger pipe on them. The head loss limit is an error in
+stages 2 to 5 (stage 1 checks only pressure and diameter); the map draws a pipe above it as
+`high`, like a pipe above the maximum velocity.
 
 Static pressure is the no-flow condition: the highest reservoir level reachable from the node,
 plus the shutoff head of a pump on the way, minus the ground elevation. A pump discharge node
@@ -469,7 +476,7 @@ Coverage is measured for `src/engine` and `src/game`; the build fails under 80 %
 | SI inside the engine, display units at the edges          | The original app compared metres with kPa. One unit system inside removes that class of error.                                                 |
 | Internal diameter = nominal diameter                      | Hand checks use the DN. Documented as a simplification.                                                                                        |
 | Explanations for failed checks are produced by the engine | The text needs the numbers and limits the engine already has, and the engine stays the single source for both languages.                       |
-| Minimum velocity as a warning                             | With a 50 mm minimum diameter, small dead-end demands cannot reach 0.6 m/s. Making it an error would make stages unsolvable.                   |
+| Minimum velocity as a warning                             | With a 50 mm minimum diameter, small dead-end demands cannot reach 0.4 m/s. Making it an error would make stages unsolvable.                   |
 | Solver in a Web Worker                                    | Keeps the UI responsive and forces the evaluation result to be plain data.                                                                     |
 | Strings as `{ pt, en }` objects next to components        | Two languages only; no key catalog to keep in sync.                                                                                            |
 | Hand-written SVG for the network and charts               | Small bundle, full control of labels and accessibility. three.js is only for the optional 3D view and is lazy-loaded.                          |
