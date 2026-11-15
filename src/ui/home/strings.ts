@@ -11,8 +11,8 @@ export const homeStrings = {
   /** Behind the "?" next to the tagline, and in the credits. */
   helpTopic: { pt: 'O que é o Aquatubos', en: 'What is Aquatubos' },
   lead: {
-    pt: 'Aprenda dimensionamento de redes de distribuição: Hazen-Williams, redes malhadas com Hardy Cross, orçamento e bombeamento, segundo a NBR 12218.',
-    en: 'Learn to size water distribution networks: Hazen-Williams, looped networks with Hardy Cross, budget and pumping, following NBR 12218.',
+    pt: 'Aprenda dimensionamento de redes de distribuição: Hazen-Williams, redes malhadas com Hardy Cross, orçamento e bombeamento, segundo a ABNT NBR 12218:2017.',
+    en: 'Learn to size water distribution networks: Hazen-Williams, looped networks with Hardy Cross, budget and pumping, following ABNT NBR 12218:2017.',
   },
   saved: {
     pt: 'O progresso fica salvo neste dispositivo.',

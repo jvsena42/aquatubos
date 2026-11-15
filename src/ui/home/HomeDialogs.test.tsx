@@ -168,7 +168,7 @@ describe('home dialogs', () => {
       expect(dialog.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
       expect(dialog.getByText(/Jogo educativo/)).toBeInTheDocument();
       expect(dialog.getByText(/Hazen-Williams.*Hardy Cross.*NBR 12218/)).toBeInTheDocument();
-      expect(dialog.getByText(/ABNT NBR 12218:2017/)).toBeInTheDocument();
+      expect(dialog.getByText('Verificações da ABNT NBR 12218:2017.')).toBeInTheDocument();
       expect(dialog.getByText(/validado contra o EPANET/)).toBeInTheDocument();
       expect(dialog.getByText(/Preços dos tubos ilustrativos/)).toBeInTheDocument();
       expect(dialog.getByText(/O progresso fica salvo neste dispositivo/)).toBeInTheDocument();

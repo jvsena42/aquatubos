@@ -175,7 +175,7 @@ values. Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-strategy)
 - Internal diameter is taken equal to the nominal diameter.
 - Steady state at the design flow; no tanks, valves, minor losses or extended-period simulation.
 - Minimum velocity is reported as a warning, not a failure.
-- The limits are the values commonly taught for NBR 12218; check the standard itself for real
+- The limits are those of ABNT NBR 12218:2017 as taught in courses; check the standard itself for real
   design work. This is a teaching tool, not design software.
 
 ## Run, test, build
