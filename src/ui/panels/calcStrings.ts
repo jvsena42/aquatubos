@@ -90,10 +90,6 @@ export const calcStrings = {
   }),
   min: (limit: string): LocalizedText => ({ pt: `mín. ${limit}`, en: `min. ${limit}` }),
   max: (limit: string): LocalizedText => ({ pt: `máx. ${limit}`, en: `max. ${limit}` }),
-  range: (min: string, max: string): LocalizedText => ({
-    pt: `${min} a ${max}`,
-    en: `${min} to ${max}`,
-  }),
   notRequired: { pt: 'não exigido nesta etapa', en: 'not required in this stage' },
 
   // Node

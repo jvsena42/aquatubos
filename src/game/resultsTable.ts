@@ -150,7 +150,7 @@ export function pipeTableRows(scenario: Scenario, evaluation: StageEvaluation): 
       elevationDown: down.elevation,
       pressureUp: up.pressure,
       pressureDown: down.pressure,
-      velocityFlag: findFlag(issues, 'pipe', pipe.id, 'minVelocity', 'maxVelocity'),
+      velocityFlag: findFlag(issues, 'pipe', pipe.id, 'minVelocity', null),
       unitHeadLossFlag: inMetresPerKm(findFlag(issues, 'pipe', pipe.id, null, 'maxUnitHeadLoss')),
       pressureUpFlag: findFlag(issues, 'node', upstream, 'minDynamicPressure', null),
       pressureDownFlag: findFlag(issues, 'node', downstream, 'minDynamicPressure', null),

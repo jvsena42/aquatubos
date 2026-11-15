@@ -29,10 +29,6 @@
       "en": "Minimum dynamic pressure of 10 mca"
     },
     {
-      "pt": "Velocidade máxima de 3,5 m/s",
-      "en": "Maximum velocity of 3.5 m/s"
-    },
-    {
       "pt": "Perda de carga unitária máxima de 10 m/km",
       "en": "Maximum unit head loss of 10 m/km"
     },
@@ -125,7 +121,6 @@
     "minDynamicPressure": "error",
     "maxStaticPressure": "error",
     "minVelocity": "warning",
-    "maxVelocity": "error",
     "maxUnitHeadLoss": "error",
     "minDiameter": "error"
   },

@@ -18,7 +18,6 @@ export const DEFAULT_CHECK_SETTINGS: CheckSettings = {
   minDynamicPressure: 'error',
   maxStaticPressure: 'error',
   minVelocity: 'warning',
-  maxVelocity: 'error',
   maxUnitHeadLoss: 'error',
   minDiameter: 'error',
 };
@@ -86,7 +85,7 @@ function fixed(value: number, lang: Lang, decimals = 2): string {
   return lang === 'pt' ? text.replace('.', ',') : text;
 }
 
-/** Up to two decimals without trailing zeros: 10, 0.6, 3.5. */
+/** Up to two decimals without trailing zeros: 10, 0.4, 0.05. */
 function compact(value: number, lang: Lang): string {
   const text = String(Number(value.toFixed(2)));
   return lang === 'pt' ? text.replace('.', ',') : text;
@@ -126,7 +125,7 @@ export function pressureCheckedJunctions(network: Network): Junction[] {
  *
  * Order of the issues: convergence first (when the solver did not converge the other numbers
  * are not reliable), then minimum dynamic pressure, maximum static pressure, minimum velocity,
- * maximum velocity, maximum unit head loss and minimum diameter; inside each check, the order of the junctions or
+ * maximum unit head loss and minimum diameter; inside each check, the order of the junctions or
  * pipes in the network. Velocities are compared in absolute value. Elements that are missing
  * from `result` are skipped.
  */
@@ -279,33 +278,6 @@ export function runChecks(
           return atMinimumDiameter
             ? `${head}The pipe already has the minimum diameter, so the low velocity comes from the small flow and cannot be fixed with another diameter.`
             : `${head}Reduce the diameter of the pipe to increase the velocity.`;
-        }),
-      );
-    }
-  }
-
-  const maxVelocitySeverity = severityOf(settings, 'maxVelocity');
-  if (maxVelocitySeverity) {
-    const limit = limits.maxVelocity;
-    const note = standardNote('maxVelocity', limits);
-    for (const pipe of network.pipes) {
-      const signedVelocity = result.pipes[pipe.id]?.velocity;
-      if (signedVelocity === undefined) continue;
-      const speed = Math.abs(signedVelocity);
-      if (speed <= limit + COMPARISON_TOLERANCE) continue;
-      pushIssue(
-        'maxVelocity',
-        maxVelocitySeverity,
-        'pipe',
-        pipe.id,
-        speed,
-        localized((lang) => {
-          const value = fixed(speed, lang);
-          const maximum = compact(limit, lang);
-          const context = describeFlow(pipe.id, pipe.diameter, lang);
-          return lang === 'pt'
-            ? `Trecho ${pipe.id}: velocidade de ${value} m/s (${context}), acima do máximo de ${maximum} m/s${note}. Aumente o diâmetro do trecho para reduzir a velocidade e a perda de carga.`
-            : `Pipe ${pipe.id}: velocity of ${value} m/s (${context}), above the maximum of ${maximum} m/s${note}. Increase the diameter of the pipe to reduce the velocity and the head loss.`;
         }),
       );
     }

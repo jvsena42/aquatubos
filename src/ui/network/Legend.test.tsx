@@ -22,7 +22,6 @@ describe('LegendIcons', () => {
       'pipe-low',
       'pipe-ok',
       'pipe-high',
-      'pipe-high-loss',
       'direction',
       'width',
     ]);
@@ -35,11 +34,10 @@ describe('LegendIcons', () => {
     expect(
       within(list).getByRole('img', { name: 'Dinâmica abaixo de 10 mca' }),
     ).toBeInTheDocument();
-    expect(within(list).getByRole('img', { name: 'V acima de 3,5 m/s' })).toBeInTheDocument();
     expect(within(list).getByRole('img', { name: 'J acima de 10 m/km' })).toBeInTheDocument();
   });
 
-  it('marks the pipes outside the velocity limits with the icon of the map', () => {
+  it('marks the pipes outside the limits with the icon of the map', () => {
     render(<LegendIcons checks={checks} evaluated />);
     const entry = (key: string) => document.querySelector(`[data-entry="${key}"]`)!;
     expect(entry('pipe-low').querySelector('.netview__pipe-mark')).not.toBeNull();
@@ -56,21 +54,8 @@ describe('LegendIcons', () => {
     );
     const keys = () =>
       [...document.querySelectorAll('[data-entry]')].map((item) => item.getAttribute('data-entry'));
-    expect(keys()).toEqual([
-      'node-ok',
-      'node-low',
-      'pipe-ok',
-      'pipe-high',
-      'pipe-high-loss',
-      'direction',
-      'width',
-    ]);
-    view.rerender(
-      <LegendIcons
-        checks={{ ...checks, minVelocity: 'off', maxVelocity: 'off', maxUnitHeadLoss: 'error' }}
-        evaluated
-      />,
-    );
+    expect(keys()).toEqual(['node-ok', 'node-low', 'pipe-ok', 'pipe-high', 'direction', 'width']);
+    view.rerender(<LegendIcons checks={{ ...checks, minVelocity: 'off' }} evaluated />);
     expect(screen.getByRole('img', { name: 'Trecho adequado' })).toBeInTheDocument();
     view.rerender(<LegendIcons checks={checks} evaluated={false} />);
     expect(keys()).toEqual(['width']);
@@ -112,8 +97,7 @@ describe('LegendHelp', () => {
       'Dinâmica abaixo de 10 mca',
       'Estática acima de 40 mca',
       'V abaixo de 0,4 m/s',
-      'V de 0,4 a 3,5 m/s',
-      'V acima de 3,5 m/s',
+      'Trecho adequado',
       'J acima de 10 m/km',
       'Sentido do escoamento',
       'Espessura proporcional ao DN',

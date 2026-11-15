@@ -116,7 +116,13 @@ describe('pipeTableRows', () => {
       severity: 'error',
       limit: 10,
     });
-    expect(rows.some((r) => r.velocityFlag?.kind === 'high')).toBe(true);
+    // The unit head loss flag is in m/km, like its column.
+    expect(rows.find((r) => r.id === 'T3')!.unitHeadLossFlag).toEqual({
+      kind: 'high',
+      severity: 'error',
+      limit: 10,
+    });
+    expect(rows.some((r) => r.velocityFlag?.kind === 'high')).toBe(false);
 
     const passing = evaluateStage(scenario, scenario.reference.diameters);
     expect(pipeTableRows(scenario, passing).every((r) => r.pressureDownFlag === null)).toBe(true);

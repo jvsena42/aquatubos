@@ -206,9 +206,7 @@ describe('ResultsTable', () => {
     render(<ResultsTable />);
     const row = within(pipeTable()).getByRole('rowheader', { name: 'T3' }).closest('tr')!;
     expect(within(row).getAllByText('Erro: abaixo do mínimo de 10,00 mca')).toHaveLength(2);
-    expect(within(pipeTable()).getAllByText(/Erro: acima do máximo de 3,50 m\/s/)).not.toHaveLength(
-      0,
-    );
+    expect(within(pipeTable()).queryByText(/m\/s/, { selector: '.results__flag *' })).toBeNull();
     expect(within(row).getByText(/Erro: acima do máximo de 10,00 m\/km/)).toBeInTheDocument();
     // The mark stays in the cell: an icon with the reason as text.
     expect(row.querySelectorAll('.results__flag svg')).toHaveLength(3);

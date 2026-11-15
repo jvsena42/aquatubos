@@ -12,7 +12,7 @@ import type { ScenarioPipe } from '../../scenarios/types';
 import { useAppStore } from '../../state/store';
 import { Term } from '../glossary/Term';
 import { DnPicker } from '../network/DnPicker';
-import { classifyVelocity, isAboveMaxUnitHeadLoss } from '../network/status';
+import { isAboveMaxUnitHeadLoss, isBelowMinVelocity } from '../network/status';
 import { networkStrings } from '../network/strings';
 import { usePhone } from '../shell/breakpoints';
 import { money } from '../shell/strings';
@@ -175,35 +175,17 @@ export function CalcPipe({ pipe }: { pipe: ScenarioPipe }) {
   );
 }
 
-/** Velocity against the limits of the stage, as a badge with words or as an icon mark. */
+/** Velocity against the minimum of the stage, as a badge with words or as an icon mark. */
 function VelocityStatus({ velocity, mark = false }: { velocity: number; mark?: boolean }) {
   const tr = useTr();
   const { num } = useCalcFormat();
-  const checks = useAppStore((s) => s.scenario?.checks);
-  const limits = NBR_CHECK_LIMITS;
+  const setting: CheckSetting = useAppStore((s) => s.scenario?.checks.minVelocity ?? 'off');
   const Badge = mark ? StatusMark : LimitBadge;
-  const status = classifyVelocity(velocity);
-  const minLimit = `${num(limits.minVelocity, 1)} m/s`;
-  const maxLimit = `${num(limits.maxVelocity, 1)} m/s`;
-  const minSetting: CheckSetting = checks?.minVelocity ?? 'off';
-  const maxSetting: CheckSetting = checks?.maxVelocity ?? 'off';
-  if (status === 'low') {
-    return (
-      <Badge ok={false} setting={minSetting}>
-        {tr(text.belowMin(minLimit))}
-      </Badge>
-    );
-  }
-  if (status === 'high') {
-    return (
-      <Badge ok={false} setting={maxSetting}>
-        {tr(text.aboveMax(maxLimit))}
-      </Badge>
-    );
-  }
+  const minimum = `${num(NBR_CHECK_LIMITS.minVelocity, 1)} m/s`;
+  const below = isBelowMinVelocity(velocity);
   return (
-    <Badge ok setting={minSetting === 'off' && maxSetting === 'off' ? 'off' : 'error'}>
-      {tr(text.within(tr(text.range(num(limits.minVelocity, 1), maxLimit))))}
+    <Badge ok={!below} setting={setting}>
+      {below ? tr(text.belowMin(minimum)) : tr(text.within(tr(text.min(minimum))))}
     </Badge>
   );
 }

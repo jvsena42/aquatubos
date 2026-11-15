@@ -11,11 +11,15 @@ export const NBR_12218 = {
   minDynamicPressure: 10,
   /** Maximum static pressure head, m (400 kPa ≈ 40 mca). */
   maxStaticPressure: 40,
-  /** Minimum velocity, m/s (0.6 m/s in the 1994 edition). */
+  /**
+   * Minimum velocity, m/s (0.6 m/s in the 1994 edition). The 2017 edition asks to avoid lower
+   * velocities, so the stages report it as a warning.
+   */
   minVelocity: 0.4,
-  /** Maximum velocity, m/s. */
-  maxVelocity: 3.5,
-  /** Maximum unit head loss, m/m (10 m/km). */
+  /**
+   * Maximum unit head loss, m/m (10 m/km). It replaces the fixed maximum velocity of 3.5 m/s of
+   * the 1994 edition: the maximum design velocity is the one that gives this head loss.
+   */
   maxUnitHeadLoss: 0.01,
   /** Minimum nominal diameter, m (DN 50). */
   minDiameter: 0.05,
@@ -29,7 +33,6 @@ export const NBR_CHECK_LIMITS: CheckLimits = {
   minDynamicPressure: NBR_12218.minDynamicPressure,
   maxStaticPressure: NBR_12218.maxStaticPressure,
   minVelocity: NBR_12218.minVelocity,
-  maxVelocity: NBR_12218.maxVelocity,
   maxUnitHeadLoss: NBR_12218.maxUnitHeadLoss,
   minDiameter: NBR_12218.minDiameter,
 };

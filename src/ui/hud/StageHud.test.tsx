@@ -95,7 +95,6 @@ describe('StageHud', () => {
       expect(items.map((li) => li.textContent)).toEqual([
         'Pressão dinâmica mínima de 10 mca',
         'Pressão estática máxima de 40 mca',
-        'Velocidade máxima de 3,5 m/s',
         'Perda de carga unitária máxima de 10 m/km',
       ]);
     });

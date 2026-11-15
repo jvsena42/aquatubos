@@ -124,7 +124,6 @@
     "minDynamicPressure": "error",
     "maxStaticPressure": "off",
     "minVelocity": "off",
-    "maxVelocity": "off",
     "maxUnitHeadLoss": "off",
     "minDiameter": "error"
   },

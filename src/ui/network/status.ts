@@ -9,14 +9,9 @@ export type LimitStatus = 'none' | 'ok' | 'low' | 'high';
 /** Same slack as the engine checks, so a value that sits on the limit passes. */
 const TOLERANCE = 1e-9;
 
-/** Speed (m/s, absolute value) against the velocity limits. */
-export function classifyVelocity(
-  speed: number,
-  limits: CheckLimits = NBR_CHECK_LIMITS,
-): Exclude<LimitStatus, 'none'> {
-  if (speed < limits.minVelocity - TOLERANCE) return 'low';
-  if (speed > limits.maxVelocity + TOLERANCE) return 'high';
-  return 'ok';
+/** True when the speed (m/s, absolute value) is below the minimum velocity. */
+export function isBelowMinVelocity(speed: number, limits: CheckLimits = NBR_CHECK_LIMITS) {
+  return speed < limits.minVelocity - TOLERANCE;
 }
 
 /** True when the unit head loss (m/m) is above the maximum. */
@@ -70,8 +65,8 @@ export function nodeStatuses(
 }
 
 /**
- * Status of every pipe of an evaluation, following the checks active in the stage: velocity
- * against its limits, and `high` also when the unit head loss is above the maximum.
+ * Status of every pipe of an evaluation, following the checks active in the stage: `high` when
+ * the unit head loss is above the maximum, `low` when the velocity is below the minimum.
  */
 export function pipeStatuses(
   evaluation: StageEvaluation | null,
@@ -80,20 +75,16 @@ export function pipeStatuses(
   const statuses: Record<string, LimitStatus> = {};
   if (!evaluation) return statuses;
   const checkMin = settings.minVelocity !== 'off';
-  const checkMax = settings.maxVelocity !== 'off';
   const checkLoss = settings.maxUnitHeadLoss !== 'off';
   for (const pipe of evaluation.network.pipes) {
     const result = evaluation.result.pipes[pipe.id];
-    if (result === undefined || (!checkMin && !checkMax && !checkLoss)) {
+    if (result === undefined || (!checkMin && !checkLoss)) {
       statuses[pipe.id] = 'none';
       continue;
     }
-    if (checkLoss && isAboveMaxUnitHeadLoss(result.unitHeadLoss)) {
-      statuses[pipe.id] = 'high';
-      continue;
-    }
-    const raw = classifyVelocity(Math.abs(result.velocity));
-    statuses[pipe.id] = (raw === 'low' && !checkMin) || (raw === 'high' && !checkMax) ? 'ok' : raw;
+    if (checkLoss && isAboveMaxUnitHeadLoss(result.unitHeadLoss)) statuses[pipe.id] = 'high';
+    else if (checkMin && isBelowMinVelocity(Math.abs(result.velocity))) statuses[pipe.id] = 'low';
+    else statuses[pipe.id] = 'ok';
   }
   return statuses;
 }

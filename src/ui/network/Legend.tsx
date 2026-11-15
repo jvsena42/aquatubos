@@ -77,7 +77,6 @@ function useLegendEntries({
   const minPressure = allNodeStates || (evaluated && checks.minDynamicPressure !== 'off');
   const maxStatic = allNodeStates || (evaluated && checks.maxStaticPressure !== 'off');
   const minVelocity = evaluated && checks.minVelocity !== 'off';
-  const maxVelocity = evaluated && checks.maxVelocity !== 'off';
   const maxUnitLoss = evaluated && checks.maxUnitHeadLoss !== 'off';
   const swatch = (status: LimitStatus) =>
     nodeSwatch ? nodeSwatch(status) : <NodeSwatch status={status} />;
@@ -111,28 +110,16 @@ function useLegendEntries({
       text: tr(text.legendVelocityLow(num(limits.minVelocity, 1))),
     });
   }
-  if (minVelocity || maxVelocity || maxUnitLoss) {
+  if (minVelocity || maxUnitLoss) {
     entries.push({
       key: 'pipe-ok',
       swatch: <PipeSwatch status="ok" />,
-      text:
-        minVelocity && maxVelocity
-          ? tr(text.legendVelocityOk(num(limits.minVelocity, 1), num(limits.maxVelocity, 1)))
-          : minVelocity || maxVelocity
-            ? tr(text.legendVelocityOkOnly)
-            : tr(text.legendPipeOk),
-    });
-  }
-  if (maxVelocity) {
-    entries.push({
-      key: 'pipe-high',
-      swatch: <PipeSwatch status="high" />,
-      text: tr(text.legendVelocityHigh(num(limits.maxVelocity, 1))),
+      text: tr(text.legendPipeOk),
     });
   }
   if (maxUnitLoss) {
     entries.push({
-      key: 'pipe-high-loss',
+      key: 'pipe-high',
       swatch: <PipeSwatch status="high" />,
       text: tr(text.legendUnitLossHigh(num(limits.maxUnitHeadLoss * 1000, 0))),
     });

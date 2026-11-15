@@ -19,12 +19,12 @@
       "en": "Static pressure (no consumption) must not exceed 40 mca: it depends only on the reservoir level and the node elevation, and in this stage the layout already satisfies it. The minimum dynamic pressure is still 10 mca, and that is what you control with the diameters."
     },
     {
-      "pt": "A velocidade deve ficar entre 0,4 e 3,5 m/s. Acima do máximo o trecho reprova; abaixo do mínimo aparece um aviso, porque diâmetros grandes demais custam mais e deixam a água parada.",
-      "en": "Velocity should stay between 0.4 and 3.5 m/s. Above the maximum the pipe fails; below the minimum you get a warning, because oversized pipes cost more and let the water stagnate."
+      "pt": "A velocidade não deve ficar abaixo de 0,4 m/s: abaixo disso aparece um aviso, porque diâmetros grandes demais custam mais e deixam a água parada.",
+      "en": "Velocity should not drop below 0.4 m/s: below it you get a warning, because oversized pipes cost more and let the water stagnate."
     },
     {
-      "pt": "A perda de carga unitária J de cada trecho não pode passar de 10 m/km (ABNT NBR 12218:2017). Mesmo que a pressão sobre, um trecho acima desse valor reprova: aumente o diâmetro dele.",
-      "en": "The unit head loss J of each pipe must not exceed 10 m/km (ABNT NBR 12218:2017). Even with pressure to spare, a pipe above that value fails: increase its diameter."
+      "pt": "A perda de carga unitária J de cada trecho não pode passar de 10 m/km (ABNT NBR 12218:2017). É esse limite que define a velocidade máxima de cada diâmetro. Mesmo que a pressão sobre, um trecho acima dele reprova: aumente o diâmetro.",
+      "en": "The unit head loss J of each pipe must not exceed 10 m/km (ABNT NBR 12218:2017). This limit sets the maximum velocity of each diameter. Even with pressure to spare, a pipe above it fails: increase its diameter."
     },
     {
       "pt": "Abra a aba Perfil para ver a linha piezométrica sobre o terreno ao longo de um caminho. Onde a linha se aproxima do terreno, falta pressão.",
@@ -39,10 +39,6 @@
     {
       "pt": "Pressão estática máxima de 40 mca",
       "en": "Maximum static pressure of 40 mca"
-    },
-    {
-      "pt": "Velocidade máxima de 3,5 m/s",
-      "en": "Maximum velocity of 3.5 m/s"
     },
     {
       "pt": "Perda de carga unitária máxima de 10 m/km",
@@ -154,7 +150,6 @@
     "minDynamicPressure": "error",
     "maxStaticPressure": "error",
     "minVelocity": "warning",
-    "maxVelocity": "error",
     "maxUnitHeadLoss": "error",
     "minDiameter": "error"
   },

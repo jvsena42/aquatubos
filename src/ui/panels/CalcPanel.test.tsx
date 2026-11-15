@@ -148,31 +148,33 @@ describe('CalcPanel', () => {
       expect(screen.getByText('Escoamento de R1 para A.')).toBeInTheDocument();
     });
 
-    it('shows the velocity against the limits and the cost of the pipe', () => {
+    it('shows the velocity against the minimum and the cost of the pipe', () => {
       const { evaluation } = openStage('stage3', { type: 'pipe', id: 'T1' });
       render(<CalcPanel />);
       const speed = Math.abs(evaluation.result.pipes.T1!.velocity);
       expect(speed).toBeGreaterThan(NBR_CHECK_LIMITS.minVelocity);
-      expect(speed).toBeLessThan(NBR_CHECK_LIMITS.maxVelocity);
       // Once as the mark of the result block, once as the badge in the calculation.
-      expect(screen.getAllByText('Atende (0,4 a 3,5 m/s)')).toHaveLength(2);
+      expect(screen.getAllByText('Atende (mín. 0,4 m/s)')).toHaveLength(2);
       expect(value('cost')).toBe(`R$${NBSP}${pt(pipeCost(100, 250))}`);
       expect(screen.getByText(/R\$\s65,00\/m × 250 m =/)).toBeInTheDocument();
     });
 
-    it('flags a velocity above the maximum', () => {
+    it('flags a unit head loss above the maximum and no maximum velocity', () => {
       const scenario = stage('stage4');
       const { evaluation } = openStage(
         'stage4',
         { type: 'pipe', id: 'T2' },
         initialDiameters(scenario),
       );
-      expect(Math.abs(evaluation.result.pipes.T2!.velocity)).toBeGreaterThan(
-        NBR_CHECK_LIMITS.maxVelocity,
+      // Above the 3.5 m/s of the 1994 edition, which is no longer a limit.
+      expect(Math.abs(evaluation.result.pipes.T2!.velocity)).toBeGreaterThan(3.5);
+      expect(evaluation.result.pipes.T2!.unitHeadLoss).toBeGreaterThan(
+        NBR_CHECK_LIMITS.maxUnitHeadLoss,
       );
       render(<CalcPanel />);
       // Once as the mark of the result block, once as the badge in the calculation.
-      expect(screen.getAllByText('Acima do máximo de 3,5 m/s')).toHaveLength(2);
+      expect(screen.getAllByText('Acima do máximo de 10 m/km')).toHaveLength(2);
+      expect(screen.getAllByText('Atende (mín. 0,4 m/s)')).toHaveLength(2);
     });
 
     it('follows the real direction when the flow is negative', () => {
@@ -451,7 +453,7 @@ describe('CalcPanel', () => {
     expect(screen.getByRole('button', { name: 'Head loss' })).toBeInTheDocument();
     expect(screen.getByRole('list')).toHaveTextContent('J = 10.643 × Q1.852 / (C1.852 × D4.87)');
     expect(value('hf')).toBe(`${Math.abs(evaluation.result.pipes.T1!.headLoss).toFixed(3)} m`);
-    expect(screen.getAllByText('OK (0.4 to 3.5 m/s)')).toHaveLength(2);
+    expect(screen.getAllByText('OK (min. 0.4 m/s)')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Clear selection' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show calculation' })).toBeInTheDocument();
   });
@@ -474,7 +476,7 @@ describe('CalcPanel', () => {
       // The velocity carries its status as an icon with the comparison in words for readers.
       const mark = document.querySelector('.calc__mark')!;
       expect(mark).toHaveAttribute('data-status', 'ok');
-      expect(mark).toHaveTextContent('Atende (0,4 a 3,5 m/s)');
+      expect(mark).toHaveTextContent('Atende (mín. 0,4 m/s)');
 
       const toggle = screen.getByRole('button', { name: 'Ver cálculo' });
       expect(toggle).toHaveAttribute('aria-expanded', 'false');

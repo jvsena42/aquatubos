@@ -20,13 +20,15 @@ export function pressureStatus(evaluation: StageEvaluation | null, nodeId: strin
   return 'ok';
 }
 
-/** Velocity status of a pipe, compared in absolute value. */
+/**
+ * Status of a pipe: high when the unit head loss is above the maximum, low when the velocity
+ * (absolute value) is below the minimum.
+ */
 export function velocityStatus(evaluation: StageEvaluation | null, pipeId: string): Status {
-  const velocity = evaluation?.result.pipes[pipeId]?.velocity;
-  if (velocity === undefined) return 'none';
-  const speed = Math.abs(velocity);
-  if (speed < NBR_CHECK_LIMITS.minVelocity) return 'low';
-  if (speed > NBR_CHECK_LIMITS.maxVelocity) return 'high';
+  const result = evaluation?.result.pipes[pipeId];
+  if (result === undefined) return 'none';
+  if (result.unitHeadLoss > NBR_CHECK_LIMITS.maxUnitHeadLoss) return 'high';
+  if (Math.abs(result.velocity) < NBR_CHECK_LIMITS.minVelocity) return 'low';
   return 'ok';
 }
 
