@@ -359,12 +359,12 @@ The limits live only in `config/nbr12218.ts`, labelled ABNT NBR 12218:2017:
 | Minimum dynamic pressure | 10 mca  |
 | Maximum static pressure  | 40 mca  |
 | Minimum velocity         | 0.4 m/s |
-| Maximum velocity         | 3.5 m/s |
 | Maximum unit head loss   | 10 m/km |
 | Minimum nominal diameter | 50 mm   |
 
-The minimum velocity of 0.6 m/s and the absence of a head loss check came from the previous
-edition of the standard; they were updated to the 2017 values.
+The 2017 edition (section 5.6.4) sets the maximum design velocity as the one that gives a head
+loss of 10 m/km, and asks to avoid velocities below 0.40 m/s. It replaced the fixed limits of the
+1994 edition (0.6 to 3.5 m/s), so there is no maximum velocity check.
 
 Each scenario sets every check to `error`, `warning` or `off`. `runChecks` returns one issue per
 violation with the element, the computed value, the limit and an explanation in Portuguese and
@@ -372,7 +372,7 @@ English. A design passes when it has no `error` issue. Minimum velocity is a war
 stages, because dead-end pipes with small demands cannot reach 0.4 m/s at DN 50, and the
 10 m/km head loss limit often forces a larger pipe on them. The head loss limit is an error in
 stages 2 to 5 (stage 1 checks only pressure and diameter); the map draws a pipe above it as
-`high`, like a pipe above the maximum velocity.
+`high`.
 
 Static pressure is the no-flow condition: the highest reservoir level reachable from the node,
 plus the shutoff head of a pump on the way, minus the ground elevation. A pump discharge node
