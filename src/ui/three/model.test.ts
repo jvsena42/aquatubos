@@ -34,8 +34,8 @@ describe('buildSceneModel', () => {
     const model = buildSceneModel(scenario, { ...reference, T6: 300 }, null, 5);
     const { extent } = model.layout;
     expect(model.pipes.find((p) => p.id === 'T1')).toMatchObject({
-      dn: 100,
-      radius: pipeRadius(100, extent),
+      dn: 150,
+      radius: pipeRadius(150, extent),
     });
     expect(model.pipes.find((p) => p.id === 'T6')).toMatchObject({
       dn: 300,

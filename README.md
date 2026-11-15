@@ -24,8 +24,8 @@ Aquatubos succeeds the original Aquatubos (Unity, 2021), the author's undergradu
 > **Resumo (pt-BR).** Aquatubos é um aplicativo web para estudantes de engenharia civil
 > aprenderem a dimensionar redes de distribuição de água. Em cinco fases, o jogador escolhe os
 > diâmetros dos trechos até que a rede atenda aos critérios da ABNT NBR 12218:2017 (pressão
-> dinâmica mínima de 10 mca, pressão estática máxima de 40 mca, velocidade máxima de 3,5 m/s, DN
-> mínimo de 50 mm). Os cálculos usam Hazen-Williams ou Darcy-Weisbach, são resolvidos pelo método
+> dinâmica mínima de 10 mca, pressão estática máxima de 40 mca, perda de carga unitária máxima de
+> 10 m/km, velocidade mínima de 0,4 m/s, DN mínimo de 50 mm). Os cálculos usam Hazen-Williams ou Darcy-Weisbach, são resolvidos pelo método
 > do gradiente global e aparecem com os números substituídos nas fórmulas. Funciona offline e pode
 > ser instalado como PWA. Sucede o Aquatubos original (Unity, 2021), do trabalho de conclusão de
 > curso do autor.
@@ -67,7 +67,7 @@ independent of each other. Progress, best cost and stars are saved in the browse
 | #   | Stage                                   | Network                                                            | What it introduces                                                                   |
 | --- | --------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | 1   | Rede ramificada por gravidade           | Elevated tank, 5 nodes on flat ground, 5 pipes, 9.5 L/s            | Hazen-Williams, the calculation panel, minimum pressure of 10 mca                    |
-| 2   | Terreno acidentado                      | Branched, 6 nodes between 111 m and 132 m, 6 pipes, 10.5 L/s       | Maximum static pressure, velocity limits, the HGL profile view                       |
+| 2   | Terreno acidentado                      | Branched, 6 nodes between 111 m and 132 m, 6 pipes, 10.5 L/s       | Maximum static pressure, head loss and velocity limits, the HGL profile view         |
 | 3   | Rede malhada (um anel)                  | One loop, 4 nodes, 5 pipes, 10.5 L/s                               | Flow split in a loop, the Hardy Cross iteration table, flow direction                |
 | 4   | Rede malhada com três anéis e orçamento | Three loops, 8 nodes, 11 pipes, 19 L/s, budget of R$ 159 000       | Cost of each diameter, budget, stars by cost relative to the cheapest passing design |
 | 5   | Bombeamento                             | Reservoir below the network, one pump, 5 consumption nodes, 12 L/s | Pump curve, system curve, operating point, static pressure at shutoff head           |
@@ -157,7 +157,9 @@ directly).
 
 **Checks**, labelled after ABNT NBR 12218:2017 and defined in one file
 (`src/engine/config/nbr12218.ts`): minimum dynamic pressure 10 mca, maximum static pressure
-40 mca, velocity between 0.6 and 3.5 m/s, minimum DN 50 mm.
+40 mca, maximum unit head loss 10 m/km, minimum velocity 0.4 m/s (a warning), minimum DN 50 mm.
+There is no fixed maximum velocity: the 2017 edition replaced the 3.5 m/s of the 1994 edition with
+the head loss limit.
 
 **Cost.** Commercial diameters DN 50 to DN 300 with a price per metre
 (`src/engine/data/pipeCatalog.json`). The prices are illustrative values in the style of SINAPI
@@ -173,7 +175,7 @@ values. Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing-strategy)
 - Internal diameter is taken equal to the nominal diameter.
 - Steady state at the design flow; no tanks, valves, minor losses or extended-period simulation.
 - Minimum velocity is reported as a warning, not a failure.
-- The limits are the values commonly taught for NBR 12218; check the standard itself for real
+- The limits are those of ABNT NBR 12218:2017 as taught in courses; check the standard itself for real
   design work. This is a teaching tool, not design software.
 
 ## Run, test, build

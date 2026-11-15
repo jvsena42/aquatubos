@@ -72,13 +72,13 @@ describe('ChecksPanel', () => {
           issues: [
             makeIssue({ value: 9.4 }),
             makeIssue({
-              check: 'maxVelocity',
+              check: 'minVelocity',
               severity: 'warning',
               elementType: 'pipe',
               elementId: 'T1',
-              value: 4.9,
-              limit: 3.5,
-              explanation: { pt: 'Velocidade alta no trecho T1.', en: 'High velocity in T1.' },
+              value: 0.25,
+              limit: 0.4,
+              explanation: { pt: 'Velocidade baixa no trecho T1.', en: 'Low velocity in T1.' },
             }),
           ],
         },
@@ -91,7 +91,7 @@ describe('ChecksPanel', () => {
       'Erro: Pressão mín.N1Nó N19,4 mca',
     );
     expect(within(items[1]!).getByRole('button', { name: /T1/ })).toHaveTextContent(
-      'Aviso: Velocidade máx.T1Trecho T14,90 m/s',
+      'Aviso: Velocidade mín.T1Trecho T10,25 m/s',
     );
     // The explanation is not in the default view.
     expect(screen.queryByText('Pressão abaixo do mínimo no nó N1.')).not.toBeInTheDocument();

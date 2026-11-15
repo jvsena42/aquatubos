@@ -33,13 +33,15 @@ const network: Network = {
 
 /**
  * Hand-made solver result: heads by node id and flows by pipe id. Velocity follows from the
- * flow and the diameter; the head loss is not used by the checks.
+ * flow and the diameter. The unit head loss (m/m) is given per pipe and is zero when left out;
+ * the head loss itself is not used by the checks.
  */
 function makeResult(
   net: Network,
   heads: Record<string, number>,
   flows: Record<string, number>,
   overrides: Partial<SolveResult> = {},
+  unitLosses: Record<string, number> = {},
 ): SolveResult {
   const nodes: SolveResult['nodes'] = {};
   for (const j of net.junctions) {
@@ -65,7 +67,7 @@ function makeResult(
       flow,
       velocity: flow / pipeArea(p.diameter),
       headLoss: 0,
-      unitHeadLoss: 0,
+      unitHeadLoss: unitLosses[p.id] ?? 0,
     };
   }
   return {
@@ -160,17 +162,28 @@ describe('runChecks', () => {
   });
 
   it('does not report values that sit exactly on a limit', () => {
-    // N3 at 30 m + 10 mca; v = 0.6 m/s in T3; DN 50 in T1 with 3.5 m/s.
+    // N3 at 30 m + 10 mca; v = 0.4 m/s in T3; DN 50 in T1; J = 10 m/km in T2.
     const net: Network = {
       ...network,
       pipes: [pipe('T1', 'R1', 'N1', 0.05), ...network.pipes.slice(1)],
     };
     const flows = {
-      T1: NBR_CHECK_LIMITS.maxVelocity * pipeArea(0.05),
+      T1: 0.002,
       T2: 0.008,
       T3: NBR_CHECK_LIMITS.minVelocity * pipeArea(0.1),
     };
-    const report = runChecks(net, makeResult(net, { N1: 49, N2: 48, N3: 40 }, flows));
+    const report = runChecks(
+      net,
+      makeResult(
+        net,
+        { N1: 49, N2: 48, N3: 40 },
+        flows,
+        {},
+        {
+          T2: NBR_CHECK_LIMITS.maxUnitHeadLoss,
+        },
+      ),
+    );
     expect(report.issues).toEqual([]);
   });
 
@@ -275,14 +288,51 @@ describe('runChecks', () => {
     expect(issue.value).toBeCloseTo(0.2546, 4);
     expect(issue.explanation.pt).toBe(
       'Trecho T3: velocidade de 0,25 m/s (vazão de 2,00 L/s no diâmetro de 100 mm), abaixo do ' +
-        'mínimo de 0,6 m/s (ABNT NBR 12218:2017). Reduza o diâmetro do trecho para aumentar a ' +
+        'mínimo de 0,4 m/s (ABNT NBR 12218:2017). Reduza o diâmetro do trecho para aumentar a ' +
         'velocidade.',
     );
     expect(issue.explanation.en).toBe(
       'Pipe T3: velocity of 0.25 m/s (flow of 2.00 L/s in a 100 mm diameter), below the ' +
-        'minimum of 0.6 m/s (ABNT NBR 12218:2017). Reduce the diameter of the pipe to increase ' +
+        'minimum of 0.4 m/s (ABNT NBR 12218:2017). Reduce the diameter of the pipe to increase ' +
         'the velocity.',
     );
+  });
+
+  it('reports a unit head loss above 10 m/km with value, limit and hint in both languages', () => {
+    // 2 L/s in DN 50, Hazen-Williams with C = 140:
+    // J = 10.643 · 0.002^1.852 / (140^1.852 · 0.05^4.87) = 0.024545 m/m = 24.54 m/km > 10 m/km
+    const net: Network = {
+      junctions: [{ id: 'N1', elevation: 0, demand: 0.002 }],
+      reservoirs: [{ id: 'R1', head: 30 }],
+      pipes: [pipe('T1', 'R1', 'N1', 0.05)],
+      pumps: [],
+    };
+    const report = runChecks(net, solveNetwork(net));
+    expect(report.passed).toBe(false);
+    expect(report.issues).toHaveLength(1);
+    const issue = report.issues[0]!;
+    expect(issue).toMatchObject({
+      check: 'maxUnitHeadLoss',
+      severity: 'error',
+      elementType: 'pipe',
+      elementId: 'T1',
+      limit: NBR_CHECK_LIMITS.maxUnitHeadLoss,
+    });
+    expect(issue.value).toBeCloseTo(0.024545, 5);
+    expect(issue.explanation.pt).toBe(
+      'Trecho T1: perda de carga unitária de 24,54 m/km (vazão de 2,00 L/s no diâmetro de ' +
+        '50 mm), acima do máximo de 10 m/km (ABNT NBR 12218:2017). Aumente o diâmetro do ' +
+        'trecho para reduzir a perda de carga.',
+    );
+    expect(issue.explanation.en).toBe(
+      'Pipe T1: unit head loss of 24.54 m/km (flow of 2.00 L/s in a 50 mm diameter), above ' +
+        'the maximum of 10 m/km (ABNT NBR 12218:2017). Increase the diameter of the pipe to ' +
+        'reduce the head loss.',
+    );
+
+    // 2 L/s in DN 75: J = 0.003407 m/m = 3.41 m/km, inside the limit.
+    const larger: Network = { ...net, pipes: [pipe('T1', 'R1', 'N1', 0.075)] };
+    expect(runChecks(larger, solveNetwork(larger)).issues).toEqual([]);
   });
 
   it('does not suggest a smaller pipe when the pipe has the minimum diameter', () => {
@@ -299,29 +349,14 @@ describe('runChecks', () => {
     expect(issue.explanation.en).toContain('already has the minimum diameter');
   });
 
-  it('reports high velocity using the absolute value', () => {
-    // 30 L/s in 100 mm: 0.030 / 0.0078540 = 3.8197 m/s, flowing against the pipe direction
+  it('has no fixed maximum velocity: the head loss limit replaced it in 2017', () => {
+    // 30 L/s in 100 mm: 3.82 m/s, above the 3.5 m/s of the 1994 edition. Only J is checked.
     const report = runChecks(
       network,
       makeResult(network, goodHeads, { T1: -0.03, T2: 0.008, T3: 0.008 }),
     );
-    expect(report.passed).toBe(false);
-    expect(report.issues).toHaveLength(1);
-    const issue = report.issues[0]!;
-    expect(issue).toMatchObject({
-      check: 'maxVelocity',
-      severity: 'error',
-      elementType: 'pipe',
-      elementId: 'T1',
-      limit: NBR_CHECK_LIMITS.maxVelocity,
-    });
-    expect(issue.value).toBeCloseTo(3.8197, 4);
-    expect(issue.explanation.pt).toContain(
-      'Trecho T1: velocidade de 3,82 m/s (vazão de 30,00 L/s no diâmetro de 100 mm), acima do máximo de 3,5 m/s',
-    );
-    expect(issue.explanation.pt).toContain('Aumente o diâmetro do trecho');
-    expect(issue.explanation.en).toContain('Pipe T1: velocity of 3.82 m/s');
-    expect(issue.explanation.en).toContain('above the maximum of 3.5 m/s');
+    expect(report.issues).toEqual([]);
+    expect('maxVelocity' in NBR_CHECK_LIMITS).toBe(false);
   });
 
   it('reports a diameter below the minimum', () => {
@@ -380,15 +415,21 @@ describe('runChecks', () => {
       junctions: [{ id: 'N1', elevation: 5, demand: 0 }, ...network.junctions.slice(1)],
       pipes: [pipe('T1', 'R1', 'N1', 0.04), ...network.pipes.slice(1)],
     };
-    // N1: static 45 mca (too high); N3: 7 mca (too low); T1: DN 40 with 6.37 m/s; T3: 0.25 m/s
-    const result = makeResult(net, { N1: 49, N2: 48, N3: 37 }, { T1: 0.008, T2: 0.008, T3: 0.002 });
+    // N1: static 45 mca (too high); N3: 7 mca (too low); T1: DN 40; T2: 20 m/km; T3: 0.25 m/s
+    const result = makeResult(
+      net,
+      { N1: 49, N2: 48, N3: 37 },
+      { T1: 0.008, T2: 0.008, T3: 0.002 },
+      {},
+      { T2: 0.02 },
+    );
 
     const all = runChecks(net, result);
     expect(all.issues.map((i) => `${i.check}:${i.elementId}:${i.severity}`)).toEqual([
       'minDynamicPressure:N3:error',
       'maxStaticPressure:N1:error',
       'minVelocity:T3:warning',
-      'maxVelocity:T1:error',
+      'maxUnitHeadLoss:T2:error',
       'minDiameter:T1:error',
     ]);
     expect(all.passed).toBe(false);
@@ -397,7 +438,7 @@ describe('runChecks', () => {
       minDynamicPressure: 'off',
       maxStaticPressure: 'off',
       minVelocity: 'off',
-      maxVelocity: 'off',
+      maxUnitHeadLoss: 'off',
       minDiameter: 'off',
     };
     const none = runChecks(net, result, off);
@@ -409,7 +450,7 @@ describe('runChecks', () => {
       minDynamicPressure: 'warning',
       maxStaticPressure: 'warning',
       minVelocity: 'error',
-      maxVelocity: 'warning',
+      maxUnitHeadLoss: 'warning',
       minDiameter: 'warning',
     };
     const warned = runChecks(net, result, lenient);
@@ -417,7 +458,7 @@ describe('runChecks', () => {
       'minDynamicPressure:warning',
       'maxStaticPressure:warning',
       'minVelocity:error',
-      'maxVelocity:warning',
+      'maxUnitHeadLoss:warning',
       'minDiameter:warning',
     ]);
     expect(warned.passed).toBe(false);
@@ -430,6 +471,7 @@ describe('runChecks', () => {
       { N1: 25, N2: 30, N3: 35 },
       { T1: 0.001, T2: 0.001, T3: 0.04 },
       { converged: false },
+      { T3: 0.02 },
     );
     const report = runChecks(network, result);
     expect(report.issues.map((i) => `${i.check}:${i.elementId}`)).toEqual([
@@ -439,23 +481,29 @@ describe('runChecks', () => {
       'minDynamicPressure:N3',
       'minVelocity:T1',
       'minVelocity:T2',
-      'maxVelocity:T3',
+      'maxUnitHeadLoss:T3',
     ]);
   });
 
   it('uses custom limits and drops the standard reference for them', () => {
-    const limits = { ...NBR_CHECK_LIMITS, minDynamicPressure: 15.5, maxVelocity: 1 };
+    const limits = { ...NBR_CHECK_LIMITS, minDynamicPressure: 15.5, maxUnitHeadLoss: 0.001 };
     const report = runChecks(
       network,
-      makeResult(network, { N1: 49, N2: 48, N3: 42 }, goodFlows),
+      makeResult(
+        network,
+        { N1: 49, N2: 48, N3: 42 },
+        goodFlows,
+        {},
+        { T1: 0.002, T2: 0.002, T3: 0.002 },
+      ),
       DEFAULT_CHECK_SETTINGS,
       limits,
     );
     expect(report.issues.map((i) => `${i.check}:${i.elementId}:${i.limit}`)).toEqual([
       'minDynamicPressure:N3:15.5',
-      'maxVelocity:T1:1',
-      'maxVelocity:T2:1',
-      'maxVelocity:T3:1',
+      'maxUnitHeadLoss:T1:0.001',
+      'maxUnitHeadLoss:T2:0.001',
+      'maxUnitHeadLoss:T3:0.001',
     ]);
     expect(report.issues[0]!.explanation.pt).toContain('abaixo do mínimo de 15,5 mca. Aumente');
     expect(report.issues[0]!.explanation.en).toContain('below the minimum of 15.5 mca. Increase');

@@ -84,7 +84,7 @@ describe('Network3D controls', () => {
     expect(help.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
     expect(help.getByText(/^Arraste para girar\./)).toBeInTheDocument();
     expect(
-      help.getByText('Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).'),
+      help.getByText('Nó crítico: N4, com pressão dinâmica de 14,5 mca (mínimo de 10 mca).'),
     ).toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe('Network3D controls', () => {
     expect(controls.getByRole('button', { name: 'Reset view' })).toBeInTheDocument();
     expect(screen.getByText('Heights exaggerated 5×')).toBeInTheDocument();
     expect(screen.getByRole('img')).toHaveAccessibleName(/^3D view of the Uneven terrain network/);
-    expect(screen.getByText('N4 · 10.6 mca')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 14.5 mca')).toBeInTheDocument();
   });
 
   it('changes the vertical exaggeration and states the factor', async () => {
@@ -125,7 +125,7 @@ describe('Network3D controls', () => {
     openStage2();
     render(<Network3D />);
     expect(screen.getByRole('img')).toHaveAttribute('data-hgl', 'true');
-    expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 14,5 mca')).toBeInTheDocument();
     expect(screen.getByText('R1 · 150,0 m')).toBeInTheDocument();
     expect(screen.getAllByText('DN 100')).toHaveLength(2);
 
@@ -137,7 +137,7 @@ describe('Network3D controls', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Rótulos' }));
-    expect(screen.queryByText('N4 · 10,6 mca')).toBeNull();
+    expect(screen.queryByText('N4 · 14,5 mca')).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Recentrar vista' }));
     expect(screen.getByRole('img')).toHaveAttribute('data-reset', '1');

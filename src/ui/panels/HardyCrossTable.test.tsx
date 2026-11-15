@@ -7,9 +7,12 @@ import { useAppStore } from '../../state/store';
 import { resetStore } from '../../test/store';
 import { HardyCrossTable } from './HardyCrossTable';
 
+/** Stage 3 design whose iterations the numbers below were written for. */
+const WORKED = { T1: 100, T2: 75, T3: 50, T4: 75, T5: 75 };
+
 function open(stageId: string, formula?: HeadLossFormula) {
   const scenario = getScenario(stageId)!;
-  const diameters = scenario.reference.diameters;
+  const diameters = stageId === 'stage3' ? WORKED : scenario.reference.diameters;
   const evaluation = evaluateStage(scenario, diameters, formula ?? scenario.formula);
   useAppStore.setState({ scenario, diameters, evaluation, formula: formula ?? scenario.formula });
   return { scenario, evaluation };

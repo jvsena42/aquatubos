@@ -9,7 +9,7 @@ type Lang = keyof LocalizedText;
 export interface LimitFlag {
   kind: 'low' | 'high';
   severity: CheckSeverity;
-  /** Limit that was violated, in the unit of the column (m/s or m). */
+  /** Limit that was violated, in the unit of the column (m/s, m/km or m). */
   limit: number;
 }
 
@@ -46,6 +46,7 @@ export interface PipeTableRow {
   pressureUp: number;
   pressureDown: number;
   velocityFlag: LimitFlag | null;
+  unitHeadLossFlag: LimitFlag | null;
   pressureUpFlag: LimitFlag | null;
   pressureDownFlag: LimitFlag | null;
 }
@@ -86,6 +87,11 @@ function findFlag(
     if (issue.check === high) return { kind: 'high', severity: issue.severity, limit: issue.limit };
   }
   return null;
+}
+
+/** The engine gives the unit head loss limit in m/m; the column shows m/km. */
+function inMetresPerKm(flag: LimitFlag | null): LimitFlag | null {
+  return flag && { ...flag, limit: flag.limit * 1000 };
 }
 
 /**
@@ -144,7 +150,8 @@ export function pipeTableRows(scenario: Scenario, evaluation: StageEvaluation): 
       elevationDown: down.elevation,
       pressureUp: up.pressure,
       pressureDown: down.pressure,
-      velocityFlag: findFlag(issues, 'pipe', pipe.id, 'minVelocity', 'maxVelocity'),
+      velocityFlag: findFlag(issues, 'pipe', pipe.id, 'minVelocity', null),
+      unitHeadLossFlag: inMetresPerKm(findFlag(issues, 'pipe', pipe.id, null, 'maxUnitHeadLoss')),
       pressureUpFlag: findFlag(issues, 'node', upstream, 'minDynamicPressure', null),
       pressureDownFlag: findFlag(issues, 'node', downstream, 'minDynamicPressure', null),
     });
@@ -193,7 +200,7 @@ export function nodeTableRows(scenario: Scenario, evaluation: StageEvaluation): 
 
 export type PipeColumnKey = Exclude<
   keyof PipeTableRow,
-  'reversed' | 'velocityFlag' | 'pressureUpFlag' | 'pressureDownFlag'
+  'reversed' | 'velocityFlag' | 'unitHeadLossFlag' | 'pressureUpFlag' | 'pressureDownFlag'
 >;
 
 export interface PipeColumn {

@@ -37,7 +37,7 @@ const CHECK_FORMAT: Record<
   minDynamicPressure: { unit: ` ${HEAD_UNIT}`, digits: 1, scale: (v) => v, bound: 'min' },
   maxStaticPressure: { unit: ` ${HEAD_UNIT}`, digits: 1, scale: (v) => v, bound: 'max' },
   minVelocity: { unit: ' m/s', digits: 2, scale: (v) => v, bound: 'min' },
-  maxVelocity: { unit: ' m/s', digits: 2, scale: (v) => v, bound: 'max' },
+  maxUnitHeadLoss: { unit: ' m/km', digits: 1, scale: (v) => v * 1000, bound: 'max' },
   minDiameter: { unit: ' mm', digits: 0, scale: mToMm, bound: 'min' },
   convergence: null,
 };

@@ -29,8 +29,8 @@
       "en": "Minimum dynamic pressure of 10 mca"
     },
     {
-      "pt": "Velocidade máxima de 3,5 m/s",
-      "en": "Maximum velocity of 3.5 m/s"
+      "pt": "Perda de carga unitária máxima de 10 m/km",
+      "en": "Maximum unit head loss of 10 m/km"
     },
     {
       "pt": "Conferir na tabela de Hardy Cross que Σh do anel tende a zero",
@@ -121,7 +121,7 @@
     "minDynamicPressure": "error",
     "maxStaticPressure": "error",
     "minVelocity": "warning",
-    "maxVelocity": "error",
+    "maxUnitHeadLoss": "error",
     "minDiameter": "error"
   },
   "budget": null,
@@ -157,19 +157,27 @@
   "profilePath": ["R1", "A", "B", "C"],
   "reference": {
     "diameters": {
-      "T1": 100,
-      "T2": 75,
-      "T3": 50,
+      "T1": 150,
+      "T2": 100,
+      "T3": 75,
       "T4": 75,
-      "T5": 75
+      "T5": 50
     },
-    "cost": 73370,
+    "cost": 96190,
     "method": "Exhaustive search over all commercial diameters (cheapest passing design)."
   },
   "town": {
     "landmarks": [
-      { "type": "market", "x": 600, "y": 200 },
-      { "type": "church", "x": 120, "y": 60 }
+      {
+        "type": "market",
+        "x": 600,
+        "y": 200
+      },
+      {
+        "type": "church",
+        "x": 120,
+        "y": 60
+      }
     ]
   }
 }

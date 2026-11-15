@@ -9,8 +9,8 @@ export const stagesStrings = {
   /** Behind the "?" next to the heading. */
   introTopic: { pt: 'Como funciona', en: 'How it works' },
   intro: {
-    pt: 'Cada etapa é um projeto de rede de distribuição de água. Escolha os diâmetros, calcule e verifique os critérios da NBR 12218. Concluir uma etapa libera a seguinte.',
-    en: 'Each stage is a water distribution network design. Choose the diameters, run the calculation and check the NBR 12218 criteria. Completing a stage unlocks the next one.',
+    pt: 'Cada etapa é um projeto de rede de distribuição de água. Escolha os diâmetros, calcule e verifique os critérios da ABNT NBR 12218:2017. Concluir uma etapa libera a seguinte.',
+    en: 'Each stage is a water distribution network design. Choose the diameters, run the calculation and check the ABNT NBR 12218:2017 criteria. Completing a stage unlocks the next one.',
   },
   empty: {
     pt: 'Nenhuma etapa disponível nesta versão.',

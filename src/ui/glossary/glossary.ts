@@ -25,8 +25,8 @@ export const GLOSSARY = {
   unitHeadLoss: {
     term: { pt: 'Perda de carga unitária (J)', en: 'Unit head loss (J)' },
     definition: {
-      pt: 'Perda de carga dividida pelo comprimento do trecho: J = hf / L, em m/m. É a declividade da linha piezométrica no trecho.',
-      en: 'Head loss divided by the pipe length: J = hf / L, in m/m. It is the slope of the hydraulic grade line along the pipe.',
+      pt: 'Perda de carga dividida pelo comprimento do trecho: J = hf / L, em m/m. É a declividade da linha piezométrica no trecho. A ABNT NBR 12218:2017 limita J a 10 m/km.',
+      en: 'Head loss divided by the pipe length: J = hf / L, in m/m. It is the slope of the hydraulic grade line along the pipe. ABNT NBR 12218:2017 limits J to 10 m/km.',
     },
   },
   hgl: {
@@ -163,10 +163,10 @@ export const GLOSSARY = {
     },
   },
   nbr12218: {
-    term: { pt: 'NBR 12218', en: 'NBR 12218' },
+    term: { pt: 'ABNT NBR 12218:2017', en: 'ABNT NBR 12218:2017' },
     definition: {
-      pt: 'Norma da ABNT “Projeto de rede de distribuição de água para abastecimento público”. As verificações de pressão, velocidade e diâmetro mínimo deste aplicativo seguem os critérios dela (edição de 2017).',
-      en: 'Brazilian standard (ABNT) “Design of water distribution networks for public supply”. The pressure, velocity and minimum diameter checks in this app follow its criteria (2017 edition).',
+      pt: 'Norma da ABNT “Projeto de rede de distribuição de água para abastecimento público”. As verificações de pressão, perda de carga, velocidade e diâmetro mínimo deste aplicativo seguem os critérios da edição de 2017, que substituiu a de 1994 (velocidade mínima de 0,4 m/s em vez de 0,6 m/s, perda de carga de até 10 m/km no lugar da velocidade máxima de 3,5 m/s, pressão estática máxima de 400 kPa em vez de 500 kPa).',
+      en: 'Brazilian standard (ABNT) “Design of water distribution networks for public supply”. The pressure, head loss, velocity and minimum diameter checks in this app follow the 2017 edition, which replaced the 1994 one (minimum velocity 0.4 m/s instead of 0.6 m/s, head loss up to 10 m/km instead of a 3.5 m/s maximum velocity, maximum static pressure 400 kPa instead of 500 kPa).',
     },
   },
 } as const satisfies Record<string, GlossaryEntry>;

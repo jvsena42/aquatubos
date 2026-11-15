@@ -116,7 +116,13 @@ describe('pipeTableRows', () => {
       severity: 'error',
       limit: 10,
     });
-    expect(rows.some((r) => r.velocityFlag?.kind === 'high')).toBe(true);
+    // The unit head loss flag is in m/km, like its column.
+    expect(rows.find((r) => r.id === 'T3')!.unitHeadLossFlag).toEqual({
+      kind: 'high',
+      severity: 'error',
+      limit: 10,
+    });
+    expect(rows.some((r) => r.velocityFlag?.kind === 'high')).toBe(false);
 
     const passing = evaluateStage(scenario, scenario.reference.diameters);
     expect(pipeTableRows(scenario, passing).every((r) => r.pressureDownFlag === null)).toBe(true);
@@ -178,7 +184,7 @@ describe('CSV', () => {
     );
     const cells = lines[1]!.split(';');
     expect(cells).toHaveLength(PIPE_COLUMNS.length);
-    expect(cells.slice(0, 6)).toEqual(['T1', 'R1', 'N1', '250,0', '10,500', '100']);
+    expect(cells.slice(0, 6)).toEqual(['T1', 'R1', 'N1', '250,0', '10,500', '150']);
     expect(cells[9]).toBe('150,00');
     expect(cells[11]).toBe('146,00');
     expect(cells[14]).toBe(evaluation.result.nodes.N1!.pressure.toFixed(2).replace('.', ','));

@@ -84,11 +84,11 @@ describe('Network3D on a phone', () => {
     render(<Network3D />);
     const summary = document.querySelector('.net3d__summary')!;
     expect(summary.querySelector('[aria-hidden="true"]')).toHaveTextContent(
-      /^Crítico: N4 · 10,6 mca$/,
+      /^Crítico: N4 · 14,5 mca$/,
     );
     expect(
       within(summary as HTMLElement).getByText(
-        'Nó crítico: N4, com pressão dinâmica de 10,6 mca (mínimo de 10 mca).',
+        'Nó crítico: N4, com pressão dinâmica de 14,5 mca (mínimo de 10 mca).',
       ),
     ).toHaveClass('visually-hidden');
     expect(screen.queryByRole('list', { name: 'Legenda' })).toBeNull();
@@ -104,8 +104,8 @@ describe('Network3D on a phone', () => {
     openStage('stage2');
     render(<Network3D />);
     expect(screen.queryByText(/^DN /)).toBeNull();
-    expect(screen.getByText('N4 · 10,6')).toBeInTheDocument();
-    expect(screen.queryByText('N4 · 10,6 mca')).toBeNull();
+    expect(screen.getByText('N4 · 14,5')).toBeInTheDocument();
+    expect(screen.queryByText('N4 · 14,5 mca')).toBeNull();
     expect(screen.getByText('R1')).toBeInTheDocument();
     expect(screen.queryByText('R1 · 150,0 m')).toBeNull();
   });
@@ -119,7 +119,7 @@ describe('Network3D on a phone', () => {
 
     useAppStore.setState({ selection: { type: 'node', id: 'N4' } });
     rerender(<Network3D />);
-    expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 14,5 mca')).toBeInTheDocument();
     expect(screen.queryByText(/DN \d+$/)).toBeNull();
 
     useAppStore.setState({ selection: { type: 'reservoir', id: 'R1' } });
@@ -166,7 +166,7 @@ describe('Network3D on other devices', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Vista 3D' }));
     expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
     expect(screen.getByText(/^Arraste para girar\./)).toBeInTheDocument();
-    expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 14,5 mca')).toBeInTheDocument();
     expect(screen.getAllByText('DN 100')).toHaveLength(2);
   });
 
@@ -181,7 +181,7 @@ describe('Network3D on other devices', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ajuda: Vista 3D' }));
     expect(screen.getByRole('list', { name: 'Legenda' })).toBeInTheDocument();
     expect(screen.getByText(/^Arraste com um dedo para girar\./)).toBeInTheDocument();
-    expect(screen.getByText('N4 · 10,6 mca')).toBeInTheDocument();
+    expect(screen.getByText('N4 · 14,5 mca')).toBeInTheDocument();
     expect(container.querySelector('.net3d--compact')).toBeNull();
   });
 

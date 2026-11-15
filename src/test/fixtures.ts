@@ -22,7 +22,7 @@ export function makeScenario(order: number, overrides: Partial<Scenario> = {}): 
       minDynamicPressure: 'error',
       maxStaticPressure: 'error',
       minVelocity: 'warning',
-      maxVelocity: 'error',
+      maxUnitHeadLoss: 'error',
       minDiameter: 'error',
     },
     budget: null,

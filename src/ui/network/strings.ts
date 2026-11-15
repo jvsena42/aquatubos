@@ -57,14 +57,10 @@ export const networkStrings = {
     pt: `V abaixo de ${limit} m/s`,
     en: `V below ${limit} m/s`,
   }),
-  legendVelocityOk: (min: string, max: string): LocalizedText => ({
-    pt: `V de ${min} a ${max} m/s`,
-    en: `V from ${min} to ${max} m/s`,
-  }),
-  legendVelocityOkOnly: { pt: 'V adequada', en: 'V within the limit' },
-  legendVelocityHigh: (limit: string): LocalizedText => ({
-    pt: `V acima de ${limit} m/s`,
-    en: `V above ${limit} m/s`,
+  legendPipeOk: { pt: 'Trecho adequado', en: 'Pipe within limits' },
+  legendUnitLossHigh: (limit: string): LocalizedText => ({
+    pt: `J acima de ${limit} m/km`,
+    en: `J above ${limit} m/km`,
   }),
   legendDirection: { pt: 'Sentido do escoamento', en: 'Flow direction' },
   legendWidth: { pt: 'Espessura proporcional ao DN', en: 'Line width follows the DN' },
@@ -105,7 +101,7 @@ export const pressureStatusLabels: Record<LimitStatus, LocalizedText> = {
 
 export const velocityStatusLabels: Record<LimitStatus, LocalizedText> = {
   none: { pt: 'velocidade não verificada', en: 'velocity not checked' },
-  ok: { pt: 'velocidade dentro dos limites', en: 'velocity within limits' },
+  ok: { pt: 'dentro dos limites', en: 'within limits' },
   low: { pt: 'velocidade abaixo da mínima', en: 'velocity below the minimum' },
-  high: { pt: 'velocidade acima da máxima', en: 'velocity above the maximum' },
+  high: { pt: 'perda de carga acima da máxima', en: 'head loss above the maximum' },
 };

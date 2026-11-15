@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'Aquatubos',
         short_name: 'Aquatubos',
         description:
-          'Dimensionamento de redes de distribuição de água com cálculo hidráulico (NBR 12218).',
+          'Dimensionamento de redes de distribuição de água com cálculo hidráulico (ABNT NBR 12218:2017).',
         lang: 'pt-BR',
         start_url: base,
         scope: base,

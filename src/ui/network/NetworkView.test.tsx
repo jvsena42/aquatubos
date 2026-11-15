@@ -79,8 +79,9 @@ describe('NetworkView', () => {
     render(<NetworkView />);
     const flow = pt(evaluation.result.pipes.T1!.flow * 1000);
     const velocity = pt(Math.abs(evaluation.result.pipes.T1!.velocity));
+    const unitLoss = pt(evaluation.result.pipes.T1!.unitHeadLoss * 1000);
     expect(element('pipe', 'T1')).toHaveAccessibleName(
-      `Trecho T1, DN 75 mm, vazão ${flow} L/s, velocidade ${velocity} m/s, escoamento de R1 para A, velocidade dentro dos limites`,
+      `Trecho T1, DN 75 mm, vazão ${flow} L/s, velocidade ${velocity} m/s, J ${unitLoss} m/km, escoamento de R1 para A, perda de carga acima da máxima`,
     );
     const pressure = pt(evaluation.result.nodes.A!.pressure);
     expect(element('node', 'A')).toHaveAccessibleName(
@@ -377,14 +378,15 @@ describe('NetworkView', () => {
     expect(element('node', 'N2')).toHaveClass('netview__node--low');
   });
 
-  it('colours pipes by velocity class', () => {
+  it('colours pipes by unit head loss and minimum velocity', () => {
     const { evaluation } = openStage('stage4');
     render(<NetworkView />);
     const issues = evaluation.report.issues;
-    expect(issues.some((i) => i.check === 'maxVelocity' && i.elementId === 'T2')).toBe(true);
-    expect(element('pipe', 'T2')).toHaveClass('netview__pipe--high');
+    const fails = (check: string, id: string) =>
+      issues.some((i) => i.check === check && i.elementId === id);
+    expect(fails('maxUnitHeadLoss', 'T1')).toBe(true);
+    expect(element('pipe', 'T1')).toHaveClass('netview__pipe--high');
     expect(element('pipe', 'T11')).toHaveClass('netview__pipe--low');
-    expect(element('pipe', 'T1')).toHaveClass('netview__pipe--ok');
   });
 
   it.each(SCENARIOS.map((s) => s.id))(
@@ -406,8 +408,12 @@ describe('NetworkView', () => {
             .sort();
         expect(where(nodes, (n) => n.low)).toEqual(failing('minDynamicPressure'));
         expect(where(nodes, (n) => n.high)).toEqual(failing('maxStaticPressure'));
-        expect(where(pipes, (p) => p === 'low')).toEqual(failing('minVelocity'));
-        expect(where(pipes, (p) => p === 'high')).toEqual(failing('maxVelocity'));
+        const high = failing('maxUnitHeadLoss');
+        expect(where(pipes, (p) => p === 'high')).toEqual(high);
+        // A pipe above the head loss limit shows as high even when its velocity is low.
+        expect(where(pipes, (p) => p === 'low')).toEqual(
+          failing('minVelocity').filter((id) => !high.includes(id)),
+        );
       }
     },
   );

@@ -95,7 +95,7 @@ describe('StageHud', () => {
       expect(items.map((li) => li.textContent)).toEqual([
         'Pressão dinâmica mínima de 10 mca',
         'Pressão estática máxima de 40 mca',
-        'Velocidade máxima de 3,5 m/s',
+        'Perda de carga unitária máxima de 10 m/km',
       ]);
     });
   });
@@ -143,7 +143,7 @@ describe('StageHud', () => {
       expect(help('Custo')).not.toHaveTextContent('Referência');
 
       act(() => useAppStore.setState({ progress: { stage2: makeProgress('stage2') } }));
-      expect(help('Custo')).toHaveTextContent(`Referência ${brl('64.160,00')} (igual).`);
+      expect(help('Custo')).toHaveTextContent(`Referência ${brl('91.710,00')} (igual).`);
     });
 
     it('compares a more expensive design with the reference once completed', () => {
@@ -153,7 +153,7 @@ describe('StageHud', () => {
       useAppStore.setState({ progress: { stage2: makeProgress('stage2') } });
       open(scenario, diameters);
       render(<StageHud />);
-      expect(help('Custo')).toHaveTextContent(/Referência R\$\s64\.160,00 \(\d+,\d % acima\)/);
+      expect(help('Custo')).toHaveTextContent(/Referência R\$\s91\.710,00 \(\d+,\d % acima\)/);
     });
 
     it('draws the cost against the budget in stage 4', () => {
@@ -161,11 +161,11 @@ describe('StageHud', () => {
       open(scenario, scenario.reference.diameters);
       render(<StageHud />);
       const cost = item('Custo');
-      expect(cost).toHaveTextContent(brl('137.400,00'));
+      expect(cost).toHaveTextContent(brl('172.800,00'));
       expect(cost).not.toHaveTextContent('Orçamento');
-      // 159 000 − 137 400 = 21 600
+      // 199 000 − 172 800 = 26 200
       expect(help('Custo')).toHaveTextContent(
-        `Orçamento ${brl('159.000,00')}: sobram ${brl('21.600,00')}.`,
+        `Orçamento ${brl('199.000,00')}: sobram ${brl('26.200,00')}.`,
       );
       expect(help('Custo')).not.toHaveTextContent('Referência');
       expect(help('Custo')).not.toHaveTextContent('Acima do orçamento');
@@ -181,7 +181,7 @@ describe('StageHud', () => {
       open(scenario, scenario.reference.diameters);
       render(<StageHud />);
       const cost = item('Custo');
-      expect(help('Custo')).toHaveTextContent(`Referência ${brl('137.400,00')}`);
+      expect(help('Custo')).toHaveTextContent(`Referência ${brl('172.800,00')}`);
       expect(cost.querySelector('.hud__bar-reference')).toBeInTheDocument();
     });
 
@@ -249,9 +249,9 @@ describe('StageHud', () => {
       expect(evaluation.stars).toBe(1);
       render(<StageHud />);
       expect(screen.getByRole('img', { name: '1 de 3 estrelas' })).toBeInTheDocument();
-      // 64 160 × 1,25 = 80 200
+      // 91 710 × 1,25 = 114 637,50
       expect(help('Estrelas')).toHaveTextContent(
-        `Próxima estrela com custo ≤ ${brl('80.200,00')}.`,
+        `Próxima estrela com custo ≤ ${brl('114.637,50')}.`,
       );
     });
   });
@@ -375,9 +375,9 @@ describe('StageHud', () => {
     render(<StageHud />);
     expect(screen.getByRole('region', { name: 'Design status' })).toBeInTheDocument();
     expect(item('Houses served')).toBeInTheDocument();
-    expect(item('Cost')).toHaveTextContent(`R$${NBSP}137,400.00`);
+    expect(item('Cost')).toHaveTextContent(`R$${NBSP}172,800.00`);
     expect(help('Cost', 'Help')).toHaveTextContent(
-      `Budget R$${NBSP}159,000.00: R$${NBSP}21,600.00 to spare.`,
+      `Budget R$${NBSP}199,000.00: R$${NBSP}26,200.00 to spare.`,
     );
     expect(help('Stars', 'Help')).toHaveTextContent('Top rating.');
     expect(help('Houses served', 'Help')).toHaveTextContent('Minimum dynamic pressure of 10 mca');
@@ -400,8 +400,8 @@ describe('StageHud compact (phone)', () => {
     render(<StageHud compact />);
     expect(hud()).toHaveClass('hud--compact');
     expect(hud()).toHaveTextContent(/Casas atendidas:\s*33\/33/);
-    expect(hud()).toHaveTextContent(`Custo:${brl('64.160')}`);
-    expect(hud()).not.toHaveTextContent('64.160,00');
+    expect(hud()).toHaveTextContent(`Custo:${brl('91.710')}`);
+    expect(hud()).not.toHaveTextContent('91.710,00');
     expect(within(hud()).getByRole('img', { name: '3 de 3 estrelas' })).toBeInTheDocument();
     expect(within(hud()).getAllByRole('button')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Ajuda: Situação do projeto' })).toHaveAttribute(
@@ -417,8 +417,8 @@ describe('StageHud compact (phone)', () => {
     render(<StageHud compact />);
     const note = help('Situação do projeto');
     expect(note).toHaveTextContent('Casas em nós sem falha de pressão');
-    expect(note).toHaveTextContent(`Custo atual: ${brl('64.160,00')}.`);
-    expect(note).toHaveTextContent(`Referência ${brl('64.160,00')} (igual).`);
+    expect(note).toHaveTextContent(`Custo atual: ${brl('91.710,00')}.`);
+    expect(note).toHaveTextContent(`Referência ${brl('91.710,00')} (igual).`);
     expect(note).toHaveTextContent('Nota máxima.');
     expect(within(note).getAllByRole('listitem')).toHaveLength(scenario.objectives.length);
   });

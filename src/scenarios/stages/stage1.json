@@ -124,7 +124,7 @@
     "minDynamicPressure": "error",
     "maxStaticPressure": "off",
     "minVelocity": "off",
-    "maxVelocity": "off",
+    "maxUnitHeadLoss": "off",
     "minDiameter": "error"
   },
   "budget": null,
@@ -148,8 +148,16 @@
   },
   "town": {
     "landmarks": [
-      { "type": "church", "x": 150, "y": 105 },
-      { "type": "school", "x": 700, "y": 335 }
+      {
+        "type": "church",
+        "x": 150,
+        "y": 105
+      },
+      {
+        "type": "school",
+        "x": 700,
+        "y": 335
+      }
     ]
   }
 }

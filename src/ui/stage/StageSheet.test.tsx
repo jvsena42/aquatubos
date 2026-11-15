@@ -25,7 +25,7 @@ const failing = () =>
       passed: false,
       issues: [
         makeIssue(),
-        makeIssue({ elementType: 'pipe', elementId: 'T1', check: 'maxVelocity' }),
+        makeIssue({ elementType: 'pipe', elementId: 'T1', check: 'maxUnitHeadLoss' }),
       ],
       staticPressure: {},
     },
@@ -183,7 +183,7 @@ describe('StageSheet', () => {
       render(<StageSheet side={false} />);
       await user.click(handle());
       expect(pressed()).toHaveTextContent('Verificações');
-      await user.click(screen.getByRole('button', { name: /Velocidade máx\..*Trecho T1/ }));
+      await user.click(screen.getByRole('button', { name: /Perda de carga máx\..*Trecho T1/ }));
       expect(pressed()).toHaveTextContent('Cálculo');
       expect(screen.getByRole('heading', { name: 'Trecho T1' })).toBeInTheDocument();
     });
